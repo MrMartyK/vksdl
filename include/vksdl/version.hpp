@@ -1,0 +1,7 @@
+#pragma once
+
+#define VKSDL_VERSION_MAJOR 0
+#define VKSDL_VERSION_MINOR 12
+#define VKSDL_VERSION_PATCH 0
+
+#define VKSDL_VERSION_STRING "0.12.0"

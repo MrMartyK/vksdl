@@ -1,0 +1,52 @@
+#pragma once
+
+// vksdl - Vulkan bootstrapping library
+// Master include header
+
+#include <vksdl/version.hpp>
+#include <vksdl/error.hpp>
+#include <vksdl/result.hpp>
+#include <vksdl/allocator.hpp>
+#include <vksdl/bindless_table.hpp>
+#include <vksdl/app.hpp>
+#include <vksdl/barriers.hpp>
+#include <vksdl/buffer.hpp>
+#include <vksdl/compute_pipeline.hpp>
+#include <vksdl/debug.hpp>
+#include <vksdl/descriptor_allocator.hpp>
+#include <vksdl/descriptor_pool.hpp>
+#include <vksdl/descriptor_set.hpp>
+#include <vksdl/descriptor_writer.hpp>
+#include <vksdl/device.hpp>
+#include <vksdl/frame_descriptor_allocator.hpp>
+#include <vksdl/fly_camera.hpp>
+#include <vksdl/orbit_camera.hpp>
+#include <vksdl/projection.hpp>
+#include <vksdl/frames.hpp>
+#include <vksdl/image.hpp>
+#include <vksdl/instance.hpp>
+#include <vksdl/mesh.hpp>
+#include <vksdl/pipeline.hpp>
+#include <vksdl/push_descriptor_writer.hpp>
+#include <vksdl/pipeline_cache.hpp>
+#include <vksdl/pipeline_model/pipeline_policy.hpp>
+#include <vksdl/pipeline_model/pipeline_handle.hpp>
+#include <vksdl/pipeline_model/pipeline_compiler.hpp>
+#include <vksdl/pipeline_model/gpl_library.hpp>
+#include <vksdl/query_pool.hpp>
+#include <vksdl/blas.hpp>
+#include <vksdl/tlas.hpp>
+#include <vksdl/rt_pipeline.hpp>
+#include <vksdl/sbt.hpp>
+#include <vksdl/sampler.hpp>
+#include <vksdl/sampler_cache.hpp>
+#include <vksdl/shader_reflect.hpp>
+#include <vksdl/surface.hpp>
+#include <vksdl/swapchain.hpp>
+#include <vksdl/texture.hpp>
+#include <vksdl/timeline_sync.hpp>
+#include <vksdl/transfer_queue.hpp>
+#include <vksdl/transform.hpp>
+#include <vksdl/util.hpp>
+#include <vksdl/vulkan_wsi.hpp>
+#include <vksdl/window.hpp>

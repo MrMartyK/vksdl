@@ -1,0 +1,31 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(set = 0, binding = 0, rgba8) uniform readonly image2D inputImage;
+layout(set = 0, binding = 1, rgba8) uniform writeonly image2D outputImage;
+layout(push_constant) uniform Push { float time; } pc;
+
+void main() {
+    ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(inputImage);
+    if (pos.x >= size.x || pos.y >= size.y) return;
+
+    vec2 uv = vec2(pos) / vec2(size);
+
+    // Chromatic aberration -- offset R and B channels toward/away from center
+    vec2 center = uv - 0.5;
+    float aberr = 0.003;
+    ivec2 rPos = clamp(ivec2(vec2(pos) + center * aberr * vec2(size)), ivec2(0), size - 1);
+    ivec2 bPos = clamp(ivec2(vec2(pos) - center * aberr * vec2(size)), ivec2(0), size - 1);
+
+    float r = imageLoad(inputImage, rPos).r;
+    float g = imageLoad(inputImage, pos).g;
+    float b = imageLoad(inputImage, bPos).b;
+
+    vec3 col = vec3(r, g, b);
+
+    // Vignette
+    float dist = length(center) * 1.4;
+    col *= 1.0 - dist * dist * 0.5;
+
+    imageStore(outputImage, pos, vec4(clamp(col, 0.0, 1.0), 1.0));
+}

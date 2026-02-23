@@ -1,0 +1,139 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+
+layout(binding = 0, set = 0) uniform accelerationStructureEXT tlas;
+layout(binding = 1, set = 0, rgba32f) uniform image2D accumImage;
+layout(binding = 2, set = 0, rgba8)   uniform image2D displayImage;
+
+layout(push_constant) uniform PC {
+    vec3     camPos;    float camFov;
+    vec3     camRight;  uint  frameIdx;
+    vec3     camUp;     uint  sampleCnt;
+    vec3     camFwd;    float aperture;
+    float    focusDist; float _pad[3];
+};
+
+struct RayPayload {
+    vec3  attenuation;
+    vec3  scatterOrigin;
+    vec3  scatterDir;
+    uint  seed;
+    bool  missed;
+    vec3  color;
+    vec3  directLight;
+};
+
+layout(location = 0) rayPayloadEXT RayPayload payload;
+
+// --- PCG random number generator ---
+
+uint pcg(inout uint state) {
+    state = state * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+float randomFloat(inout uint state) {
+    return float(pcg(state)) / 4294967295.0;
+}
+
+vec2 randomInUnitDisk(inout uint state) {
+    for (int i = 0; i < 16; i++) {
+        vec2 p = vec2(randomFloat(state), randomFloat(state)) * 2.0 - 1.0;
+        if (dot(p, p) < 1.0) return p;
+    }
+    return vec2(0.0);
+}
+
+// --- ACES filmic tone mapping ---
+
+vec3 aces(vec3 x) {
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
+void main() {
+    uint seed = gl_LaunchIDEXT.x * 1973u + gl_LaunchIDEXT.y * 9277u
+              + frameIdx * 26699u + 1u;
+
+    // Subpixel jitter for anti-aliasing.
+    vec2 jitter = vec2(randomFloat(seed), randomFloat(seed)) - 0.5;
+    vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5) + jitter;
+    vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+    vec2 d = uv * 2.0 - 1.0;
+    d.y = -d.y;
+
+    float aspect = float(gl_LaunchSizeEXT.x) / float(gl_LaunchSizeEXT.y);
+
+    // Primary ray direction (pinhole).
+    vec3 direction = normalize(camFwd + camRight * d.x * aspect * camFov
+                                      + camUp    * d.y * camFov);
+
+    // Thin-lens depth of field.
+    vec3 focalPoint = camPos + direction * focusDist;
+    vec2 rd = aperture * randomInUnitDisk(seed);
+    vec3 origin = camPos + camRight * rd.x + camUp * rd.y;
+    direction = normalize(focalPoint - origin);
+
+    // Iterative path tracing with next-event estimation.
+    vec3 throughput = vec3(1.0);
+    vec3 color      = vec3(0.0);
+    const int MAX_BOUNCES = 12;
+
+    for (int bounce = 0; bounce <= MAX_BOUNCES; bounce++) {
+        payload.seed        = seed;
+        payload.missed      = false;
+        payload.directLight = vec3(0.0);
+
+        traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF,
+                    0, 0, 0,
+                    origin, 0.001, direction, 10000.0,
+                    0);
+
+        seed = payload.seed;
+
+        if (payload.missed) {
+            color += throughput * payload.color;
+            break;
+        }
+
+        // Add direct light from next-event estimation (sun sampling).
+        color += throughput * payload.directLight;
+
+        throughput *= payload.attenuation;
+
+        // Russian roulette after bounce 4.
+        if (bounce > 4) {
+            float p = max(throughput.r, max(throughput.g, throughput.b));
+            if (randomFloat(seed) > p) break;
+            throughput /= p;
+        }
+
+        origin    = payload.scatterOrigin;
+        direction = payload.scatterDir;
+    }
+
+    // Firefly clamp: cap extreme outliers.
+    color = min(color, vec3(25.0));
+
+    // NaN/inf guard.
+    if (any(isnan(color)) || any(isinf(color)))
+        color = vec3(0.0);
+
+    // Accumulate raw linear HDR into float32 image.
+    ivec2 px = ivec2(gl_LaunchIDEXT.xy);
+    vec4 accum = imageLoad(accumImage, px);
+    accum.rgb += color;
+    accum.a   += 1.0;
+    imageStore(accumImage, px, accum);
+
+    // Exposure + ACES filmic tone mapping.
+    // Output linear -- the SRGB swapchain applies gamma via the blit.
+    vec3 display = accum.rgb / accum.a;
+    display = aces(display * 0.45);
+    imageStore(displayImage, px, vec4(display, 1.0));
+}

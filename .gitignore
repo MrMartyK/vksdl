@@ -1,0 +1,19 @@
+build/
+out/
+.vs/
+.vscode/
+.cache/
+*.user
+CMakeUserPresets.json
+
+# Reference files (local only)
+*.pdf
+*.mhtml
+NVIDIA*.json
+SDL3-*/
+
+# Local project docs (not shipped)
+*-reference.md
+DESIGN.md
+RENDER_GRAPH_DESIGN.md
+pipeline_log.txt

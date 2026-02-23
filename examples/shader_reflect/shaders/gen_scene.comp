@@ -1,0 +1,42 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(set = 0, binding = 0, rgba8) uniform writeonly image2D outputImage;
+
+layout(push_constant) uniform Push {
+    float time;
+} pc;
+
+void main() {
+    ivec2 pos  = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(outputImage);
+    if (pos.x >= size.x || pos.y >= size.y) return;
+
+    vec2 uv = vec2(pos) / vec2(size);
+    vec3 col = vec3(0.0);
+
+    // 8 colored circles orbiting in a Lissajous pattern
+    for (int i = 0; i < 8; ++i) {
+        float fi    = float(i);
+        float angle = pc.time * (0.3 + fi * 0.1) + fi * 0.785398;
+        vec2 center = vec2(
+            0.5 + 0.3 * cos(angle),
+            0.5 + 0.3 * sin(angle * 0.7)
+        );
+        float r      = 0.08 + 0.04 * sin(pc.time + fi);
+        float d      = length(uv - center);
+        float circle = smoothstep(r, r - 0.02, d);
+        vec3 hue     = 0.5 + 0.5 * cos(fi * 0.8 + vec3(0.0, 2.094395, 4.18879));
+        col += circle * hue;
+    }
+
+    // Dark purple-blue background gradient
+    float lum = min(length(col), 1.0);
+    col += (1.0 - lum) * mix(
+        vec3(0.15, 0.1, 0.2),
+        vec3(0.1, 0.15, 0.25),
+        uv.y
+    );
+
+    imageStore(outputImage, pos, vec4(clamp(col, 0.0, 1.0), 1.0));
+}

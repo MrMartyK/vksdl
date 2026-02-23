@@ -1,0 +1,28 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(set = 0, binding = 0, rgba8) uniform writeonly image2D outputImage;
+layout(push_constant) uniform Push { float time; } pc;
+
+void main() {
+    ivec2 pos  = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(outputImage);
+    if (pos.x >= size.x || pos.y >= size.y) return;
+
+    vec2 uv = vec2(pos) / vec2(size);
+    float t = pc.time;
+
+    // Multi-layered plasma
+    float v = 0.0;
+    v += sin(uv.x * 10.0 + t * 1.5);
+    v += sin(uv.y * 8.0  - t * 1.2);
+    v += sin((uv.x + uv.y) * 6.0 + t);
+    v += sin(sqrt(uv.x * uv.x * 100.0 + uv.y * uv.y * 100.0) + t * 2.0);
+    v *= 0.25;
+
+    vec3 col;
+    col.r = sin(v * 3.14159 + 0.0)   * 0.5 + 0.5;
+    col.g = sin(v * 3.14159 + 2.094) * 0.5 + 0.5;
+    col.b = sin(v * 3.14159 + 4.189) * 0.5 + 0.5;
+
+    imageStore(outputImage, pos, vec4(col, 1.0));
+}

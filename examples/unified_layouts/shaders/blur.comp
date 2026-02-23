@@ -1,0 +1,24 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(set = 0, binding = 0, rgba8) uniform readonly image2D inputImage;
+layout(set = 0, binding = 1, rgba8) uniform writeonly image2D outputImage;
+layout(push_constant) uniform Push { float time; } pc;
+
+void main() {
+    ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(inputImage);
+    if (pos.x >= size.x || pos.y >= size.y) return;
+
+    vec4 sum = vec4(0.0);
+    int radius = 3;
+    float count = 0.0;
+    for (int dy = -radius; dy <= radius; ++dy) {
+        for (int dx = -radius; dx <= radius; ++dx) {
+            ivec2 p = clamp(pos + ivec2(dx, dy), ivec2(0), size - 1);
+            sum += imageLoad(inputImage, p);
+            count += 1.0;
+        }
+    }
+
+    imageStore(outputImage, pos, sum / count);
+}

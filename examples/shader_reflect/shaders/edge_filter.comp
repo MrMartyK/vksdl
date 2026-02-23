@@ -1,0 +1,50 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16) in;
+
+// Two storage images: reflection picks up both bindings automatically.
+layout(set = 0, binding = 0, rgba8) uniform readonly  image2D inputImage;
+layout(set = 0, binding = 1, rgba8) uniform writeonly image2D outputImage;
+
+// Push constants: reflection picks up size (8 bytes) and stage automatically.
+layout(push_constant) uniform Push {
+    float time;
+    float edgeStrength;
+} pc;
+
+float luminance(vec3 c) {
+    return dot(c, vec3(0.299, 0.587, 0.114));
+}
+
+void main() {
+    ivec2 pos  = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(inputImage);
+    if (pos.x >= size.x || pos.y >= size.y) return;
+
+    // Sobel edge detection
+    float sobelX = 0.0;
+    float sobelY = 0.0;
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            ivec2 p   = clamp(pos + ivec2(dx, dy), ivec2(0), size - 1);
+            float lum = luminance(imageLoad(inputImage, p).rgb);
+
+            // Standard Sobel kernel weights
+            float kx = float(dx) * (dy == 0 ? 2.0 : 1.0);
+            float ky = float(dy) * (dx == 0 ? 2.0 : 1.0);
+            sobelX += lum * kx;
+            sobelY += lum * ky;
+        }
+    }
+    float edge = sqrt(sobelX * sobelX + sobelY * sobelY);
+
+    // Color quantization for cel-shading effect
+    vec3 original = imageLoad(inputImage, pos).rgb;
+    float levels  = 6.0;
+    vec3 quantized = floor(original * levels + 0.5) / levels;
+
+    // Dark edges on quantized color -- the cel-shaded look
+    float edgeMask = 1.0 - smoothstep(0.1, 0.3, edge * pc.edgeStrength);
+    vec3 result    = quantized * edgeMask;
+
+    imageStore(outputImage, pos, vec4(result, 1.0));
+}

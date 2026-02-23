@@ -1,0 +1,16 @@
+{
+  "name": "vksdl",
+  "version": "0.12.0",
+  "description": "Vulkan bootstrapping library -- wraps the ceremony, leaves the Vulkan",
+  "dependencies": [
+    {
+      "name": "sdl3",
+      "features": ["vulkan"]
+    },
+    "cgltf",
+    "glm",
+    "stb",
+    "tinyobjloader",
+    "vulkan-memory-allocator"
+  ]
+}

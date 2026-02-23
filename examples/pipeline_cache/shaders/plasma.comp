@@ -1,0 +1,33 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16) in;
+layout(set = 0, binding = 0, rgba8) uniform writeonly image2D outputImage;
+layout(push_constant) uniform Push { float time; } pc;
+
+void main() {
+    ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(outputImage);
+    if (pos.x >= size.x || pos.y >= size.y) return;
+
+    vec2 uv = vec2(pos) / vec2(size);
+    float t = pc.time;
+
+    // Classic plasma effect: superimposed sine waves.
+    float v = 0.0;
+    v += sin((uv.x * 10.0 + t));
+    v += sin((uv.y * 10.0 + t) / 2.0);
+    v += sin((uv.x * 10.0 + uv.y * 10.0 + t) / 2.0);
+
+    float cx = uv.x + 0.5 * sin(t / 5.0);
+    float cy = uv.y + 0.5 * cos(t / 3.0);
+    v += sin(sqrt(100.0 * (cx*cx + cy*cy) + 1.0) + t);
+    v /= 2.0;
+
+    // Map to RGB via phase-shifted sinusoids (120 degree hue separation).
+    vec3 col;
+    col.r = sin(v * 3.14159);
+    col.g = sin(v * 3.14159 + 2.094);
+    col.b = sin(v * 3.14159 + 4.188);
+    col = col * 0.5 + 0.5;
+
+    imageStore(outputImage, pos, vec4(col, 1.0));
+}
