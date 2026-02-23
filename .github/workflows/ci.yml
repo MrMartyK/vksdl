@@ -82,10 +82,12 @@ jobs:
           build-essential cmake ninja-build
           autoconf autoconf-archive automake libtool pkg-config
           libltdl-dev
-          libx11-dev libxft-dev libxext-dev
-          libwayland-dev libxkbcommon-dev libegl1-mesa-dev
-          libibus-1.0-dev
-          libdbus-1-dev
+          libasound2-dev libpulse-dev libpipewire-0.3-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev
+          libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
+          libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
+          libudev-dev libdecor-0-dev libwayland-dev
 
       - name: Bootstrap vcpkg
         run: ./vcpkg/bootstrap-vcpkg.sh
