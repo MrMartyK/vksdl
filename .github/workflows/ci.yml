@@ -197,6 +197,7 @@ jobs:
 
       - name: Integration tests (Lavapipe)
         continue-on-error: true
+        timeout-minutes: 10
         run: >-
           xvfb-run ctest --test-dir build --output-on-failure
           -E "test_error|test_result|test_projection|test_transform"
@@ -270,6 +271,7 @@ jobs:
 
       - name: Integration tests (Lavapipe + ASan)
         continue-on-error: true
+        timeout-minutes: 10
         run: >-
           xvfb-run ctest --test-dir build --output-on-failure
           -E "test_error|test_result|test_projection|test_transform"
@@ -343,6 +345,7 @@ jobs:
 
       - name: Integration tests (Lavapipe + TSan)
         continue-on-error: true
+        timeout-minutes: 15
         run: >-
           xvfb-run ctest --test-dir build --output-on-failure
           -E "test_error|test_result|test_projection|test_transform"
@@ -409,7 +412,7 @@ jobs:
       - name: Generate coverage report
         run: |
           lcov --capture --directory build --output-file coverage.info \
-            --ignore-errors mismatch --ignore-errors gcov
+            --ignore-errors mismatch --ignore-errors gcov --ignore-errors version
           lcov --remove coverage.info \
             '/usr/*' '*/vcpkg_installed/*' '*/tests/*' '*/examples/*' '*/third_party/*' \
             --output-file coverage.info --ignore-errors unused
