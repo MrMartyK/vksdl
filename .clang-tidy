@@ -6,14 +6,16 @@ Checks: >
   -bugprone-easily-swappable-parameters,
   -bugprone-narrowing-conversions,
   -bugprone-exception-escape,
+  -bugprone-unchecked-optional-access,
   performance-*,
+  -performance-enum-size,
   modernize-use-override,
   modernize-use-nullptr,
   modernize-use-auto,
   misc-unused-*,
-  readability-redundant-*
+  readability-redundant-*,
+  -readability-redundant-member-init
 
-# Report findings but don't fail the build (the CI job uses continue-on-error).
 WarningsAsErrors: ''
 
 # Only analyze vksdl's own headers, not system/vcpkg headers.

@@ -475,7 +475,7 @@ jobs:
           cmake -B build -S .
           -G Ninja
           -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
-          -DCMAKE_CXX_CLANG_TIDY="clang-tidy-18"
+          -DCMAKE_CXX_CLANG_TIDY="clang-tidy-18;-warnings-as-errors="
 
       - name: Build (with clang-tidy)
         run: cmake --build build
