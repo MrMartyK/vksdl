@@ -412,11 +412,12 @@ jobs:
       - name: Generate coverage report
         run: |
           lcov --capture --directory build --output-file coverage.info \
-            --ignore-errors mismatch --ignore-errors gcov --ignore-errors version
+            --gcov-tool gcov-14 \
+            --ignore-errors mismatch --ignore-errors gcov
           lcov --remove coverage.info \
             '/usr/*' '*/vcpkg_installed/*' '*/tests/*' '*/examples/*' '*/third_party/*' \
-            --output-file coverage.info --ignore-errors unused
-          lcov --list coverage.info
+            --output-file coverage.info --ignore-errors unused --ignore-errors empty
+          lcov --list coverage.info --ignore-errors empty
 
       - name: Upload to Codecov
         if: env.CODECOV_TOKEN != ''
