@@ -4,11 +4,13 @@
 
 vksdl wraps the ceremony -- instance creation, device selection, swapchain management, synchronization, pipeline construction -- and leaves the actual rendering to you. One `#include`, raw `VkCommandBuffer` inside, full escape hatches everywhere.
 
-- **~17k lines** of C++20 across 54 public headers
+- **~17k lines** of C++20 across 56 public headers
 - **Vulkan 1.3 core** -- dynamic rendering, synchronization2, timeline semaphores. No legacy render passes, no compatibility mode
 - **SDL3** for windowing -- Windows, Linux, macOS from one codebase, zero platform `#ifdef`s
-- **40 tests**, 20 working examples from triangle to path-traced spheres to a 40-pass deferred renderer
+- **43 tests**, 20 working examples from triangle to path-traced spheres to a 40-pass deferred renderer
 - **Zero per-frame allocations** in the hot path
+
+[vksdl.com](https://vksdl.com)
 
 ---
 
@@ -48,7 +50,7 @@ vksdl::presentFrame(device, swapchain, window, frame, img,
                     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 ```
 
-The full triangle example is [120 lines](examples/triangle/main.cpp) including the render loop and resize handling. The raw Vulkan equivalent is 800+.
+The full triangle example is [113 lines](examples/triangle/main.cpp) including the render loop and resize handling. The raw Vulkan equivalent is 800+.
 
 ---
 
@@ -74,14 +76,14 @@ Every RAII object exposes its raw Vulkan handle -- `vkDevice()`, `vkPipeline()`,
 Requires [Vulkan SDK](https://vulkan.lunarg.com/) (1.3+), CMake 3.21+, a C++20 compiler.
 
 ```bash
-git clone --recursive https://github.com/yourusername/vksdl.git
+git clone --recursive https://github.com/MrMartyK/vksdl.git
 cd vksdl
 cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build build
 cd build && ctest --output-on-failure
 ```
 
-Dependencies (SDL3, VMA, glm, stb, cgltf, tinyobjloader) are fetched automatically via the vcpkg submodule.
+Dependencies (SDL3, VMA, stb, cgltf, tinyobjloader) are fetched automatically via the vcpkg submodule.
 
 ---
 
@@ -89,7 +91,7 @@ Dependencies (SDL3, VMA, glm, stb, cgltf, tinyobjloader) are fetched automatical
 
 | Example | What it demonstrates | Lines |
 |---------|---------------------|------:|
-| [triangle](examples/triangle/) | Window, device, swapchain, pipeline, render loop | 120 |
+| [triangle](examples/triangle/) | Window, device, swapchain, pipeline, render loop | 113 |
 | [quad](examples/quad/) | Vertex/index buffers, VMA staged uploads | ~145 |
 | [compute](examples/compute/) | Compute shader, storage image, blit to swapchain | 129 |
 | [cube](examples/cube/) | 3D depth, uniform buffers, descriptor sets | ~200 |
@@ -122,10 +124,10 @@ Every type is RAII, move-only, and returns `Result<T>` instead of throwing. No e
 
 ## Status
 
-**v0.12.0** on the `feature/render-graph` branch. Core API is stable (60+ wrapped types). Render graph and pipeline model are functional and tested but still evolving.
+**v0.12.0** -- Core API is stable (60+ wrapped types). Render graph and pipeline model are functional and tested but still evolving.
 
-Tested on Windows 11, GCC 15.2 (MSYS2/MinGW), RTX 3060. Linux and macOS expected to work via SDL3 but not yet CI-tested.
+Tested on Windows 11 (GCC 15.2 / MSYS2 MinGW, RTX 3060) and Linux (GCC 14 / Clang 18 via CI). macOS expected to work via SDL3 but not yet tested.
 
 ## License
 
-TBD
+[Zlib](LICENSE)
