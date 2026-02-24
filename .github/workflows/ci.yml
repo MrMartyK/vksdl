@@ -161,7 +161,7 @@ jobs:
           libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
           libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
           libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
-          libudev-dev libdecor-0-dev libwayland-dev
+          libudev-dev libdecor-0-dev libwayland-dev libxtst-dev
           mesa-vulkan-drivers xvfb
 
       - name: Setup ccache
@@ -230,7 +230,7 @@ jobs:
           libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
           libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
           libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
-          libudev-dev libdecor-0-dev libwayland-dev
+          libudev-dev libdecor-0-dev libwayland-dev libxtst-dev
           mesa-vulkan-drivers xvfb
 
       - name: Setup ccache
@@ -303,7 +303,7 @@ jobs:
           libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
           libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
           libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
-          libudev-dev libdecor-0-dev libwayland-dev
+          libudev-dev libdecor-0-dev libwayland-dev libxtst-dev
           mesa-vulkan-drivers xvfb
 
       - name: Setup ccache
@@ -376,7 +376,7 @@ jobs:
           libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
           libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
           libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
-          libudev-dev libdecor-0-dev libwayland-dev
+          libudev-dev libdecor-0-dev libwayland-dev libxtst-dev
           mesa-vulkan-drivers xvfb
 
       - name: Restore vcpkg packages
@@ -454,7 +454,7 @@ jobs:
           libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
           libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
           libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
-          libudev-dev libdecor-0-dev libwayland-dev
+          libudev-dev libdecor-0-dev libwayland-dev libxtst-dev
 
       - name: Restore vcpkg packages
         uses: actions/cache@v4
