@@ -7,8 +7,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # --- Options ---
-option(VKSDL_BUILD_TESTS "Build tests" ON)
-option(VKSDL_BUILD_EXAMPLES "Build examples" ON)
+option(VKSDL_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
+option(VKSDL_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
 option(VKSDL_WERROR "Treat warnings as errors" ON)
 option(VKSDL_INSTALL "Generate install targets" ${PROJECT_IS_TOP_LEVEL})
 
@@ -118,7 +118,6 @@ if(VKSDL_INSTALL)
     install(TARGETS vksdl
         EXPORT vksdlTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
 
     install(DIRECTORY include/vksdl
@@ -151,19 +150,17 @@ if(VKSDL_INSTALL)
 endif()
 
 # --- Tests and examples (only when building standalone, not as subdirectory) ---
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    # SPIR-V tools (only needed for shader compilation in tests/examples)
-    find_program(GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin")
-    find_program(SPIRV_VAL spirv-val HINTS "$ENV{VULKAN_SDK}/Bin")
-
-    # glm is used by some examples, not by the library itself
-    find_package(glm CONFIG REQUIRED)
-
+if(PROJECT_IS_TOP_LEVEL)
+    if(VKSDL_BUILD_TESTS OR VKSDL_BUILD_EXAMPLES)
+        find_program(GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin")
+        find_program(SPIRV_VAL spirv-val HINTS "$ENV{VULKAN_SDK}/Bin")
+    endif()
     if(VKSDL_BUILD_TESTS)
         enable_testing()
         add_subdirectory(tests)
     endif()
     if(VKSDL_BUILD_EXAMPLES)
+        find_package(glm CONFIG REQUIRED)
         add_subdirectory(examples)
     endif()
 endif()

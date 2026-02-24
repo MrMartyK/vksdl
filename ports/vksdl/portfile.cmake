@@ -4,7 +4,7 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO MrMartyK/vksdl
     REF "v${VERSION}"
-    SHA512 0
+    SHA512 0  # TODO: compute real hash after tagging the release
     HEAD_REF main
 )
 
@@ -14,6 +14,7 @@ vcpkg_cmake_configure(
         -DVKSDL_BUILD_TESTS=OFF
         -DVKSDL_BUILD_EXAMPLES=OFF
         -DVKSDL_WERROR=OFF
+        -DVKSDL_INSTALL=ON
 )
 
 vcpkg_cmake_install()
