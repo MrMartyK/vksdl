@@ -7,13 +7,66 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  VULKAN_SDK_VER: "1.4.304.0"
+
 jobs:
-  windows-mingw:
-    name: Windows (MSYS2 GCC)
+  # ── Fast check: compile & validate all GLSL shaders ────────────────
+  shader-validation:
+    name: Shader Validation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Compile and validate shaders
+        run: |
+          set -euo pipefail
+          FAILED=0
+          while IFS= read -r -d '' f; do
+            printf "  %-60s " "$f"
+            if glslc --target-env=vulkan1.3 "$f" -o /tmp/shader.spv 2>&1; then
+              if spirv-val /tmp/shader.spv 2>&1; then
+                echo "ok"
+              else
+                echo "FAIL (spirv-val)"
+                FAILED=1
+              fi
+            else
+              echo "FAIL (glslc)"
+              FAILED=1
+            fi
+          done < <(find examples tests -type f \( \
+                     -name "*.vert" -o -name "*.frag" -o -name "*.comp" \
+                     -o -name "*.rgen" -o -name "*.rmiss" -o -name "*.rchit" \
+                   \) -print0 | sort -z)
+          echo ""
+          echo "---"
+          if [ "$FAILED" -ne 0 ]; then
+            echo "Shader validation failed."
+            exit 1
+          fi
+          echo "All shaders compiled and validated."
+
+  # ── Windows (MSYS2 UCRT64) ────────────────────────────────────────
+  windows-ucrt:
+    name: Windows (UCRT64)
     runs-on: windows-latest
     defaults:
       run:
         shell: msys2 {0}
+    env:
+      CCACHE_DIR: D:/ccache
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,26 +74,41 @@ jobs:
 
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
           install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-vulkan-devel
-            mingw-w64-x86_64-shaderc
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-vulkan-devel
+            mingw-w64-ucrt-x86_64-shaderc
+            mingw-w64-ucrt-x86_64-ccache
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: D:/ccache
+          key: ccache-ucrt64-${{ github.sha }}
+          restore-keys: ccache-ucrt64-
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-ucrt64-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-ucrt64-
 
       - name: Bootstrap vcpkg
         run: ./vcpkg/bootstrap-vcpkg.sh
 
       - name: Configure
-        env:
-          VCPKG_DEFAULT_TRIPLET: x64-mingw-dynamic
         run: >-
           cmake -B build -S .
+          -G Ninja
           -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
           -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic
-          -G Ninja
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         run: cmake --build build
@@ -50,16 +118,22 @@ jobs:
           ctest --test-dir build --output-on-failure
           -R "test_error|test_result|test_projection|test_transform"
 
+      - name: ccache stats
+        if: always()
+        run: ccache --show-stats
+
+  # ── Linux (GCC + Clang matrix, integration tests via Lavapipe) ────
   linux:
     name: Linux (${{ matrix.compiler }})
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - compiler: gcc
+          - compiler: gcc-14
             cc: gcc-14
             cxx: g++-14
-          - compiler: clang
+          - compiler: clang-18
             cc: clang-18
             cxx: clang++-18
     env:
@@ -71,24 +145,36 @@ jobs:
           submodules: recursive
 
       - name: Install Vulkan SDK
-        run: |
-          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
-          sudo apt-get update
-          sudo apt-get install -y vulkan-sdk
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
 
-      - name: Install build tools and system libraries
+      - name: Install system dependencies
         run: >-
-          sudo apt-get install -y
-          build-essential cmake ninja-build
-          autoconf autoconf-archive automake libtool pkg-config
-          libltdl-dev
+          sudo apt-get update && sudo apt-get install -y
+          build-essential ninja-build
+          autoconf autoconf-archive automake libtool pkg-config libltdl-dev
           libasound2-dev libpulse-dev libpipewire-0.3-dev
           libx11-dev libxext-dev libxrandr-dev libxcursor-dev
           libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
           libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
           libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
           libudev-dev libdecor-0-dev libwayland-dev
+          mesa-vulkan-drivers xvfb
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: linux-${{ matrix.compiler }}
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-linux-${{ matrix.compiler }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-${{ matrix.compiler }}-
 
       - name: Bootstrap vcpkg
         run: ./vcpkg/bootstrap-vcpkg.sh
@@ -96,8 +182,10 @@ jobs:
       - name: Configure
         run: >-
           cmake -B build -S .
-          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
           -G Ninja
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         run: cmake --build build
@@ -106,3 +194,284 @@ jobs:
         run: >-
           ctest --test-dir build --output-on-failure
           -R "test_error|test_result|test_projection|test_transform"
+
+      - name: Integration tests (Lavapipe)
+        continue-on-error: true
+        run: >-
+          xvfb-run ctest --test-dir build --output-on-failure
+          -E "test_error|test_result|test_projection|test_transform"
+
+  # ── ASan + UBSan ──────────────────────────────────────────────────
+  sanitizers:
+    name: ASan + UBSan
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-18
+      CXX: clang++-18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Install system dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          build-essential ninja-build clang-18
+          autoconf autoconf-archive automake libtool pkg-config libltdl-dev
+          libasound2-dev libpulse-dev libpipewire-0.3-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev
+          libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
+          libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
+          libudev-dev libdecor-0-dev libwayland-dev
+          mesa-vulkan-drivers xvfb
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: linux-asan
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-linux-clang-18-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-clang-18-
+
+      - name: Bootstrap vcpkg
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Configure
+        run: >-
+          cmake -B build -S .
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Unit tests
+        run: >-
+          ctest --test-dir build --output-on-failure
+          -R "test_error|test_result|test_projection|test_transform"
+
+      - name: Integration tests (Lavapipe + ASan)
+        continue-on-error: true
+        run: >-
+          xvfb-run ctest --test-dir build --output-on-failure
+          -E "test_error|test_result|test_projection|test_transform"
+
+  # ── Thread Sanitizer (separate from ASan -- cannot combine) ───────
+  thread-sanitizer:
+    name: TSan
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-18
+      CXX: clang++-18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Install system dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          build-essential ninja-build clang-18
+          autoconf autoconf-archive automake libtool pkg-config libltdl-dev
+          libasound2-dev libpulse-dev libpipewire-0.3-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev
+          libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
+          libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
+          libudev-dev libdecor-0-dev libwayland-dev
+          mesa-vulkan-drivers xvfb
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: linux-tsan
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-linux-clang-18-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-clang-18-
+
+      - name: Bootstrap vcpkg
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Configure
+        run: >-
+          cmake -B build -S .
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_C_FLAGS="-fsanitize=thread -fno-omit-frame-pointer"
+          -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Unit tests
+        run: >-
+          ctest --test-dir build --output-on-failure
+          -R "test_error|test_result|test_projection|test_transform"
+
+      - name: Integration tests (Lavapipe + TSan)
+        continue-on-error: true
+        run: >-
+          xvfb-run ctest --test-dir build --output-on-failure
+          -E "test_error|test_result|test_projection|test_transform"
+
+  # ── Code Coverage (GCC + gcov + lcov) ─────────────────────────────
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-24.04
+    env:
+      CC: gcc-14
+      CXX: g++-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Install system dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          build-essential ninja-build lcov
+          autoconf autoconf-archive automake libtool pkg-config libltdl-dev
+          libasound2-dev libpulse-dev libpipewire-0.3-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev
+          libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
+          libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
+          libudev-dev libdecor-0-dev libwayland-dev
+          mesa-vulkan-drivers xvfb
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-linux-gcc-14-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-gcc-14-
+
+      - name: Bootstrap vcpkg
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Configure
+        run: >-
+          cmake -B build -S .
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DCMAKE_C_FLAGS="--coverage -fprofile-arcs -ftest-coverage"
+          -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage"
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run all tests (Lavapipe)
+        continue-on-error: true
+        run: xvfb-run ctest --test-dir build --output-on-failure
+
+      - name: Generate coverage report
+        run: |
+          lcov --capture --directory build --output-file coverage.info \
+            --ignore-errors mismatch --ignore-errors gcov
+          lcov --remove coverage.info \
+            '/usr/*' '*/vcpkg_installed/*' '*/tests/*' '*/examples/*' '*/third_party/*' \
+            --output-file coverage.info --ignore-errors unused
+          lcov --list coverage.info
+
+      - name: Upload to Codecov
+        if: env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.info
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Static Analysis (clang-tidy) ──────────────────────────────────
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    env:
+      CC: clang-18
+      CXX: clang++-18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Install system dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          build-essential ninja-build clang-18 clang-tidy-18
+          autoconf autoconf-archive automake libtool pkg-config libltdl-dev
+          libasound2-dev libpulse-dev libpipewire-0.3-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev
+          libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
+          libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
+          libudev-dev libdecor-0-dev libwayland-dev
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-linux-clang-18-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-clang-18-
+
+      - name: Bootstrap vcpkg
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Configure
+        run: >-
+          cmake -B build -S .
+          -G Ninja
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DCMAKE_CXX_CLANG_TIDY="clang-tidy-18"
+
+      - name: Build (with clang-tidy)
+        run: cmake --build build

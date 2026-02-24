@@ -1,0 +1,20 @@
+---
+# Conservative set: high-confidence checks only. Tune as the codebase stabilizes.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-exception-escape,
+  performance-*,
+  modernize-use-override,
+  modernize-use-nullptr,
+  modernize-use-auto,
+  misc-unused-*,
+  readability-redundant-*
+
+# Report findings but don't fail the build (the CI job uses continue-on-error).
+WarningsAsErrors: ''
+
+# Only analyze vksdl's own headers, not system/vcpkg headers.
+HeaderFilterRegex: 'include/vksdl/.*\.hpp$'
