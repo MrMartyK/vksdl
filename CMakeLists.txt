@@ -6,6 +6,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# --- Options ---
+option(VKSDL_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
+option(VKSDL_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
+option(VKSDL_WERROR "Treat warnings as errors" ON)
+option(VKSDL_INSTALL "Generate install targets" ${PROJECT_IS_TOP_LEVEL})
+
 # --- Dependencies ---
 find_package(Vulkan REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
@@ -13,7 +19,6 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_path(STB_INCLUDE_DIRS "stb_image.h")
 find_path(CGLTF_INCLUDE_DIRS "cgltf.h")
 find_path(TINYOBJLOADER_INCLUDE_DIRS "tiny_obj_loader.h")
-find_package(glm CONFIG REQUIRED)
 
 # --- vksdl library ---
 add_library(vksdl STATIC
@@ -92,20 +97,70 @@ if(NOT EXISTS "${SPIRV_REFLECT_DIR}/spirv_reflect.h")
 endif()
 target_include_directories(vksdl PRIVATE ${SPIRV_REFLECT_DIR} ${SPIRV_REFLECT_DIR}/include)
 
-# --- SPIR-V tools ---
-find_program(GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin")
-find_program(SPIRV_VAL spirv-val HINTS "$ENV{VULKAN_SDK}/Bin")
-
 # --- Compiler warnings ---
 if(MSVC)
-    target_compile_options(vksdl PRIVATE /W4 /WX /permissive-)
+    target_compile_options(vksdl PRIVATE /W4 /permissive-)
+    if(VKSDL_WERROR)
+        target_compile_options(vksdl PRIVATE /WX)
+    endif()
 else()
-    target_compile_options(vksdl PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(vksdl PRIVATE -Wall -Wextra -Wpedantic)
+    if(VKSDL_WERROR)
+        target_compile_options(vksdl PRIVATE -Werror)
+    endif()
+endif()
+
+# --- Install rules ---
+if(VKSDL_INSTALL)
+    include(GNUInstallDirs)
+    include(CMakePackageConfigHelpers)
+
+    install(TARGETS vksdl
+        EXPORT vksdlTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+
+    install(DIRECTORY include/vksdl
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+
+    install(EXPORT vksdlTargets
+        FILE vksdlTargets.cmake
+        NAMESPACE vksdl::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vksdl
+    )
+
+    configure_package_config_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/vksdlConfig.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/vksdlConfig.cmake"
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vksdl
+    )
+
+    write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/vksdlConfigVersion.cmake"
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
+
+    install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/vksdlConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/vksdlConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vksdl
+    )
 endif()
 
 # --- Tests and examples (only when building standalone, not as subdirectory) ---
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    enable_testing()
-    add_subdirectory(tests)
-    add_subdirectory(examples)
+if(PROJECT_IS_TOP_LEVEL)
+    if(VKSDL_BUILD_TESTS OR VKSDL_BUILD_EXAMPLES)
+        find_program(GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin")
+        find_program(SPIRV_VAL spirv-val HINTS "$ENV{VULKAN_SDK}/Bin")
+    endif()
+    if(VKSDL_BUILD_TESTS)
+        enable_testing()
+        add_subdirectory(tests)
+    endif()
+    if(VKSDL_BUILD_EXAMPLES)
+        find_package(glm CONFIG REQUIRED)
+        add_subdirectory(examples)
+    endif()
 endif()

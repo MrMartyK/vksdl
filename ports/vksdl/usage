@@ -1,0 +1,4 @@
+vksdl provides CMake targets:
+
+  find_package(vksdl CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE vksdl::vksdl)
