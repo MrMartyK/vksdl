@@ -30,6 +30,8 @@ enum class PresentMode {
 
 // RAII swapchain. Owns the VkSwapchainKHR, images, and image views.
 // Supports recreate-on-resize.
+//
+// Thread safety: thread-confined (render loop thread).
 class Swapchain {
 public:
     ~Swapchain();

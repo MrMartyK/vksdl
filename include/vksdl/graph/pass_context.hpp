@@ -34,6 +34,8 @@ struct StateOverride {
 // Provided to the pass record callback.
 // Resolves resource handles to Vulkan objects and provides escape hatches
 // for manual state overrides.
+//
+// Thread safety: thread-confined.
 class PassContext {
 public:
     [[nodiscard]] VkImage     vkImage(ResourceHandle h) const;

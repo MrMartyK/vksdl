@@ -27,6 +27,8 @@ struct PendingTransfer {
 // Asynchronous transfer queue using a dedicated transfer family (if available).
 // Uses a timeline semaphore for synchronization. Falls back to the graphics
 // queue when no dedicated transfer family exists.
+//
+// Thread safety: thread-confined. Async internally but single-threaded API.
 class TransferQueue {
 public:
     [[nodiscard]] static Result<TransferQueue> create(const Device& device,

@@ -19,6 +19,8 @@ class Pipeline;
 // Fluent helper for writing descriptor set bindings.
 // Accumulates writes and issues one vkUpdateDescriptorSets call.
 //
+// Thread safety: thread-confined.
+//
 // Usage:
 //   DescriptorWriter(set)
 //       .buffer(0, ubo, sizeof(UBO))

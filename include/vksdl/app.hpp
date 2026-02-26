@@ -14,6 +14,8 @@ class AppImpl;
 
 // SDL lifecycle owner. Create one App before any windows.
 // Pumps the global SDL event queue and routes events to per-window queues.
+//
+// Thread safety: thread-confined (main/UI thread).
 class App {
 public:
     [[nodiscard]] static Result<App> create();

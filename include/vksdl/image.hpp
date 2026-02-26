@@ -12,6 +12,7 @@ namespace vksdl {
 
 class Allocator;
 
+// Thread safety: immutable after construction.
 class Image {
 public:
     ~Image();

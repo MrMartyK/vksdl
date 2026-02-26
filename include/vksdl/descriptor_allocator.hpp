@@ -19,6 +19,8 @@ class Device;
 // Differs from DescriptorPool:
 //   - DescriptorPool: 2x doubling, for persistent sets across frames
 //   - DescriptorAllocator: fixed-size chain, for ephemeral per-frame sets
+//
+// Thread safety: thread-confined. resetPools() after fence, allocate() during recording.
 class DescriptorAllocator {
 public:
     [[nodiscard]] static Result<DescriptorAllocator> create(

@@ -13,6 +13,7 @@ namespace vksdl {
 class Allocator;
 class Device;
 
+// Thread safety: immutable after construction.
 class Buffer {
 public:
     ~Buffer();

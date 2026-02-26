@@ -12,6 +12,7 @@ namespace vksdl {
 
 class Device;
 
+// Thread safety: thread-confined.
 class QueryPool {
 public:
     [[nodiscard]] static Result<QueryPool> create(const Device& device,

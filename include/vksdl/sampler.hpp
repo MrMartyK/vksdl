@@ -9,6 +9,7 @@ namespace vksdl {
 
 class Device;
 
+// Thread safety: immutable after construction.
 class Sampler {
 public:
     ~Sampler();

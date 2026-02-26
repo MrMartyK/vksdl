@@ -15,6 +15,9 @@ class Device;
 // RAII descriptor set. Owns VkDescriptorSetLayout, VkDescriptorPool, and
 // VkDescriptorSet. Pool is sized for exactly one set.
 // Destruction: pool implicitly frees the set, then destroy pool, then layout.
+//
+// Thread safety: thread-confined. Updates via vkUpdateDescriptorSets are
+// not externally synchronized by Vulkan.
 class DescriptorSet {
 public:
     ~DescriptorSet();

@@ -25,6 +25,7 @@ struct TlasInstance {
         VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
 };
 
+// Thread safety: thread-confined.
 class Tlas {
 public:
     ~Tlas();

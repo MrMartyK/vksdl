@@ -14,6 +14,9 @@ class Device;
 
 // RAII wrapper for VkPipelineCache with disk persistence.
 // Move-only. Destroys the cache on destruction.
+//
+// Thread safety: thread-confined. VkPipelineCache requires external
+// synchronization for concurrent pipeline creation or merge.
 class PipelineCache {
 public:
     ~PipelineCache();

@@ -12,6 +12,8 @@ namespace vksdl {
 // instead of vkUpdateDescriptorSets. No descriptor pool or set allocation
 // needed -- descriptors are pushed directly into the command buffer.
 //
+// Thread safety: thread-confined.
+//
 // Requires Device::hasPushDescriptors() == true.
 //
 // Usage:

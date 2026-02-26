@@ -16,6 +16,8 @@ class PipelineCache;
 // RAII wrapper for a GPL library part (VkPipeline with
 // VK_PIPELINE_CREATE_LIBRARY_BIT_KHR). Movable-only.
 // Destroyed when the GplLibrary goes out of scope.
+//
+// Thread safety: immutable after construction.
 class GplLibrary {
 public:
     ~GplLibrary();

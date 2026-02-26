@@ -23,6 +23,7 @@ inline constexpr Validation DefaultValidation = Validation::Off;
 inline constexpr Validation DefaultValidation = Validation::On;
 #endif
 
+// Thread safety: immutable after construction.
 class Instance {
 public:
     ~Instance();

@@ -16,6 +16,8 @@ class Image;
 
 // Pixel data loaded from an image file. Owns the pixel memory (freed by destructor).
 // Always RGBA, 4 channels, one byte per channel.
+//
+// Thread safety: immutable after construction.
 struct ImageData {
     ~ImageData();
     ImageData(ImageData&&) noexcept;

@@ -22,6 +22,7 @@ class Device;
 //   // each frame:
 //   fda.resetFrame(frameIndex);   // after fence wait
 //   auto set = fda.allocate(frameIndex, layout);
+// Thread safety: thread-confined (render loop thread).
 class FrameDescriptorAllocator {
 public:
     [[nodiscard]] static Result<FrameDescriptorAllocator> create(

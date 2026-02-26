@@ -14,6 +14,9 @@ namespace vksdl {
 class Instance;
 class Device;
 
+// Thread safety: thread-confined. VMA allocations require external
+// synchronization unless VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT
+// is NOT set (vksdl does not set it).
 class Allocator {
 public:
     [[nodiscard]] static Result<Allocator> create(const Instance& instance, const Device& device);

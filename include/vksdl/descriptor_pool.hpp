@@ -16,6 +16,8 @@ class DescriptorLayout;
 // Growable descriptor pool allocator for allocating many descriptor sets.
 // When the current pool runs out, a new pool with 2x capacity is created.
 // Individual sets cannot be freed -- use reset() to reclaim all at once.
+//
+// Thread safety: thread-confined.
 class DescriptorPool {
 public:
     [[nodiscard]] static Result<DescriptorPool> create(

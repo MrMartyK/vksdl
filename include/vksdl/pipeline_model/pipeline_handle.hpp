@@ -14,6 +14,10 @@ namespace vksdl {
 // Both baseline and optimized pipelines are kept alive until ~PipelineHandle().
 // This wastes a small amount of driver memory (~kilobytes of metadata) but
 // eliminates frame-indexed retirement complexity.
+//
+// Thread safety: bind() and isOptimized() are safe to call from any thread
+// (atomic acquire on the optimized pipeline pointer). Destruction is not
+// concurrent with bind().
 class PipelineHandle {
 public:
     ~PipelineHandle();

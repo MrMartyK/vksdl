@@ -40,6 +40,8 @@ struct QueueFamilies {
     }
 };
 
+// Thread safety: immutable after construction. VkQueue handles returned by
+// accessors follow Vulkan queue externally-synchronized rules.
 class Device {
 public:
     ~Device();

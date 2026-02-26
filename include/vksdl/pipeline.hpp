@@ -42,6 +42,8 @@ struct PipelineStats {
 
 // RAII graphics pipeline. Owns VkPipeline and (optionally) VkPipelineLayout.
 // Destroys pipeline before layout (pipeline references the layout).
+//
+// Thread safety: immutable after construction.
 class Pipeline {
 public:
     ~Pipeline();

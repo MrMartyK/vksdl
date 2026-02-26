@@ -28,6 +28,7 @@ inline constexpr VkShaderStageFlags kRtHitStages =
 class Device;
 class PipelineCache;
 
+// Thread safety: thread-confined.
 class RayTracingPipelineBuilder {
 public:
     explicit RayTracingPipelineBuilder(const Device& device);

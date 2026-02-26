@@ -34,6 +34,9 @@ class PipelineCache;
 //
 // ~PipelineCompiler blocks until all background compilations complete.
 // Call waitIdle() first if you need predictable shutdown timing.
+//
+// Thread safety: thread-confined. compile() and waitIdle() must be called
+// from a single thread. Background optimization is internal.
 class PipelineCompiler {
 public:
     [[nodiscard]] static Result<PipelineCompiler> create(

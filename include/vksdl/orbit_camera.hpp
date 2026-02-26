@@ -14,6 +14,8 @@ namespace vksdl {
 //
 // Input: LMB drag = orbit, MMB/RMB drag = pan, scroll = zoom, Escape = quit.
 // Scroll input must be fed from the app's event loop via feedScrollDelta().
+//
+// Thread safety: thread-confined (main/UI thread).
 class OrbitCamera {
 public:
     OrbitCamera(float targetX, float targetY, float targetZ,

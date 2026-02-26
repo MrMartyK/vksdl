@@ -38,6 +38,7 @@ struct BlasBuildSizes {
     VkDeviceSize updateScratchSize;
 };
 
+// Thread safety: immutable after construction.
 class Blas {
 public:
     ~Blas();

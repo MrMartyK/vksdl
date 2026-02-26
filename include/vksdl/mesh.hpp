@@ -76,6 +76,8 @@ private:
 
 // GPU-side mesh. Owns device-local vertex + index buffers via VMA.
 // Created by uploadMesh(). Raw handle accessors for veteran-level Vulkan usage.
+//
+// Thread safety: immutable after construction.
 class Mesh {
 public:
     ~Mesh();

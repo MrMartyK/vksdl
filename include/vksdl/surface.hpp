@@ -11,6 +11,8 @@ namespace vksdl {
 
 // RAII wrapper for VkSurfaceKHR.
 // Must be destroyed before the VkInstance it was created from.
+//
+// Thread safety: immutable after construction.
 class Surface {
 public:
     ~Surface();

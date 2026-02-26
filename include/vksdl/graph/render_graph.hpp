@@ -103,6 +103,9 @@ struct GraphStats {
 //   graph.compile();
 //   graph.execute(cmd);
 //   graph.reset(); // call each frame before re-declaring
+//
+// Thread safety: thread-confined. All methods (addPass/compile/execute/reset)
+// must be called from the same thread.
 class RenderGraph {
 public:
     RenderGraph(const Device& device, const Allocator& allocator);

@@ -11,6 +11,8 @@ namespace vksdl {
 //   bool moved = camera.update(dt);  // call once per frame
 //   camera.position();               // float[3]
 //   camera.forward();                // float[3], etc.
+//
+// Thread safety: thread-confined (main/UI thread).
 class FlyCamera {
 public:
     FlyCamera(float x, float y, float z,

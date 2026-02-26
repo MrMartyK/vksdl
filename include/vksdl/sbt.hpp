@@ -14,6 +14,7 @@ class Buffer;
 class Device;
 class Pipeline;
 
+// Thread safety: immutable after construction.
 class ShaderBindingTable {
 public:
     [[nodiscard]] static Result<ShaderBindingTable> create(

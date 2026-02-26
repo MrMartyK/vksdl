@@ -23,6 +23,8 @@ class Device;
 //   table.writeImage(7, view7, layout7, sampler);
 //   table.bind(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0);
 //   // In shader: texture(textures[nonuniformEXT(index)], uv)
+// Thread safety: thread-confined. Descriptor updates are not
+// externally synchronized even with UPDATE_AFTER_BIND.
 class BindlessTable {
 public:
     [[nodiscard]] static Result<BindlessTable> create(

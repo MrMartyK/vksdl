@@ -98,6 +98,8 @@ struct PassDecl {
 
 // Fluent builder for declaring resource accesses within a pass.
 // Created by RenderGraph::addPass() setup callback.
+//
+// Thread safety: thread-confined.
 class PassBuilder {
 public:
     // Declare a color render target. Implies writeColorAttachment().

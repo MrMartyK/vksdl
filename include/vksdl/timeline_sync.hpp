@@ -32,6 +32,8 @@ struct TimelineAcquiredFrame {
 // Binary semaphores are still required for present (Vulkan spec requirement),
 // so this class holds N round-robin binary "renderDone" semaphores internally.
 // Image-acquire semaphores live in the Swapchain, same as FrameSync.
+//
+// Thread safety: thread-confined (render loop thread).
 class TimelineSync {
 public:
     [[nodiscard]] static Result<TimelineSync> create(const Device& device,

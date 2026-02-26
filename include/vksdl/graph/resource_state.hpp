@@ -57,6 +57,8 @@ struct SubresourceSlice {
 // cascades, cube faces).
 //
 // Invariant: slices are non-overlapping and together cover the full image.
+//
+// Thread safety: thread-confined.
 class ImageSubresourceMap {
 public:
     // Initialize with full-image range in the given state.

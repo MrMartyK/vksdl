@@ -14,6 +14,8 @@ namespace vksdl {
 class Device;
 
 // Reusable descriptor set layout object with typed binding metadata.
+//
+// Thread safety: immutable after construction.
 class DescriptorLayout {
 public:
     ~DescriptorLayout();

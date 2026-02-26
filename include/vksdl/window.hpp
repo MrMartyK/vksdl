@@ -69,6 +69,7 @@ struct Event {
 class App;
 class WindowImpl;
 
+// Thread safety: thread-confined (main/UI thread).
 class Window {
 public:
     ~Window();

@@ -32,6 +32,8 @@ struct AcquiredFrame {
 // Owns a command pool, N command buffers, and N sets of sync objects
 // (semaphores + fences) for frames-in-flight.
 // Pre-allocates everything at creation -- zero per-frame allocations.
+//
+// Thread safety: thread-confined (render loop thread).
 class FrameSync {
 public:
     [[nodiscard]] static Result<FrameSync> create(const Device& device,
