@@ -10,7 +10,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(VKSDL_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(VKSDL_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
 option(VKSDL_WERROR "Treat warnings as errors" ON)
+option(VKSDL_STRICT_WARNINGS "Enable stricter warning set" OFF)
 option(VKSDL_INSTALL "Generate install targets" ${PROJECT_IS_TOP_LEVEL})
+option(VKSDL_ENABLE_EXCEPTIONS "Enable exception throwing in error helpers" ON)
+
+if(VKSDL_ENABLE_EXCEPTIONS)
+    add_compile_definitions(VKSDL_ENABLE_EXCEPTIONS=1)
+else()
+    add_compile_definitions(VKSDL_ENABLE_EXCEPTIONS=0)
+endif()
 
 # --- Dependencies ---
 find_package(Vulkan REQUIRED)
@@ -106,6 +114,17 @@ if(MSVC)
     endif()
 else()
     target_compile_options(vksdl PRIVATE -Wall -Wextra -Wpedantic)
+    if(VKSDL_STRICT_WARNINGS)
+        target_compile_options(vksdl PRIVATE
+            -Wconversion
+            -Wsign-conversion
+            -Wshadow
+            -Wformat=2
+            -Wundef
+            -Wnull-dereference
+            -Wdouble-promotion
+        )
+    endif()
     if(VKSDL_WERROR)
         target_compile_options(vksdl PRIVATE -Werror)
     endif()

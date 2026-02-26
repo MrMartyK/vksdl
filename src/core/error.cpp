@@ -1,5 +1,7 @@
 #include <vksdl/error.hpp>
 
+#include <cstdio>
+#include <cstdlib>
 #include <stdexcept>
 #include <string>
 
@@ -20,7 +22,12 @@ std::string Error::format() const {
 }
 
 void throwError(const Error& e) {
+#if VKSDL_ENABLE_EXCEPTIONS
     throw std::runtime_error(e.format());
+#else
+    std::fprintf(stderr, "%s\n", e.format().c_str());
+    std::abort();
+#endif
 }
 
 } // namespace vksdl
