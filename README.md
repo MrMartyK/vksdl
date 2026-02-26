@@ -118,7 +118,7 @@ Plus 8 more covering pipeline cache, timeline sync, dynamic state, descriptor po
 
 The test: if two experienced Vulkan developers would write the same boilerplate identically, vksdl should eliminate it. If they'd write it differently, vksdl stays out of the way.
 
-Every type is RAII, move-only, and returns `Result<T>` instead of throwing. No exceptions anywhere.
+Every type is RAII, move-only, and returns `Result<T>` by default. `orThrow()` is an optional escape hatch: it throws when exceptions are enabled, and fail-fasts when exceptions are disabled.
 
 ---
 
