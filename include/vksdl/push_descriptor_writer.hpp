@@ -12,6 +12,10 @@ namespace vksdl {
 // instead of vkUpdateDescriptorSets. No descriptor pool or set allocation
 // needed -- descriptors are pushed directly into the command buffer.
 //
+// Descriptor safety: push() embeds descriptors into the command buffer.
+// No pool lifetime dependency. Resources must remain valid until the
+// command buffer completes execution.
+//
 // Thread safety: thread-confined.
 //
 // Requires Device::hasPushDescriptors() == true.

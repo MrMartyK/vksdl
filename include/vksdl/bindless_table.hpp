@@ -17,12 +17,18 @@ class Device;
 //
 // Requires Device::hasBindless() == true.
 //
+// Descriptor safety: UPDATE_AFTER_BIND allows writing slots while the set
+// is bound, but writes must not overlap with GPU reads of the same slot.
+// In practice: write slot N before any draw that indexes N. Unwritten
+// slots are safe (PARTIALLY_BOUND).
+//
 // Usage:
 //   auto table = BindlessTable::create(device, 4096).value();
 //   table.writeImage(0, view0, layout0, sampler);
 //   table.writeImage(7, view7, layout7, sampler);
 //   table.bind(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0);
 //   // In shader: texture(textures[nonuniformEXT(index)], uv)
+//
 // Thread safety: thread-confined. Descriptor updates are not
 // externally synchronized even with UPDATE_AFTER_BIND.
 class BindlessTable {

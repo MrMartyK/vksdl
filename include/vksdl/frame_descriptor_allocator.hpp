@@ -22,6 +22,11 @@ class Device;
 //   // each frame:
 //   fda.resetFrame(frameIndex);   // after fence wait
 //   auto set = fda.allocate(frameIndex, layout);
+//
+// Descriptor safety: each frame slot is independent. resetFrame(i) only
+// invalidates sets from slot i. Safe pattern: wait fence, reset, allocate,
+// write, bind, submit.
+//
 // Thread safety: thread-confined (render loop thread).
 class FrameDescriptorAllocator {
 public:

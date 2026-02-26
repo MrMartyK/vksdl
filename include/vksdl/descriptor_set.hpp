@@ -16,6 +16,9 @@ class Device;
 // VkDescriptorSet. Pool is sized for exactly one set.
 // Destruction: pool implicitly frees the set, then destroy pool, then layout.
 //
+// Descriptor safety: do not destroy while a command buffer referencing the
+// set is still pending. Do not update bindings while the set is in-flight.
+//
 // Thread safety: thread-confined. Updates via vkUpdateDescriptorSets are
 // not externally synchronized by Vulkan.
 class DescriptorSet {

@@ -19,6 +19,10 @@ class Pipeline;
 // Fluent helper for writing descriptor set bindings.
 // Accumulates writes and issues one vkUpdateDescriptorSets call.
 //
+// Descriptor safety: write() is destructive -- clears all pending writes.
+// Resources (buffers, image views, samplers) bound via buffer()/image()
+// must remain valid until the command buffer referencing the set completes.
+//
 // Thread safety: thread-confined.
 //
 // Usage:

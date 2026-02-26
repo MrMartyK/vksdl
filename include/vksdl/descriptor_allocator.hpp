@@ -20,6 +20,10 @@ class Device;
 //   - DescriptorPool: 2x doubling, for persistent sets across frames
 //   - DescriptorAllocator: fixed-size chain, for ephemeral per-frame sets
 //
+// Descriptor safety: sets are ephemeral -- valid from allocate() until
+// the next resetPools() call. Bound resources must outlive the frame's
+// GPU submission (wait for fence before resetting).
+//
 // Thread safety: thread-confined. resetPools() after fence, allocate() during recording.
 class DescriptorAllocator {
 public:

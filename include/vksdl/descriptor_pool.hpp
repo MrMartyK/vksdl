@@ -17,6 +17,10 @@ class DescriptorLayout;
 // When the current pool runs out, a new pool with 2x capacity is created.
 // Individual sets cannot be freed -- use reset() to reclaim all at once.
 //
+// Descriptor safety: allocated VkDescriptorSets are valid until reset().
+// Resources bound via DescriptorWriter must outlive any command buffer
+// submission that references the set.
+//
 // Thread safety: thread-confined.
 class DescriptorPool {
 public:
