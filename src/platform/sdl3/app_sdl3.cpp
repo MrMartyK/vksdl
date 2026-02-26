@@ -103,6 +103,7 @@ void App::pumpEvents() {
                     Event e{};
                     e.type = EventType::KeyDown;
                     e.key  = static_cast<int>(sdlEvent.key.scancode);
+                    e.keyCode = keyFromScancode(e.key);
                     w->impl_->events.push(e);
                 }
             }
@@ -114,6 +115,7 @@ void App::pumpEvents() {
                     Event e{};
                     e.type = EventType::KeyUp;
                     e.key  = static_cast<int>(sdlEvent.key.scancode);
+                    e.keyCode = keyFromScancode(e.key);
                     w->impl_->events.push(e);
                 }
             }
