@@ -33,9 +33,8 @@ public:
     Tlas(const Tlas&) = delete;
     Tlas& operator=(const Tlas&) = delete;
 
-    [[nodiscard]] VkAccelerationStructureKHR vkAccelerationStructure() const {
-        return as_;
-    }
+    [[nodiscard]] VkAccelerationStructureKHR native()                  const { return as_; }
+    [[nodiscard]] VkAccelerationStructureKHR vkAccelerationStructure() const { return native(); }
     [[nodiscard]] bool supportsUpdate() const { return allowUpdate_; }
     [[nodiscard]] std::uint32_t maxInstanceCount() const { return maxInstanceCount_; }
     [[nodiscard]] VkDeviceSize updateScratchSize() const { return updateScratchSize_; }

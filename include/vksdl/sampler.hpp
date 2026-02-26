@@ -17,7 +17,8 @@ public:
     Sampler(const Sampler&) = delete;
     Sampler& operator=(const Sampler&) = delete;
 
-    [[nodiscard]] VkSampler vkSampler() const { return sampler_; }
+    [[nodiscard]] VkSampler native()    const { return sampler_; }
+    [[nodiscard]] VkSampler vkSampler() const { return native(); }
 
 private:
     friend class SamplerBuilder;

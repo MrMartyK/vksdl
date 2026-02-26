@@ -20,7 +20,8 @@ public:
     Image(const Image&) = delete;
     Image& operator=(const Image&) = delete;
 
-    [[nodiscard]] VkImage                vkImage()     const { return image_; }
+    [[nodiscard]] VkImage                native()      const { return image_; }
+    [[nodiscard]] VkImage                vkImage()     const { return native(); }
     [[nodiscard]] VkImageView            vkImageView() const { return view_; }
     [[nodiscard]] VkFormat               format()      const { return format_; }
     [[nodiscard]] VkExtent2D             extent()      const { return extent_; }

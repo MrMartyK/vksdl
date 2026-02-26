@@ -24,7 +24,8 @@ public:
     Allocator(const Allocator&) = delete;
     Allocator& operator=(const Allocator&) = delete;
 
-    [[nodiscard]] VmaAllocator vmaAllocator() const { return allocator_; }
+    [[nodiscard]] VmaAllocator native()       const { return allocator_; }
+    [[nodiscard]] VmaAllocator vmaAllocator() const { return native(); }
     [[nodiscard]] VkDevice     vkDevice()     const { return device_; }
 
 private:

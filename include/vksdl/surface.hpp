@@ -22,7 +22,8 @@ public:
     [[nodiscard]] static Result<Surface> create(const Instance& instance,
                                                  const Window& window);
 
-    [[nodiscard]] VkSurfaceKHR vkSurface() const { return surface_; }
+    [[nodiscard]] VkSurfaceKHR native()    const { return surface_; }
+    [[nodiscard]] VkSurfaceKHR vkSurface() const { return native(); }
     [[nodiscard]] VkInstance   vkInstance() const { return instance_; }
 
 private:

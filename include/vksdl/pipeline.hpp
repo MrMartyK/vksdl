@@ -50,7 +50,8 @@ public:
     Pipeline(const Pipeline&) = delete;
     Pipeline& operator=(const Pipeline&) = delete;
 
-    [[nodiscard]] VkPipeline       vkPipeline()      const { return pipeline_; }
+    [[nodiscard]] VkPipeline       native()          const { return pipeline_; }
+    [[nodiscard]] VkPipeline       vkPipeline()      const { return native(); }
     [[nodiscard]] VkPipelineLayout vkPipelineLayout() const { return layout_; }
 
     // Descriptor set layouts owned by shader reflection.

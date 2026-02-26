@@ -38,7 +38,8 @@ public:
     Swapchain(const Swapchain&) = delete;
     Swapchain& operator=(const Swapchain&) = delete;
 
-    [[nodiscard]] VkSwapchainKHR             vkSwapchain() const { return swapchain_; }
+    [[nodiscard]] VkSwapchainKHR             native()      const { return swapchain_; }
+    [[nodiscard]] VkSwapchainKHR             vkSwapchain() const { return native(); }
     [[nodiscard]] VkFormat                    format()      const { return format_; }
     [[nodiscard]] VkExtent2D                  extent()      const { return extent_; }
     [[nodiscard]] const std::vector<VkImage>& images()      const { return images_; }

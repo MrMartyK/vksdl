@@ -34,7 +34,8 @@ public:
 
     [[nodiscard]] std::size_t dataSize() const;
 
-    [[nodiscard]] VkPipelineCache vkPipelineCache() const { return cache_; }
+    [[nodiscard]] VkPipelineCache native()          const { return cache_; }
+    [[nodiscard]] VkPipelineCache vkPipelineCache() const { return native(); }
 
 private:
     PipelineCache() = default;

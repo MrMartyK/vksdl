@@ -23,7 +23,8 @@ public:
     DescriptorSet(const DescriptorSet&) = delete;
     DescriptorSet& operator=(const DescriptorSet&) = delete;
 
-    [[nodiscard]] VkDescriptorSet       vkDescriptorSet()       const { return set_; }
+    [[nodiscard]] VkDescriptorSet       native()                const { return set_; }
+    [[nodiscard]] VkDescriptorSet       vkDescriptorSet()       const { return native(); }
     [[nodiscard]] VkDescriptorSetLayout vkDescriptorSetLayout() const { return layout_; }
     [[nodiscard]] VkDescriptorPool      vkDescriptorPool()      const { return pool_; }
 

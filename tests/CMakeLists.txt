@@ -6,6 +6,10 @@ add_executable(test_result unit/test_result.cpp)
 target_link_libraries(test_result PRIVATE vksdl)
 add_test(NAME test_result COMMAND test_result)
 
+add_executable(test_native_accessors unit/test_native_accessors.cpp)
+target_link_libraries(test_native_accessors PRIVATE vksdl)
+add_test(NAME test_native_accessors COMMAND test_native_accessors)
+
 add_executable(test_projection unit/test_projection.cpp)
 target_link_libraries(test_projection PRIVATE vksdl)
 add_test(NAME test_projection COMMAND test_projection)

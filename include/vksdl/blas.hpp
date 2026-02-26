@@ -46,7 +46,8 @@ public:
     Blas(const Blas&) = delete;
     Blas& operator=(const Blas&) = delete;
 
-    [[nodiscard]] VkAccelerationStructureKHR vkAccelerationStructure() const { return as_; }
+    [[nodiscard]] VkAccelerationStructureKHR native()                  const { return as_; }
+    [[nodiscard]] VkAccelerationStructureKHR vkAccelerationStructure() const { return native(); }
     [[nodiscard]] VkDeviceAddress deviceAddress() const { return address_; }
 
 private:

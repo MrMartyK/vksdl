@@ -24,7 +24,8 @@ public:
     QueryPool(const QueryPool&) = delete;
     QueryPool& operator=(const QueryPool&) = delete;
 
-    [[nodiscard]] VkQueryPool     vkQueryPool() const { return pool_; }
+    [[nodiscard]] VkQueryPool     native()      const { return pool_; }
+    [[nodiscard]] VkQueryPool     vkQueryPool() const { return native(); }
     [[nodiscard]] VkQueryType     type()        const { return type_; }
     [[nodiscard]] std::uint32_t   count()       const { return count_; }
 

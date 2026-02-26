@@ -31,7 +31,8 @@ public:
     Instance(const Instance&) = delete;
     Instance& operator=(const Instance&) = delete;
 
-    [[nodiscard]] VkInstance vkInstance() const { return instance_; }
+    [[nodiscard]] VkInstance native()     const { return instance_; }
+    [[nodiscard]] VkInstance vkInstance() const { return native(); }
     [[nodiscard]] bool validationEnabled() const { return messenger_ != VK_NULL_HANDLE; }
 
 private:

@@ -49,7 +49,8 @@ public:
     void bind(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
               VkPipelineLayout pipelineLayout, std::uint32_t set = 0) const;
 
-    [[nodiscard]] VkDescriptorSet       vkDescriptorSet()       const { return set_; }
+    [[nodiscard]] VkDescriptorSet       native()                const { return set_; }
+    [[nodiscard]] VkDescriptorSet       vkDescriptorSet()       const { return native(); }
     [[nodiscard]] VkDescriptorSetLayout vkDescriptorSetLayout() const { return layout_; }
     [[nodiscard]] std::uint32_t         capacity()              const { return capacity_; }
     [[nodiscard]] VkDescriptorType      descriptorType()        const { return type_; }

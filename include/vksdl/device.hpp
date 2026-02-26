@@ -48,7 +48,8 @@ public:
     Device(const Device&) = delete;
     Device& operator=(const Device&) = delete;
 
-    [[nodiscard]] VkDevice         vkDevice()         const { return device_; }
+    [[nodiscard]] VkDevice         native()           const { return device_; }
+    [[nodiscard]] VkDevice         vkDevice()         const { return native(); }
     [[nodiscard]] VkPhysicalDevice vkPhysicalDevice() const { return physicalDevice_; }
     [[nodiscard]] VkQueue          graphicsQueue()     const { return graphicsQueue_; }
     [[nodiscard]] VkQueue          presentQueue()      const { return presentQueue_; }

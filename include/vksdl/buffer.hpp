@@ -21,7 +21,8 @@ public:
     Buffer(const Buffer&) = delete;
     Buffer& operator=(const Buffer&) = delete;
 
-    [[nodiscard]] VkBuffer     vkBuffer()   const { return buffer_; }
+    [[nodiscard]] VkBuffer     native()     const { return buffer_; }
+    [[nodiscard]] VkBuffer     vkBuffer()   const { return native(); }
     [[nodiscard]] VkDeviceSize size()       const { return size_; }
     [[nodiscard]] void*        mappedData() const { return mapped_; }
 
