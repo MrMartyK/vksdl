@@ -49,6 +49,14 @@ int main() {
     assert(f0.value().index == 0);
     std::printf("  frame 0: ok\n");
 
+    vksdl::beginOneTimeCommands(f0.value().cmd);
+    auto submit0 = vksdl::endSubmitOneShotBlocking(
+        device.value().graphicsQueue(),
+        f0.value().cmd,
+        f0.value().fence);
+    assert(submit0.ok());
+    std::printf("  frame 0 submit one-shot blocking: ok\n");
+
     // Get frame 1 -- different slot, should also not block
     auto f1 = frames.value().nextFrame();
     assert(f1.ok());
@@ -58,8 +66,18 @@ int main() {
     assert(f1.value().fence != f0.value().fence);
     std::printf("  frame 1: ok (different handles from frame 0)\n");
 
-    // We can't call nextFrame() a third time without submitting first
-    // (fence 0 would block forever). That's correct behavior -- skip it.
+    vksdl::beginOneTimeCommands(f1.value().cmd);
+    auto submit1 = vksdl::endSubmitOneShotBlocking(
+        device.value().graphicsQueue(),
+        f1.value().cmd,
+        f1.value().fence);
+    assert(submit1.ok());
+    std::printf("  frame 1 submit one-shot blocking: ok\n");
+
+    auto f2 = frames.value().nextFrame();
+    assert(f2.ok());
+    assert(f2.value().index == 0);
+    std::printf("  frame 2 after blocking submits: ok\n");
 
     // Clean up
     device.value().waitIdle();

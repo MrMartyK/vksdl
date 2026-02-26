@@ -69,6 +69,11 @@ void beginOneTimeCommands(VkCommandBuffer cmd);
 // End a command buffer (symmetric counterpart to beginOneTimeCommands).
 void endCommands(VkCommandBuffer cmd);
 
+// End, submit, and wait for one-shot command buffers.
+// Explicitly blocking by design.
+[[nodiscard]] Result<void> endSubmitOneShotBlocking(
+    VkQueue queue, VkCommandBuffer cmd, VkFence fence = VK_NULL_HANDLE);
+
 // Submit a recorded command buffer for this frame.
 // Waits on imageReady at waitStage, signals frame.drawDone, fences frame.fence.
 void submitFrame(VkQueue queue, const Frame& frame,

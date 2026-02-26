@@ -153,6 +153,37 @@ void endCommands(VkCommandBuffer cmd) {
     vkEndCommandBuffer(cmd);
 }
 
+Result<void> endSubmitOneShotBlocking(
+    VkQueue queue, VkCommandBuffer cmd, VkFence fence) {
+    VkResult vr = vkEndCommandBuffer(cmd);
+    if (vr != VK_SUCCESS) {
+        return Error{"end one-shot command buffer",
+                     static_cast<std::int32_t>(vr),
+                     "vkEndCommandBuffer failed"};
+    }
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+
+    vr = vkQueueSubmit(queue, 1, &submitInfo, fence);
+    if (vr != VK_SUCCESS) {
+        return Error{"submit one-shot command buffer",
+                     static_cast<std::int32_t>(vr),
+                     "vkQueueSubmit failed"};
+    }
+
+    vr = vkQueueWaitIdle(queue);
+    if (vr != VK_SUCCESS) {
+        return Error{"wait one-shot queue idle",
+                     static_cast<std::int32_t>(vr),
+                     "vkQueueWaitIdle failed"};
+    }
+
+    return {};
+}
+
 void submitFrame(VkQueue queue, const Frame& frame,
                  VkSemaphore imageReady, VkPipelineStageFlags waitStage) {
     VkSubmitInfo submitInfo{};
