@@ -1,7 +1,8 @@
 ---
-# Conservative set: high-confidence checks only. Tune as the codebase stabilizes.
+# Curated gate: keep signal high and CI noise low.
 Checks: >
   -*,
+  clang-analyzer-*,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-narrowing-conversions,
@@ -9,14 +10,20 @@ Checks: >
   -bugprone-unchecked-optional-access,
   performance-*,
   -performance-enum-size,
-  modernize-use-override,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-pass-by-value,
   modernize-use-nullptr,
   modernize-use-auto,
   misc-unused-*,
+  misc-include-cleaner,
+  readability-*,
+  -readability-identifier-length,
+  -readability-magic-numbers,
   readability-redundant-*,
   -readability-redundant-member-init
 
-WarningsAsErrors: ''
+WarningsAsErrors: 'clang-analyzer-*,bugprone-*'
 
-# Only analyze vksdl's own headers, not system/vcpkg headers.
-HeaderFilterRegex: 'include/vksdl/.*\.hpp$'
+# Only analyze vksdl-owned headers/sources, not system/vcpkg headers.
+HeaderFilterRegex: '^(include/vksdl/|src/).*$'

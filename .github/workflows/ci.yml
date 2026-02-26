@@ -58,6 +58,25 @@ jobs:
           fi
           echo "All shaders compiled and validated."
 
+  # ── Formatting gate (clang-format 18) ──────────────────────────────
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install clang-format
+        run: >-
+          sudo apt-get update && sudo apt-get install -y clang-format-18
+
+      - name: Verify formatting
+        env:
+          CLANG_FORMAT_BIN: clang-format-18
+          FORMAT_BASE_REF: HEAD~1
+        run: bash scripts/clang-format.sh --check
+
   # ── Windows (MSYS2 UCRT64) ────────────────────────────────────────
   windows-ucrt:
     name: Windows (UCRT64)
@@ -201,6 +220,136 @@ jobs:
         run: >-
           xvfb-run ctest --test-dir build --output-on-failure
           -E "test_error|test_result|test_projection|test_transform"
+
+  # ── macOS (C++20 build + non-window test subset) ───────────────────
+  macos:
+    name: macOS (AppleClang)
+    runs-on: macos-14
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Install system dependencies
+        run: brew install ninja pkg-config
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-macos-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-macos-
+
+      - name: Bootstrap vcpkg
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Configure
+        run: >-
+          cmake -B build -S .
+          -G Ninja
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DVKSDL_BUILD_EXAMPLES=OFF
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Non-window test subset
+        run: >-
+          ctest --test-dir build --output-on-failure
+          -R "test_error|test_result|test_projection|test_transform|test_resource_state|test_barrier_compiler"
+
+  # ── Strict warning lane (Linux, C++20, -Werror) ────────────────────
+  strict-warnings:
+    name: Strict Warnings
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-18
+      CXX: clang++-18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Install system dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          build-essential ninja-build clang-18
+          autoconf autoconf-archive automake libtool pkg-config libltdl-dev
+          libasound2-dev libpulse-dev libpipewire-0.3-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev
+          libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
+          libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
+          libudev-dev libdecor-0-dev libwayland-dev libxtst-dev
+          mesa-vulkan-drivers xvfb
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-linux-strict-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-strict-
+
+      - name: Bootstrap vcpkg
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Configure
+        run: >-
+          cmake -B build -S .
+          -G Ninja
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DVKSDL_STRICT_WARNINGS=ON
+          -DVKSDL_WERROR=ON
+          -DVKSDL_BUILD_EXAMPLES=OFF
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Unit tests
+        run: >-
+          ctest --test-dir build --output-on-failure
+          -R "test_error|test_result|test_projection|test_transform"
+
+  # ── Secondary static analysis (cppcheck) ───────────────────────────
+  cppcheck:
+    name: cppcheck
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install cppcheck
+        run: >-
+          sudo apt-get update && sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck
+        run: >-
+          cppcheck
+          --std=c++20
+          --enable=warning,performance,portability
+          --error-exitcode=1
+          --inline-suppr
+          --suppress=missingIncludeSystem
+          -I include
+          src include
 
   # ── ASan + UBSan ──────────────────────────────────────────────────
   sanitizers:
@@ -432,7 +581,6 @@ jobs:
   clang-tidy:
     name: clang-tidy
     runs-on: ubuntu-24.04
-    continue-on-error: true
     env:
       CC: clang-18
       CXX: clang++-18
@@ -475,7 +623,8 @@ jobs:
           cmake -B build -S .
           -G Ninja
           -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
-          -DCMAKE_CXX_CLANG_TIDY="clang-tidy-18;-warnings-as-errors="
+          -DVKSDL_BUILD_EXAMPLES=OFF
+          -DCMAKE_CXX_CLANG_TIDY="clang-tidy-18"
 
       - name: Build (with clang-tidy)
         run: cmake --build build
