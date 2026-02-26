@@ -1,5 +1,5 @@
 param(
-    [string]$BaseRef = "origin/main",
+    [string]$BaseRef = "HEAD~1",
     [string]$ToolchainFile = "vcpkg/scripts/buildsystems/vcpkg.cmake",
     [string]$ClangFormatBin = ""
 )
