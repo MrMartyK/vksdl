@@ -8,6 +8,8 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <optional>
+#include <type_traits>
 #include <vector>
 
 namespace vksdl {
@@ -61,6 +63,24 @@ public:
 
     RayTracingPipelineBuilder& maxRecursionDepth(std::uint32_t depth);
 
+    // Specialization constants (shared across all stages).
+    // For per-stage specialization, use the specialize() escape hatch
+    // with manually built VkPipelineShaderStageCreateInfo structs.
+    template<typename T>
+    RayTracingPipelineBuilder& specConstant(std::uint32_t constantId, const T& value) {
+        static_assert(std::is_trivially_copyable_v<T>,
+                      "specConstant requires a trivially copyable type");
+        VkSpecializationMapEntry entry{};
+        entry.constantID = constantId;
+        entry.offset     = static_cast<std::uint32_t>(specData_.size());
+        entry.size       = sizeof(T);
+        specEntries_.push_back(entry);
+        const auto* bytes = reinterpret_cast<const std::uint8_t*>(&value);
+        specData_.insert(specData_.end(), bytes, bytes + sizeof(T));
+        return *this;
+    }
+    RayTracingPipelineBuilder& specialize(const VkSpecializationInfo& info);
+
     // Pipeline cache.
     RayTracingPipelineBuilder& cache(const PipelineCache& c);
     RayTracingPipelineBuilder& cache(VkPipelineCache c);
@@ -110,6 +130,10 @@ private:
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts_;
     VkPipelineLayout                   externalLayout_ = VK_NULL_HANDLE;
     VkPipelineCache                    cache_ = VK_NULL_HANDLE;
+
+    std::vector<VkSpecializationMapEntry> specEntries_;
+    std::vector<std::uint8_t>             specData_;
+    std::optional<VkSpecializationInfo>   externalSpecInfo_;
 };
 
 } // namespace vksdl

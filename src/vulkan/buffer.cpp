@@ -100,6 +100,14 @@ BufferBuilder& BufferBuilder::stagingBuffer() {
     return *this;
 }
 
+BufferBuilder& BufferBuilder::indirectBuffer() {
+    usage_ = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+             VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    return *this;
+}
+
 BufferBuilder& BufferBuilder::scratchBuffer() {
     usage_ = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
              VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
@@ -320,6 +328,16 @@ Result<Buffer> uploadStorageBuffer(
     const Allocator& allocator, const Device& device,
     const void* data, VkDeviceSize size) {
     auto buf = BufferBuilder(allocator).storageBuffer().size(size).build();
+    if (!buf.ok()) return buf.error();
+    auto r = uploadToBuffer(allocator, device, buf.value(), data, size);
+    if (!r.ok()) return r.error();
+    return buf;
+}
+
+Result<Buffer> uploadIndirectBuffer(
+    const Allocator& allocator, const Device& device,
+    const void* data, VkDeviceSize size) {
+    auto buf = BufferBuilder(allocator).indirectBuffer().size(size).build();
     if (!buf.ok()) return buf.error();
     auto r = uploadToBuffer(allocator, device, buf.value(), data, size);
     if (!r.ok()) return r.error();

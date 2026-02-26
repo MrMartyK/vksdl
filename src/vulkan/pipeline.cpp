@@ -280,6 +280,11 @@ PipelineBuilder& PipelineBuilder::dynamicFrontFace() {
     return dynamicState(VK_DYNAMIC_STATE_FRONT_FACE);
 }
 
+PipelineBuilder& PipelineBuilder::specialize(const VkSpecializationInfo& info) {
+    externalSpecInfo_ = info;
+    return *this;
+}
+
 PipelineBuilder& PipelineBuilder::cache(const PipelineCache& c) {
     cache_ = c.vkPipelineCache();
     return *this;
@@ -496,15 +501,30 @@ Result<Pipeline> PipelineBuilder::buildWithFlags(VkPipelineCreateFlags flags) co
         p.ownsLayout_ = true;
     }
 
+    // Build specialization info from accumulated entries or external info.
+    VkSpecializationInfo builtSpecInfo{};
+    const VkSpecializationInfo* pSpecInfo = nullptr;
+    if (externalSpecInfo_) {
+        pSpecInfo = &*externalSpecInfo_;
+    } else if (!specEntries_.empty()) {
+        builtSpecInfo.mapEntryCount = static_cast<std::uint32_t>(specEntries_.size());
+        builtSpecInfo.pMapEntries   = specEntries_.data();
+        builtSpecInfo.dataSize      = specData_.size();
+        builtSpecInfo.pData         = specData_.data();
+        pSpecInfo = &builtSpecInfo;
+    }
+
     VkPipelineShaderStageCreateInfo stages[2]{};
-    stages[0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stages[0].stage  = VK_SHADER_STAGE_VERTEX_BIT;
-    stages[0].module = vertMod;
-    stages[0].pName  = "main";
-    stages[1].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stages[1].stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
-    stages[1].module = fragMod;
-    stages[1].pName  = "main";
+    stages[0].sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stages[0].stage               = VK_SHADER_STAGE_VERTEX_BIT;
+    stages[0].module              = vertMod;
+    stages[0].pName               = "main";
+    stages[0].pSpecializationInfo = pSpecInfo;
+    stages[1].sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stages[1].stage               = VK_SHADER_STAGE_FRAGMENT_BIT;
+    stages[1].module              = fragMod;
+    stages[1].pName               = "main";
+    stages[1].pSpecializationInfo = pSpecInfo;
 
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

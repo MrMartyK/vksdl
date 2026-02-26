@@ -56,4 +56,49 @@ void debugName(VkDevice device, VkCommandBuffer cmd, std::string_view name) {
               reinterpret_cast<std::uint64_t>(cmd), name);
 }
 
+void debugName(VkDevice device, VkCommandPool pool, std::string_view name) {
+    debugName(device, VK_OBJECT_TYPE_COMMAND_POOL,
+              reinterpret_cast<std::uint64_t>(pool), name);
+}
+
+void debugName(VkDevice device, VkSemaphore semaphore, std::string_view name) {
+    debugName(device, VK_OBJECT_TYPE_SEMAPHORE,
+              reinterpret_cast<std::uint64_t>(semaphore), name);
+}
+
+void debugName(VkDevice device, VkFence fence, std::string_view name) {
+    debugName(device, VK_OBJECT_TYPE_FENCE,
+              reinterpret_cast<std::uint64_t>(fence), name);
+}
+
+void debugName(VkDevice device, VkSwapchainKHR swapchain, std::string_view name) {
+    debugName(device, VK_OBJECT_TYPE_SWAPCHAIN_KHR,
+              reinterpret_cast<std::uint64_t>(swapchain), name);
+}
+
+void debugName(VkDevice device, VkEvent event, std::string_view name) {
+    debugName(device, VK_OBJECT_TYPE_EVENT,
+              reinterpret_cast<std::uint64_t>(event), name);
+}
+
+void debugName(VkDevice device, VkDescriptorSetLayout layout, std::string_view name) {
+    debugName(device, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
+              reinterpret_cast<std::uint64_t>(layout), name);
+}
+
+void debugName(VkDevice device, VkPipelineLayout layout, std::string_view name) {
+    debugName(device, VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+              reinterpret_cast<std::uint64_t>(layout), name);
+}
+
+void debugName(VkDevice device, VkShaderModule module, std::string_view name) {
+    debugName(device, VK_OBJECT_TYPE_SHADER_MODULE,
+              reinterpret_cast<std::uint64_t>(module), name);
+}
+
+void debugName(VkDevice device, VkAccelerationStructureKHR as, std::string_view name) {
+    debugName(device, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR,
+              reinterpret_cast<std::uint64_t>(as), name);
+}
+
 } // namespace vksdl

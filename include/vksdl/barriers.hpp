@@ -39,6 +39,14 @@ void transitionToTransferDst(VkCommandBuffer cmd, VkImage image);
 // when loadOp=CLEAR (discards previous contents via UNDEFINED oldLayout).
 void transitionToDepthAttachment(VkCommandBuffer cmd, VkImage image);
 
+// GPU-driven rendering barriers (VkMemoryBarrier2, no layout transitions).
+
+// After compute shader fills indirect/count buffer, before vkCmdDrawIndirect.
+void barrierComputeToIndirectRead(VkCommandBuffer cmd);
+
+// After compute shader writes vertex data, before vertex input reads it.
+void barrierComputeToVertexRead(VkCommandBuffer cmd);
+
 // Acceleration structure barriers (VkMemoryBarrier2, no layout transitions).
 
 // After BLAS/TLAS build, before RT shader reads the AS.

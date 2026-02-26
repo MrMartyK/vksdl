@@ -69,6 +69,90 @@ int main() {
         std::printf("  debugName core overload: ok\n");
     }
 
+    // Test new overloads: command pool, semaphore, fence, event,
+    // descriptor set layout, pipeline layout, shader module.
+    {
+        VkCommandPoolCreateInfo poolCI{};
+        poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolCI.queueFamilyIndex = device.value().queueFamilies().graphics;
+
+        VkCommandPool cmdPool = VK_NULL_HANDLE;
+        VkResult vr = vkCreateCommandPool(device.value().vkDevice(), &poolCI, nullptr, &cmdPool);
+        assert(vr == VK_SUCCESS);
+
+        vksdl::debugName(device.value().vkDevice(), cmdPool, "test command pool");
+        vkDestroyCommandPool(device.value().vkDevice(), cmdPool, nullptr);
+        std::printf("  debugName command pool: ok\n");
+    }
+
+    {
+        VkSemaphoreCreateInfo semCI{};
+        semCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkSemaphore sem = VK_NULL_HANDLE;
+        VkResult vr = vkCreateSemaphore(device.value().vkDevice(), &semCI, nullptr, &sem);
+        assert(vr == VK_SUCCESS);
+
+        vksdl::debugName(device.value().vkDevice(), sem, "test semaphore");
+        vkDestroySemaphore(device.value().vkDevice(), sem, nullptr);
+        std::printf("  debugName semaphore: ok\n");
+    }
+
+    {
+        VkFenceCreateInfo fenceCI{};
+        fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+        VkFence fence = VK_NULL_HANDLE;
+        VkResult vr = vkCreateFence(device.value().vkDevice(), &fenceCI, nullptr, &fence);
+        assert(vr == VK_SUCCESS);
+
+        vksdl::debugName(device.value().vkDevice(), fence, "test fence");
+        vkDestroyFence(device.value().vkDevice(), fence, nullptr);
+        std::printf("  debugName fence: ok\n");
+    }
+
+    {
+        VkEventCreateInfo eventCI{};
+        eventCI.sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
+
+        VkEvent event = VK_NULL_HANDLE;
+        VkResult vr = vkCreateEvent(device.value().vkDevice(), &eventCI, nullptr, &event);
+        assert(vr == VK_SUCCESS);
+
+        vksdl::debugName(device.value().vkDevice(), event, "test event");
+        vkDestroyEvent(device.value().vkDevice(), event, nullptr);
+        std::printf("  debugName event: ok\n");
+    }
+
+    {
+        VkDescriptorSetLayoutCreateInfo layoutCI{};
+        layoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+
+        VkDescriptorSetLayout dsLayout = VK_NULL_HANDLE;
+        VkResult vr = vkCreateDescriptorSetLayout(device.value().vkDevice(), &layoutCI,
+                                                   nullptr, &dsLayout);
+        assert(vr == VK_SUCCESS);
+
+        vksdl::debugName(device.value().vkDevice(), dsLayout, "test descriptor set layout");
+        vkDestroyDescriptorSetLayout(device.value().vkDevice(), dsLayout, nullptr);
+        std::printf("  debugName descriptor set layout: ok\n");
+    }
+
+    {
+        VkPipelineLayoutCreateInfo plCI{};
+        plCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+        VkPipelineLayout pipeLayout = VK_NULL_HANDLE;
+        VkResult vr = vkCreatePipelineLayout(device.value().vkDevice(), &plCI,
+                                              nullptr, &pipeLayout);
+        assert(vr == VK_SUCCESS);
+
+        vksdl::debugName(device.value().vkDevice(), pipeLayout, "test pipeline layout");
+        vkDestroyPipelineLayout(device.value().vkDevice(), pipeLayout, nullptr);
+        std::printf("  debugName pipeline layout: ok\n");
+    }
+
     device.value().waitIdle();
     std::printf("all debug name tests passed\n");
     return 0;

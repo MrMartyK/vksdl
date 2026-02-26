@@ -99,6 +99,12 @@ RayTracingPipelineBuilder& RayTracingPipelineBuilder::maxRecursionDepth(
     return *this;
 }
 
+RayTracingPipelineBuilder& RayTracingPipelineBuilder::specialize(
+    const VkSpecializationInfo& info) {
+    externalSpecInfo_ = info;
+    return *this;
+}
+
 RayTracingPipelineBuilder& RayTracingPipelineBuilder::cache(
     const PipelineCache& c) {
     cache_ = c.vkPipelineCache();
@@ -179,6 +185,19 @@ Result<Pipeline> RayTracingPipelineBuilder::build() {
     std::vector<std::uint32_t> anyHitGlobalIndices;
     std::vector<std::uint32_t> intersectionGlobalIndices;
 
+    // Build specialization info (shared across all RT stages).
+    VkSpecializationInfo builtSpecInfo{};
+    const VkSpecializationInfo* pSpecInfo = nullptr;
+    if (externalSpecInfo_) {
+        pSpecInfo = &*externalSpecInfo_;
+    } else if (!specEntries_.empty()) {
+        builtSpecInfo.mapEntryCount = static_cast<std::uint32_t>(specEntries_.size());
+        builtSpecInfo.pMapEntries   = specEntries_.data();
+        builtSpecInfo.dataSize      = specData_.size();
+        builtSpecInfo.pData         = specData_.data();
+        pSpecInfo = &builtSpecInfo;
+    }
+
     for (const auto& entry : stages_) {
         VkShaderModule mod = entry.module;
         if (mod == VK_NULL_HANDLE) {
@@ -197,9 +216,10 @@ Result<Pipeline> RayTracingPipelineBuilder::build() {
         }
 
         VkPipelineShaderStageCreateInfo stage{};
-        stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        stage.module = mod;
-        stage.pName  = "main";
+        stage.sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stage.module              = mod;
+        stage.pName               = "main";
+        stage.pSpecializationInfo = pSpecInfo;
 
         auto globalIdx = static_cast<std::uint32_t>(vkStages.size());
 

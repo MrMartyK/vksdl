@@ -59,6 +59,9 @@ public:
     BufferBuilder& storageBuffer();   // STORAGE_BUFFER | TRANSFER_DST, device-local
     BufferBuilder& stagingBuffer();   // TRANSFER_SRC, host-mapped
 
+    // GPU-driven rendering
+    BufferBuilder& indirectBuffer();  // INDIRECT_BUFFER | STORAGE_BUFFER | TRANSFER_DST | SHADER_DEVICE_ADDRESS
+
     // RT convenience methods
     BufferBuilder& scratchBuffer();                // STORAGE_BUFFER | SHADER_DEVICE_ADDRESS
     BufferBuilder& accelerationStructureStorage(); // AS_STORAGE | SHADER_DEVICE_ADDRESS
@@ -112,6 +115,10 @@ private:
     const void* data, VkDeviceSize size);
 
 [[nodiscard]] Result<Buffer> uploadStorageBuffer(
+    const Allocator& allocator, const Device& device,
+    const void* data, VkDeviceSize size);
+
+[[nodiscard]] Result<Buffer> uploadIndirectBuffer(
     const Allocator& allocator, const Device& device,
     const void* data, VkDeviceSize size);
 

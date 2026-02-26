@@ -401,3 +401,42 @@ add_custom_command(TARGET test_pipeline_compiler POST_BUILD
         ${CMAKE_BINARY_DIR}/examples/triangle/shaders
         $<TARGET_FILE_DIR:test_pipeline_compiler>/shaders
 )
+
+# --- Indirect buffer test ---
+
+add_executable(test_indirect_buffer integration/test_indirect_buffer.cpp)
+target_link_libraries(test_indirect_buffer PRIVATE vksdl)
+add_test(NAME test_indirect_buffer COMMAND test_indirect_buffer)
+
+# --- Spec constants test (needs compute + triangle shaders) ---
+
+set(SPIRV_VALIDATE_SPEC_CONST_CMD "")
+if(SPIRV_VAL)
+    set(SPIRV_VALIDATE_SPEC_CONST_CMD COMMAND ${SPIRV_VAL} ${COMP_SHADER_OUT}/spec_const.comp.spv)
+endif()
+add_custom_command(
+    OUTPUT ${COMP_SHADER_OUT}/spec_const.comp.spv
+    COMMAND ${GLSLC} ${COMP_SHADER_DIR}/spec_const.comp -o ${COMP_SHADER_OUT}/spec_const.comp.spv
+    ${SPIRV_VALIDATE_SPEC_CONST_CMD}
+    DEPENDS ${COMP_SHADER_DIR}/spec_const.comp
+    COMMENT "Compiling spec_const.comp -> spec_const.comp.spv"
+)
+add_custom_target(test_spec_const_shaders ALL
+    DEPENDS ${COMP_SHADER_OUT}/spec_const.comp.spv
+)
+
+add_executable(test_spec_constants integration/test_spec_constants.cpp)
+target_link_libraries(test_spec_constants PRIVATE vksdl)
+add_test(NAME test_spec_constants COMMAND test_spec_constants)
+
+add_dependencies(test_spec_constants test_spec_const_shaders triangle_shaders)
+add_custom_command(TARGET test_spec_constants POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${COMP_SHADER_OUT}
+        $<TARGET_FILE_DIR:test_spec_constants>/shaders
+)
+add_custom_command(TARGET test_spec_constants POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_BINARY_DIR}/examples/triangle/shaders
+        $<TARGET_FILE_DIR:test_spec_constants>/shaders
+)

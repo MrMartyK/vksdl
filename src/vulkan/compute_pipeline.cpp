@@ -27,6 +27,12 @@ ComputePipelineBuilder& ComputePipelineBuilder::shaderModule(VkShaderModule modu
     return *this;
 }
 
+ComputePipelineBuilder& ComputePipelineBuilder::specialize(
+    const VkSpecializationInfo& info) {
+    externalSpecInfo_ = info;
+    return *this;
+}
+
 ComputePipelineBuilder& ComputePipelineBuilder::cache(const PipelineCache& c) {
     cache_ = c.vkPipelineCache();
     return *this;
@@ -197,11 +203,24 @@ Result<Pipeline> ComputePipelineBuilder::build() {
         p.ownsLayout_ = true;
     }
 
+    VkSpecializationInfo builtSpecInfo{};
+    const VkSpecializationInfo* pSpecInfo = nullptr;
+    if (externalSpecInfo_) {
+        pSpecInfo = &*externalSpecInfo_;
+    } else if (!specEntries_.empty()) {
+        builtSpecInfo.mapEntryCount = static_cast<std::uint32_t>(specEntries_.size());
+        builtSpecInfo.pMapEntries   = specEntries_.data();
+        builtSpecInfo.dataSize      = specData_.size();
+        builtSpecInfo.pData         = specData_.data();
+        pSpecInfo = &builtSpecInfo;
+    }
+
     VkPipelineShaderStageCreateInfo stage{};
-    stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stage.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
-    stage.module = compMod;
-    stage.pName  = "main";
+    stage.sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage.stage               = VK_SHADER_STAGE_COMPUTE_BIT;
+    stage.module              = compMod;
+    stage.pName               = "main";
+    stage.pSpecializationInfo = pSpecInfo;
 
     VkPipelineCreationFeedback pipelineFeedback{};
     VkPipelineCreationFeedback stageFeedback{};

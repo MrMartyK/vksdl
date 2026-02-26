@@ -125,6 +125,38 @@ void transitionToDepthAttachment(VkCommandBuffer cmd, VkImage image) {
     vkCmdPipelineBarrier2(cmd, &dep);
 }
 
+void barrierComputeToIndirectRead(VkCommandBuffer cmd) {
+    VkMemoryBarrier2 barrier{};
+    barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+    barrier.srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
+    barrier.dstStageMask  = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+
+    VkDependencyInfo dep{};
+    dep.sType              = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep.memoryBarrierCount = 1;
+    dep.pMemoryBarriers    = &barrier;
+
+    vkCmdPipelineBarrier2(cmd, &dep);
+}
+
+void barrierComputeToVertexRead(VkCommandBuffer cmd) {
+    VkMemoryBarrier2 barrier{};
+    barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+    barrier.srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
+    barrier.dstStageMask  = VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
+
+    VkDependencyInfo dep{};
+    dep.sType              = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep.memoryBarrierCount = 1;
+    dep.pMemoryBarriers    = &barrier;
+
+    vkCmdPipelineBarrier2(cmd, &dep);
+}
+
 void barrierAsBuildToRead(VkCommandBuffer cmd) {
     VkMemoryBarrier2 barrier{};
     barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
