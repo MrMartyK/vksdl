@@ -119,6 +119,27 @@ Result<void> PipelineCache::save(const std::filesystem::path& path) const {
     return {};
 }
 
+Result<void> PipelineCache::merge(const PipelineCache& src) {
+    return merge(src.vkPipelineCache());
+}
+
+Result<void> PipelineCache::merge(VkPipelineCache src) {
+    if (src == VK_NULL_HANDLE) {
+        return Error{"merge pipeline cache", 0, "source cache is null"};
+    }
+    if (src == cache_) {
+        return {};
+    }
+
+    VkResult vr = vkMergePipelineCaches(device_, cache_, 1, &src);
+    if (vr != VK_SUCCESS) {
+        return Error{"merge pipeline cache", static_cast<std::int32_t>(vr),
+                     "vkMergePipelineCaches failed"};
+    }
+
+    return {};
+}
+
 std::size_t PipelineCache::dataSize() const {
     if (cache_ == VK_NULL_HANDLE) return 0;
 

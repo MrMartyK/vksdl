@@ -138,6 +138,31 @@ int main() {
     }
 
     {
+        auto dst = vksdl::PipelineCache::create(device.value());
+        auto src = vksdl::PipelineCache::create(device.value());
+        assert(dst.ok());
+        assert(src.ok());
+
+        // Build once into src so the merge has real data to merge.
+        auto seeded = vksdl::PipelineBuilder(device.value())
+            .vertexShader(shaderDir / "triangle.vert.spv")
+            .fragmentShader(shaderDir / "triangle.frag.spv")
+            .colorFormat(swapchain.value())
+            .cache(src.value())
+            .build();
+        assert(seeded.ok());
+        assert(src.value().dataSize() > 0);
+
+        auto merge1 = dst.value().merge(src.value());
+        assert(merge1.ok());
+
+        auto merge2 = dst.value().merge(src.value().vkPipelineCache());
+        assert(merge2.ok());
+
+        std::printf("  cache merge wrapper: ok\n");
+    }
+
+    {
         auto cache = vksdl::PipelineCache::create(device.value());
         assert(cache.ok());
 

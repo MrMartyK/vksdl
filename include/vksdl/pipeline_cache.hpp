@@ -29,6 +29,8 @@ public:
                                                      const std::filesystem::path& path);
 
     [[nodiscard]] Result<void> save(const std::filesystem::path& path) const;
+    [[nodiscard]] Result<void> merge(const PipelineCache& src);
+    [[nodiscard]] Result<void> merge(VkPipelineCache src);
 
     [[nodiscard]] std::size_t dataSize() const;
 
