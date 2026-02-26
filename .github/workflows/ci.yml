@@ -215,7 +215,6 @@ jobs:
           -R "test_error|test_result|test_projection|test_transform"
 
       - name: Integration tests (Lavapipe)
-        continue-on-error: true
         timeout-minutes: 10
         run: >-
           xvfb-run ctest --test-dir build --output-on-failure
