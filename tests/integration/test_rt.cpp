@@ -21,6 +21,23 @@ static bool gpuSupportsRt(const vksdl::Instance& instance,
     return result.ok();
 }
 
+static VkAccelerationStructureInstanceKHR makeRtInstance(
+    VkDeviceAddress blasAddress, float tx, float ty, float tz) {
+    VkAccelerationStructureInstanceKHR inst{};
+    inst.transform.matrix[0][0] = 1.0f;
+    inst.transform.matrix[1][1] = 1.0f;
+    inst.transform.matrix[2][2] = 1.0f;
+    inst.transform.matrix[0][3] = tx;
+    inst.transform.matrix[1][3] = ty;
+    inst.transform.matrix[2][3] = tz;
+    inst.instanceCustomIndex = 0;
+    inst.mask = 0xFF;
+    inst.instanceShaderBindingTableRecordOffset = 0;
+    inst.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+    inst.accelerationStructureReference = blasAddress;
+    return inst;
+}
+
 int main() {
     auto app = vksdl::App::create();
     assert(app.ok());
@@ -192,6 +209,74 @@ int main() {
     assert(pipeline.value().vkPipeline() != VK_NULL_HANDLE);
     assert(pipeline.value().vkPipelineLayout() != VK_NULL_HANDLE);
     std::printf("  RT pipeline creation: ok\n");
+
+    {
+        auto builder = vksdl::TlasBuilder(device.value(), allocator.value())
+            .allowUpdate();
+        float identity[3][4] = {{1,0,0,0},{0,1,0,0},{0,0,1,0}};
+        builder.addInstance(blas, identity);
+        auto tlasUpdatable = builder.build();
+        assert(tlasUpdatable.ok());
+        assert(tlasUpdatable.value().supportsUpdate());
+        assert(tlasUpdatable.value().maxInstanceCount() == 1);
+        assert(tlasUpdatable.value().updateScratchSize() > 0);
+
+        auto instanceBuffer = vksdl::BufferBuilder(allocator.value())
+            .size(sizeof(VkAccelerationStructureInstanceKHR))
+            .accelerationStructureInput()
+            .deviceAddressable()
+            .mapped()
+            .build();
+        assert(instanceBuffer.ok());
+
+        auto scratch = vksdl::BufferBuilder(allocator.value())
+            .scratchBuffer()
+            .size(tlasUpdatable.value().updateScratchSize())
+            .build();
+        assert(scratch.ok());
+
+        auto* mapped = reinterpret_cast<VkAccelerationStructureInstanceKHR*>(
+            instanceBuffer.value().mappedData());
+        assert(mapped != nullptr);
+
+        VkCommandPoolCreateInfo poolCI{};
+        poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolCI.queueFamilyIndex = device.value().queueFamilies().graphics;
+
+        VkCommandPool pool = VK_NULL_HANDLE;
+        VkResult vr = vkCreateCommandPool(device.value().vkDevice(), &poolCI, nullptr, &pool);
+        assert(vr == VK_SUCCESS);
+
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = pool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer cmd = VK_NULL_HANDLE;
+        vr = vkAllocateCommandBuffers(device.value().vkDevice(), &allocInfo, &cmd);
+        assert(vr == VK_SUCCESS);
+
+        *mapped = makeRtInstance(blas.deviceAddress(), 0.0f, 0.0f, 0.0f);
+        vksdl::beginOneTimeCommands(cmd);
+        auto update0 = tlasUpdatable.value().cmdUpdate(
+            cmd, scratch.value(), instanceBuffer.value(), 1);
+        assert(update0.ok());
+        auto submit0 = vksdl::endSubmitOneShotBlocking(device.value().graphicsQueue(), cmd);
+        assert(submit0.ok());
+
+        *mapped = makeRtInstance(blas.deviceAddress(), 0.1f, 0.0f, 0.0f);
+        vksdl::beginOneTimeCommands(cmd);
+        auto update1 = tlasUpdatable.value().cmdUpdate(
+            cmd, scratch.value(), instanceBuffer.value(), 1);
+        assert(update1.ok());
+        auto submit1 = vksdl::endSubmitOneShotBlocking(device.value().graphicsQueue(), cmd);
+        assert(submit1.ok());
+
+        vkDestroyCommandPool(device.value().vkDevice(), pool, nullptr);
+        std::printf("  TLAS cmdUpdate path: ok\n");
+    }
 
     {
         auto sbt = vksdl::ShaderBindingTable::create(

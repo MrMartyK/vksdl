@@ -36,6 +36,16 @@ public:
     [[nodiscard]] VkAccelerationStructureKHR vkAccelerationStructure() const {
         return as_;
     }
+    [[nodiscard]] bool supportsUpdate() const { return allowUpdate_; }
+    [[nodiscard]] std::uint32_t maxInstanceCount() const { return maxInstanceCount_; }
+    [[nodiscard]] VkDeviceSize updateScratchSize() const { return updateScratchSize_; }
+
+    // Record an in-place TLAS update for dynamic per-frame transforms.
+    // Requires ALLOW_UPDATE at build time and instanceCount <= maxInstanceCount().
+    [[nodiscard]] Result<void> cmdUpdate(VkCommandBuffer cmd,
+                                         const Buffer& scratch,
+                                         const Buffer& instanceBuffer,
+                                         std::uint32_t instanceCount);
 
 private:
     friend class TlasBuilder;
@@ -43,6 +53,12 @@ private:
 
     VkDevice                     device_ = VK_NULL_HANDLE;
     VkAccelerationStructureKHR   as_     = VK_NULL_HANDLE;
+    bool                         allowUpdate_ = false;
+    std::uint32_t                maxInstanceCount_ = 0;
+    VkDeviceSize                 scratchAlignment_ = 0;
+    VkBuildAccelerationStructureFlagsKHR buildFlags_ =
+        VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    VkDeviceSize                 updateScratchSize_ = 0;
 
     // Backing buffer + instance buffer (raw VMA handles).
     struct BackingBuffer;

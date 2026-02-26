@@ -48,10 +48,22 @@ Tlas::~Tlas() {
 }
 
 Tlas::Tlas(Tlas&& o) noexcept
-    : device_(o.device_), as_(o.as_), backing_(o.backing_),
-      instance_(o.instance_) {
+    : device_(o.device_)
+    , as_(o.as_)
+    , allowUpdate_(o.allowUpdate_)
+    , maxInstanceCount_(o.maxInstanceCount_)
+    , scratchAlignment_(o.scratchAlignment_)
+    , buildFlags_(o.buildFlags_)
+    , updateScratchSize_(o.updateScratchSize_)
+    , backing_(o.backing_)
+    , instance_(o.instance_) {
     o.device_   = VK_NULL_HANDLE;
     o.as_       = VK_NULL_HANDLE;
+    o.allowUpdate_ = false;
+    o.maxInstanceCount_ = 0;
+    o.scratchAlignment_ = 0;
+    o.buildFlags_ = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    o.updateScratchSize_ = 0;
     o.backing_  = nullptr;
     o.instance_ = nullptr;
 }
@@ -81,11 +93,21 @@ Tlas& Tlas::operator=(Tlas&& o) noexcept {
 
         device_   = o.device_;
         as_       = o.as_;
+        allowUpdate_ = o.allowUpdate_;
+        maxInstanceCount_ = o.maxInstanceCount_;
+        scratchAlignment_ = o.scratchAlignment_;
+        buildFlags_ = o.buildFlags_;
+        updateScratchSize_ = o.updateScratchSize_;
         backing_  = o.backing_;
         instance_ = o.instance_;
 
         o.device_   = VK_NULL_HANDLE;
         o.as_       = VK_NULL_HANDLE;
+        o.allowUpdate_ = false;
+        o.maxInstanceCount_ = 0;
+        o.scratchAlignment_ = 0;
+        o.buildFlags_ = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+        o.updateScratchSize_ = 0;
         o.backing_  = nullptr;
         o.instance_ = nullptr;
     }
@@ -295,6 +317,14 @@ Result<Tlas> TlasBuilder::build() {
     // Set up before createAs so the destructor fires on any subsequent error.
     Tlas tlas;
     tlas.device_   = device_;
+    tlas.allowUpdate_ = allowUpdate_;
+    tlas.maxInstanceCount_ = instanceCount;
+    tlas.scratchAlignment_ = scratchAlignment_;
+    tlas.buildFlags_ = flags;
+    tlas.updateScratchSize_ = sizeInfo.updateScratchSize;
+    if (scratchAlignment_ > 1) {
+        tlas.updateScratchSize_ += scratchAlignment_ - 1;
+    }
     tlas.backing_  = backing;
     tlas.instance_ = instanceBuf;
 
@@ -487,6 +517,14 @@ Result<Tlas> TlasBuilder::cmdBuild(VkCommandBuffer cmd,
 
     Tlas tlas;
     tlas.device_  = device_;
+    tlas.allowUpdate_ = allowUpdate_;
+    tlas.maxInstanceCount_ = instanceCount;
+    tlas.scratchAlignment_ = scratchAlignment_;
+    tlas.buildFlags_ = flags;
+    tlas.updateScratchSize_ = sizeInfo.updateScratchSize;
+    if (scratchAlignment_ > 1) {
+        tlas.updateScratchSize_ += scratchAlignment_ - 1;
+    }
     tlas.backing_ = backing;
     // instance_ is nullptr: user owns the instance buffer in async path.
 
@@ -518,6 +556,72 @@ Result<Tlas> TlasBuilder::cmdBuild(VkCommandBuffer cmd,
     fn.cmdBuildAs(cmd, 1, &buildInfo, &pRanges);
 
     return tlas;
+}
+
+Result<void> Tlas::cmdUpdate(VkCommandBuffer cmd,
+                             const Buffer& scratch,
+                             const Buffer& instanceBuffer,
+                             std::uint32_t instanceCount) {
+    if (!allowUpdate_) {
+        return Error{"TLAS cmdUpdate", 0,
+                     "TLAS was not built with allowUpdate()"};
+    }
+    if (as_ == VK_NULL_HANDLE) {
+        return Error{"TLAS cmdUpdate", 0, "TLAS handle is null"};
+    }
+    if (instanceCount == 0) {
+        return Error{"TLAS cmdUpdate", 0, "instanceCount is 0"};
+    }
+    if (instanceCount > maxInstanceCount_) {
+        return Error{"TLAS cmdUpdate", 0,
+                     "instanceCount exceeds TLAS maxInstanceCount"};
+    }
+    if (scratch.size() < updateScratchSize_) {
+        return Error{"TLAS cmdUpdate", 0,
+                     "scratch buffer is smaller than updateScratchSize"};
+    }
+
+    auto fn = detail::loadRtFunctions(device_);
+    if (!fn.cmdBuildAs) {
+        return Error{"TLAS cmdUpdate", 0,
+                     "RT extension functions not available"};
+    }
+
+    VkDeviceAddress instanceAddr = instanceBuffer.deviceAddress();
+
+    VkAccelerationStructureGeometryInstancesDataKHR instancesData{};
+    instancesData.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+    instancesData.arrayOfPointers = VK_FALSE;
+    instancesData.data.deviceAddress = instanceAddr;
+
+    VkAccelerationStructureGeometryKHR geom{};
+    geom.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    geom.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+    geom.geometry.instances = instancesData;
+
+    VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
+    buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+    buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+    buildInfo.flags = buildFlags_;
+    buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
+    buildInfo.srcAccelerationStructure = as_;
+    buildInfo.dstAccelerationStructure = as_;
+    buildInfo.geometryCount = 1;
+    buildInfo.pGeometries = &geom;
+
+    VkDeviceAddress scratchAddr = scratch.deviceAddress();
+    if (scratchAlignment_ > 1) {
+        scratchAddr = alignUp(scratchAddr, scratchAlignment_);
+    }
+    buildInfo.scratchData.deviceAddress = scratchAddr;
+
+    VkAccelerationStructureBuildRangeInfoKHR rangeInfo{};
+    rangeInfo.primitiveCount = instanceCount;
+
+    const VkAccelerationStructureBuildRangeInfoKHR* pRanges = &rangeInfo;
+    fn.cmdBuildAs(cmd, 1, &buildInfo, &pRanges);
+
+    return {};
 }
 
 } // namespace vksdl
