@@ -136,6 +136,15 @@ PipelineBuilder& PipelineBuilder::fragmentShader(const std::filesystem::path& sp
     return *this;
 }
 
+PipelineBuilder& PipelineBuilder::simpleColorPipeline(
+    const std::filesystem::path& vertSpvPath,
+    const std::filesystem::path& fragSpvPath,
+    const Swapchain& swapchain) {
+    return vertexShader(vertSpvPath)
+        .fragmentShader(fragSpvPath)
+        .colorFormat(swapchain);
+}
+
 PipelineBuilder& PipelineBuilder::vertexModule(VkShaderModule module) {
     vertModule_ = module;
     return *this;

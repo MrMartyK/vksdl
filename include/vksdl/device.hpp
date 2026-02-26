@@ -157,6 +157,7 @@ public:
     DeviceBuilder& needSwapchain();
     DeviceBuilder& needDynamicRendering();
     DeviceBuilder& needSync2();
+    DeviceBuilder& graphicsDefaults();
     DeviceBuilder& needRayTracingPipeline();
     DeviceBuilder& needRayQuery();
     DeviceBuilder& needGPL();

@@ -68,6 +68,17 @@ int main() {
         std::printf("  device with needDynamicRendering + needSync2: ok\n");
     }
 
+    // Preset method for common graphics setup.
+    {
+        auto result = vksdl::DeviceBuilder(instance, surface)
+            .graphicsDefaults()
+            .preferDiscreteGpu()
+            .build();
+
+        assert(result.ok() && "device with graphicsDefaults failed");
+        std::printf("  device with graphicsDefaults: ok\n");
+    }
+
     // Escape hatch: lambda still works
     {
         auto result = vksdl::DeviceBuilder(instance, surface)

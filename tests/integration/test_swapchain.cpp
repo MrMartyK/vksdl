@@ -40,7 +40,7 @@ int main() {
     // Create swapchain with defaults
     {
         auto scResult = vksdl::SwapchainBuilder(device, surface)
-            .size(window.pixelSize())
+            .forWindow(window)
             .build();
 
         assert(scResult.ok() && "swapchain creation failed");

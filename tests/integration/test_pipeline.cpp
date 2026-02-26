@@ -27,15 +27,13 @@ int main() {
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
+        .graphicsDefaults()
         .preferDiscreteGpu()
         .build();
     assert(device.ok());
 
     auto swapchain = vksdl::SwapchainBuilder(device.value(), surface.value())
-        .size(window.value().pixelSize())
+        .forWindow(window.value())
         .build();
     assert(swapchain.ok());
 
@@ -54,6 +52,19 @@ int main() {
         assert(!code.ok());
         assert(code.error().operation == "read SPIR-V");
         std::printf("  readSpv invalid path: ok\n");
+    }
+
+    {
+        auto result = vksdl::PipelineBuilder(device.value())
+            .simpleColorPipeline(
+                shaderDir / "triangle.vert.spv",
+                shaderDir / "triangle.frag.spv",
+                swapchain.value())
+            .build();
+
+        assert(result.ok() && "simpleColorPipeline preset failed");
+        assert(result.value().vkPipeline() != VK_NULL_HANDLE);
+        std::printf("  simpleColorPipeline preset: ok\n");
     }
 
     {

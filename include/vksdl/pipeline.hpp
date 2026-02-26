@@ -123,6 +123,9 @@ public:
     // Path-based: builder loads, creates, and destroys modules.
     PipelineBuilder& vertexShader(const std::filesystem::path& spvPath);
     PipelineBuilder& fragmentShader(const std::filesystem::path& spvPath);
+    PipelineBuilder& simpleColorPipeline(const std::filesystem::path& vertSpvPath,
+                                         const std::filesystem::path& fragSpvPath,
+                                         const Swapchain& swapchain);
 
     // Module-based: user owns the VkShaderModule lifetime.
     PipelineBuilder& vertexModule(VkShaderModule module);

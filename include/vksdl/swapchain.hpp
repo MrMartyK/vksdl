@@ -92,6 +92,7 @@ public:
     SwapchainBuilder(const Device& device, const Surface& surface);
 
     SwapchainBuilder& size(Size windowPixelSize);
+    SwapchainBuilder& forWindow(const Window& window);
     SwapchainBuilder& preferSrgb();
     SwapchainBuilder& colorSpace(VkColorSpaceKHR cs);
     SwapchainBuilder& presentMode(PresentMode mode);

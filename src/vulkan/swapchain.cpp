@@ -250,6 +250,10 @@ SwapchainBuilder& SwapchainBuilder::size(Size windowPixelSize) {
     return *this;
 }
 
+SwapchainBuilder& SwapchainBuilder::forWindow(const Window& window) {
+    return size(window.pixelSize());
+}
+
 SwapchainBuilder& SwapchainBuilder::preferSrgb() {
     preferSrgb_ = true;
     return *this;

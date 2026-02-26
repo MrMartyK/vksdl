@@ -164,6 +164,10 @@ DeviceBuilder& DeviceBuilder::needSync2() {
     });
 }
 
+DeviceBuilder& DeviceBuilder::graphicsDefaults() {
+    return needSwapchain().needDynamicRendering().needSync2();
+}
+
 DeviceBuilder& DeviceBuilder::needGPL() {
     requireExtension(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
     requireExtension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
