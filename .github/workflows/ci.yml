@@ -221,6 +221,116 @@ jobs:
           xvfb-run ctest --test-dir build --output-on-failure
           -E "test_error|test_result|test_projection|test_transform"
 
+  # ── Install + external consumer smoke (find_package(vksdl)) ──────
+  install-consumer-smoke:
+    name: Install + External Consumer Smoke
+    runs-on: ubuntu-24.04
+    env:
+      CC: gcc-14
+      CXX: g++-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Install system dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          build-essential ninja-build
+          autoconf autoconf-archive automake libtool pkg-config libltdl-dev
+          libasound2-dev libpulse-dev libpipewire-0.3-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev
+          libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
+          libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
+          libudev-dev libdecor-0-dev libwayland-dev libxtst-dev
+          mesa-vulkan-drivers xvfb
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-linux-consumer-smoke-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-consumer-smoke-
+
+      - name: Bootstrap vcpkg
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Preflight tools
+        run: |
+          cmake --version
+          ninja --version
+          bash --version | head -n 1
+
+      - name: Configure producer
+        run: >-
+          cmake -B build -S .
+          -G Ninja
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DVKSDL_BUILD_TESTS=OFF
+          -DVKSDL_BUILD_EXAMPLES=OFF
+          -DVKSDL_INSTALL=ON
+
+      - name: Build producer
+        run: cmake --build build
+
+      - name: Install producer
+        run: cmake --install build --prefix "$PWD/install"
+
+      - name: Configure consumer (installed-only, deterministic)
+        run: |
+          set -euo pipefail
+
+          VKSDL_CONFIG_FILE="$(find "$PWD/install" -type f -name vksdlConfig.cmake | head -n 1)"
+          if [ -z "$VKSDL_CONFIG_FILE" ]; then
+            echo "vksdlConfig.cmake was not installed under $PWD/install"
+            exit 1
+          fi
+
+          VKSDL_CONFIG_DIR="$(dirname "$VKSDL_CONFIG_FILE")"
+          case "$VKSDL_CONFIG_DIR" in
+            "$PWD/install"/*) ;;
+            *)
+              echo "Resolved config path is outside install prefix: $VKSDL_CONFIG_DIR"
+              exit 1
+              ;;
+          esac
+
+          echo "Resolved vksdlConfig.cmake: $VKSDL_CONFIG_FILE"
+
+          mv include include.__ci_hidden
+          trap 'mv include.__ci_hidden include' EXIT
+
+          cmake -B consumer-build -S tests/consumer_smoke \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DVCPKG_MANIFEST_DIR="$PWD" \
+            -Dvksdl_DIR="$VKSDL_CONFIG_DIR" \
+            -DCMAKE_PREFIX_PATH="$PWD/install" \
+            -DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF \
+            -DCMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY=OFF
+
+          echo "Consumer CMake cache:"
+          grep -E "^vksdl_DIR:|^CMAKE_PREFIX_PATH:" consumer-build/CMakeCache.txt || true
+
+      - name: Build consumer
+        run: cmake --build consumer-build --verbose
+
+      - name: Run consumer
+        run: |
+          set -euo pipefail
+          if ! ./consumer-build/vksdl_consumer_smoke; then
+            ldd ./consumer-build/vksdl_consumer_smoke || true
+            exit 1
+          fi
+
   # ── macOS (C++20 build + non-window test subset) ───────────────────
   macos:
     name: macOS (AppleClang)
@@ -326,6 +436,85 @@ jobs:
         run: >-
           ctest --test-dir build --output-on-failure
           -R "test_error|test_result|test_projection|test_transform"
+
+  # ── No-exceptions build + link probe ──────────────────────────────
+  no-exceptions:
+    name: No Exceptions
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-18
+      CXX: clang++-18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Install system dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          build-essential ninja-build clang-18
+          autoconf autoconf-archive automake libtool pkg-config libltdl-dev
+          libasound2-dev libpulse-dev libpipewire-0.3-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev
+          libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev
+          libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev
+          libudev-dev libdecor-0-dev libwayland-dev libxtst-dev
+          mesa-vulkan-drivers
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-linux-noexc-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-noexc-
+
+      - name: Bootstrap vcpkg
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Preflight tools
+        run: |
+          cmake --version
+          ninja --version
+          bash --version | head -n 1
+
+      - name: Guard no-exceptions surface
+        run: bash scripts/check-no-exceptions-surface.sh
+
+      - name: Configure
+        run: >-
+          cmake -B build -S .
+          -G Ninja
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DVKSDL_ENABLE_EXCEPTIONS=OFF
+          -DVKSDL_BUILD_TESTS=ON
+          -DVKSDL_BUILD_EXAMPLES=ON
+          -DCMAKE_CXX_FLAGS="-fno-exceptions"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Link probe (test_result)
+        run: cmake --build build --target test_result --verbose
+
+      - name: Run probe
+        run: ctest --test-dir build --output-on-failure -R "^test_result$"
+
+  # ── Blocking wait annotation guard ────────────────────────────────
+  blocking-wait-guard:
+    name: Blocking Wait Guard
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard blocking wait annotations
+        run: bash scripts/check-blocking-waits.sh
 
   # ── Secondary static analysis (cppcheck) ───────────────────────────
   cppcheck:
