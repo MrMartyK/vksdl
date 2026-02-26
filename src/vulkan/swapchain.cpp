@@ -160,6 +160,10 @@ VkResult Swapchain::present(VkQueue presentQueue,
 }
 
 Result<void> Swapchain::recreate(Size newSize) {
+    if (newSize.width == 0 || newSize.height == 0) {
+        return {}; // minimized/no drawable area
+    }
+
     destroySemaphores();
     destroyViews();
 

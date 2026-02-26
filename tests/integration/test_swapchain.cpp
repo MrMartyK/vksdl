@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <vector>
 
 int main() {
     auto appResult = vksdl::App::create();
@@ -70,6 +71,40 @@ int main() {
                     swapchain.extent().height,
                     swapchain.imageCount());
         std::printf("  recreate: ok\n");
+
+        // Zero-size recreate should be a no-op for minimized-window handling.
+        const auto beforeZeroSwapchain = swapchain.vkSwapchain();
+        const auto beforeZeroExtent = swapchain.extent();
+        const auto beforeZeroCount  = swapchain.imageCount();
+        device.waitIdle();
+        auto zeroResult = swapchain.recreate({0, 0});
+        assert(zeroResult.ok() && "zero-size recreate failed");
+        assert(swapchain.vkSwapchain() == beforeZeroSwapchain);
+        assert(swapchain.extent().width == beforeZeroExtent.width);
+        assert(swapchain.extent().height == beforeZeroExtent.height);
+        assert(swapchain.imageCount() == beforeZeroCount);
+
+        // Stress repeated recreates across varying extents.
+        const std::vector<vksdl::Size> stressSizes = {
+            {640, 480},
+            {800, 600},
+            {1024, 576},
+            {1280, 720},
+            {960, 540},
+            {640, 360},
+        };
+        for (int i = 0; i < 3; ++i) {
+            for (const auto s : stressSizes) {
+                device.waitIdle();
+                auto stressResult = swapchain.recreate(s);
+                assert(stressResult.ok() && "stress recreate failed");
+                assert(swapchain.extent().width > 0);
+                assert(swapchain.extent().height > 0);
+                assert(swapchain.imageCount() >= 2);
+                assert(swapchain.images().size() == swapchain.imageViews().size());
+            }
+        }
+        std::printf("  stress recreate: ok\n");
     }
 
     device.waitIdle();
