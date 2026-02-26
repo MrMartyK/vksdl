@@ -1,7 +1,12 @@
 #include <vksdl/result.hpp>
 
 #include <cassert>
+#ifndef VKSDL_ENABLE_EXCEPTIONS
+#define VKSDL_ENABLE_EXCEPTIONS 1
+#endif
+#if VKSDL_ENABLE_EXCEPTIONS
 #include <stdexcept>
+#endif
 #include <string>
 
 int main() {
@@ -79,8 +84,8 @@ int main() {
         assert(val == 99);
     }
 
-    // orThrow on error (exceptions-enabled builds only).
 #if VKSDL_ENABLE_EXCEPTIONS
+    // orThrow on error (exceptions-enabled builds only).
     {
         auto make = []() -> vksdl::Result<int> { return vksdl::Error{"test", -1, "boom"}; };
         bool caught = false;
@@ -102,8 +107,8 @@ int main() {
         std::move(r).orThrow();
     }
 
-    // orThrow on Result<void> error (exceptions-enabled builds only).
 #if VKSDL_ENABLE_EXCEPTIONS
+    // orThrow on Result<void> error (exceptions-enabled builds only).
     {
         vksdl::Result<void> r = vksdl::Error{"compile", -3, "failed"};
         bool caught = false;

@@ -1,0 +1,50 @@
+Blocking Wait Audit
+===================
+
+Scope
+-----
+This audit tracks explicit blocking waits in `src/`:
+- `vkDeviceWaitIdle(...)`
+- `vkQueueWaitIdle(...)`
+- `vkWaitForFences(...)`
+- `vkWaitSemaphores(...)`
+- `VK_QUERY_RESULT_WAIT_BIT`
+
+Policy
+------
+Each blocking wait in `src/` must have a nearby reason tag:
+
+`// VKSDL_BLOCKING_WAIT: <reason>`
+
+CI enforces this with `scripts/check-blocking-waits.sh`.
+
+Current Inventory
+-----------------
+`src/vulkan/device.cpp`
+- `vkDeviceWaitIdle`: full-device idle for teardown/recovery.
+
+`src/vulkan/frames.cpp`
+- `vkWaitForFences`: frame-slot reuse boundary each frame.
+
+`src/vulkan/timeline_sync.cpp`
+- `vkWaitSemaphores`: frame-slot timeline wait before command reuse.
+
+`src/vulkan/transfer_queue.cpp`
+- `vkWaitSemaphores` (uploadAsync): CPU-side wait in current async API.
+- `vkWaitSemaphores` (waitIdle): explicit caller-requested drain.
+
+`src/vulkan/buffer.cpp`
+- `vkQueueWaitIdle`: init-time staging upload completion wait.
+
+`src/vulkan/texture.cpp`
+- `vkQueueWaitIdle`: init-time texture upload completion wait.
+
+`src/vulkan/mesh.cpp`
+- `vkQueueWaitIdle`: init-time mesh upload completion wait.
+
+`src/vulkan/blas.cpp`
+- `vkQueueWaitIdle`: synchronous BLAS build and compaction helper waits.
+- `VK_QUERY_RESULT_WAIT_BIT`: synchronous compacted-size query waits.
+
+`src/vulkan/tlas.cpp`
+- `vkQueueWaitIdle`: synchronous TLAS build wait.

@@ -488,6 +488,31 @@ int main() {
 
         ResourceState initState{};
         initState.currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        initState.queueFamily   = queueFamily;
+        auto img = graph.importImage(testImage.value(), initState);
+
+        ResourceState crossFamilyRead{};
+        crossFamilyRead.lastWriteStage       = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        crossFamilyRead.readAccessSinceWrite = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+        crossFamilyRead.currentLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        crossFamilyRead.queueFamily          = queueFamily + 1;
+
+        graph.addPass("crossFamilyUnsupported", PassType::Graphics,
+            [&](PassBuilder& b) { b.access(img, AccessType::Read, crossFamilyRead); },
+            [](PassContext&, VkCommandBuffer) {});
+
+        auto r = graph.compile();
+        assert(!r.ok());
+        assert(r.error().message.find("queue-family ownership transfer requested")
+               != std::string::npos);
+        std::printf("  queue-family guard: ok\n");
+    }
+
+    {
+        RenderGraph graph(device.value(), allocator.value());
+
+        ResourceState initState{};
+        initState.currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         auto img = graph.importImage(testImage.value(), initState);
 
         VkImageLayout capturedLayout = VK_IMAGE_LAYOUT_UNDEFINED;

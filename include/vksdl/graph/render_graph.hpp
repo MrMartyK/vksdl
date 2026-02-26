@@ -203,7 +203,7 @@ private:
     void computeLifetimes(const std::vector<std::uint32_t>& order);
     [[nodiscard]] Result<void> allocateTransients();
     void initStateTrackers();
-    void compileBarriers(const std::vector<std::uint32_t>& order);
+    [[nodiscard]] Result<void> compileBarriers(const std::vector<std::uint32_t>& order);
     void resolveRenderTargets(const std::vector<std::uint32_t>& order);
     [[nodiscard]] Result<void> resolveDescriptors();
 

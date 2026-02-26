@@ -50,7 +50,7 @@ public:
         return std::move(std::get<Error>(data_));
     }
 
-    // Unwrap or throw. Says what it does.
+    // Unwrap helper. Throws when enabled, fail-fast when disabled.
     [[nodiscard]] T orThrow() && {
         if (!ok()) throwError(error());
         return std::move(std::get<T>(data_));

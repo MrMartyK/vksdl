@@ -203,6 +203,7 @@ Result<void> uploadToImage(
         return Error{"upload to image", static_cast<std::int32_t>(vr),
                      "vkQueueSubmit failed"};
     }
+    // VKSDL_BLOCKING_WAIT: init-time texture upload waits for copy completion.
     vkQueueWaitIdle(device.graphicsQueue());
 
     vkDestroyCommandPool(device.vkDevice(), cmdPool, nullptr);

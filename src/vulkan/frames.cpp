@@ -113,6 +113,7 @@ Result<FrameSync> FrameSync::create(const Device& device, std::uint32_t count) {
 Result<Frame> FrameSync::nextFrame() {
     std::uint32_t i = current_;
 
+    // VKSDL_BLOCKING_WAIT: frame-slot fence wait before command/fence reuse.
     VkResult vr = vkWaitForFences(device_, 1, &fences_[i], VK_TRUE, UINT64_MAX);
     if (vr != VK_SUCCESS) {
         return Error{"wait for fence", static_cast<std::int32_t>(vr),

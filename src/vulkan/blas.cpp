@@ -421,6 +421,7 @@ Result<Blas> BlasBuilder::build() {
                      "failed to submit build command"};
     }
 
+    // VKSDL_BLOCKING_WAIT: synchronous BLAS build waits for completion.
     vkQueueWaitIdle(queue_);
     vkDestroyCommandPool(device_, cmdPool, nullptr);
 
@@ -436,6 +437,7 @@ Result<Blas> BlasBuilder::build() {
             device_, queryPool, 0, 1,
             sizeof(compactedSize), &compactedSize,
             sizeof(compactedSize),
+            // VKSDL_BLOCKING_WAIT: synchronous compaction path waits for query results.
             VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
 
         if (vr != VK_SUCCESS || compactedSize == 0) {
@@ -535,6 +537,7 @@ Result<Blas> BlasBuilder::build() {
                          "failed to submit compaction copy"};
         }
 
+        // VKSDL_BLOCKING_WAIT: synchronous BLAS compaction copy waits for completion.
         vkQueueWaitIdle(queue_);
         vkDestroyCommandPool(device_, cmdPool2, nullptr);
 
@@ -757,6 +760,7 @@ Result<void> compactBlas(
                      "failed to submit property query"};
     }
 
+    // VKSDL_BLOCKING_WAIT: helper compaction query waits for transfer queue idle.
     vkQueueWaitIdle(queue);
     vkDestroyCommandPool(dev, cmdPool, nullptr);
 
@@ -765,6 +769,7 @@ Result<void> compactBlas(
         dev, queryPool, 0, 1,
         sizeof(compactedSize), &compactedSize,
         sizeof(compactedSize),
+        // VKSDL_BLOCKING_WAIT: helper compaction path waits for query results.
         VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
 
     if (vr != VK_SUCCESS || compactedSize == 0) {
@@ -867,6 +872,7 @@ Result<void> compactBlas(
                      "failed to submit compaction copy"};
     }
 
+    // VKSDL_BLOCKING_WAIT: helper compaction copy waits for completion.
     vkQueueWaitIdle(queue);
     vkDestroyCommandPool(dev, cmdPool2, nullptr);
     vkDestroyQueryPool(dev, queryPool, nullptr);

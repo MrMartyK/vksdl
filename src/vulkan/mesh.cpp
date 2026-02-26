@@ -238,6 +238,7 @@ Result<Mesh> uploadMesh(
         return Error{"upload mesh", static_cast<std::int32_t>(vr),
                      "vkQueueSubmit failed for mesh transfer"};
     }
+    // VKSDL_BLOCKING_WAIT: init-time mesh upload waits for transfer completion.
     vkQueueWaitIdle(device.graphicsQueue());
 
     vkDestroyCommandPool(device.vkDevice(), cmdPool, nullptr);

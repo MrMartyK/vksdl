@@ -94,6 +94,12 @@ target_include_directories(vksdl PRIVATE ${STB_INCLUDE_DIRS})
 target_include_directories(vksdl PRIVATE ${CGLTF_INCLUDE_DIRS})
 target_include_directories(vksdl PRIVATE ${TINYOBJLOADER_INCLUDE_DIRS})
 
+if(VKSDL_ENABLE_EXCEPTIONS)
+    target_compile_definitions(vksdl PUBLIC VKSDL_ENABLE_EXCEPTIONS=1)
+else()
+    target_compile_definitions(vksdl PUBLIC VKSDL_ENABLE_EXCEPTIONS=0)
+endif()
+
 # SPIRV-Reflect (compiled as single TU in shader_reflect.cpp).
 # Prefer vendored copy; fall back to Vulkan SDK if present.
 set(SPIRV_REFLECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/spirv-reflect")

@@ -7,6 +7,10 @@
 
 namespace vksdl {
 
+#ifndef VKSDL_ENABLE_EXCEPTIONS
+#define VKSDL_ENABLE_EXCEPTIONS 1
+#endif
+
 std::string Error::format() const {
     std::string out = "vksdl: " + operation + " failed";
 

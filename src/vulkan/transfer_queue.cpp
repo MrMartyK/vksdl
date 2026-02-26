@@ -203,6 +203,7 @@ Result<PendingTransfer> TransferQueue::uploadAsync(const Buffer& dst,
     waitInfo.semaphoreCount = 1;
     waitInfo.pSemaphores    = &timeline_;
     waitInfo.pValues        = &signalValue;
+    // VKSDL_BLOCKING_WAIT: uploadAsync currently waits CPU-side for completion.
     vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
 
     vmaDestroyBuffer(toVma(allocator_), stagingBuf, stagingAlloc);
@@ -225,6 +226,7 @@ void TransferQueue::waitIdle() {
     waitInfo.semaphoreCount = 1;
     waitInfo.pSemaphores    = &timeline_;
     waitInfo.pValues        = &counter_;
+    // VKSDL_BLOCKING_WAIT: explicit queue drain requested by caller.
     vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
 }
 

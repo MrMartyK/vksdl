@@ -94,6 +94,7 @@ Device& Device::operator=(Device&& o) noexcept {
 
 void Device::waitIdle() const {
     if (device_ != VK_NULL_HANDLE) {
+        // VKSDL_BLOCKING_WAIT: full-device idle for explicit teardown/recovery paths.
         vkDeviceWaitIdle(device_);
     }
 }

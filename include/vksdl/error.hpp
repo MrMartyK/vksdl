@@ -17,8 +17,9 @@ struct Error {
     [[nodiscard]] std::string format() const;
 };
 
-// Throw an Error as std::runtime_error. Defined in error.cpp so <stdexcept>
-// is not pulled into every translation unit via result.hpp.
+// Error unwrap hook used by Result<T>::orThrow().
+// When VKSDL_ENABLE_EXCEPTIONS=1, throws std::runtime_error.
+// When VKSDL_ENABLE_EXCEPTIONS=0, prints and aborts.
 [[noreturn]] void throwError(const Error& e);
 
 } // namespace vksdl

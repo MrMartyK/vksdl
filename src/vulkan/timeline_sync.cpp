@@ -133,6 +133,7 @@ Result<TimelineFrame> TimelineSync::nextFrame() {
         waitInfo.pSemaphores    = &timeline_;
         waitInfo.pValues        = &waitValue;
 
+        // VKSDL_BLOCKING_WAIT: frame-slot timeline wait before command reuse.
         VkResult vr = vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
         if (vr != VK_SUCCESS) {
             return Error{"wait for timeline semaphore",

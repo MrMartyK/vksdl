@@ -438,6 +438,7 @@ Result<Tlas> TlasBuilder::build() {
                      "failed to submit build command"};
     }
 
+    // VKSDL_BLOCKING_WAIT: synchronous TLAS build path waits for completion.
     vkQueueWaitIdle(queue_);
     vkDestroyCommandPool(device_, cmdPool, nullptr);
     vmaDestroyBuffer(vma, stagingBuf, stagingAlloc);

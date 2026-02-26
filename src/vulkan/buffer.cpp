@@ -264,6 +264,7 @@ Result<void> uploadToBuffer(
         return Error{"upload to buffer", static_cast<std::int32_t>(vr),
                      "vkQueueSubmit failed for transfer"};
     }
+    // VKSDL_BLOCKING_WAIT: init-time staging upload waits for transfer completion.
     vkQueueWaitIdle(device.graphicsQueue());
 
     vkDestroyCommandPool(device.vkDevice(), cmdPool, nullptr);

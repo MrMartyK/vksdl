@@ -719,7 +719,30 @@ void RenderGraph::initStateTrackers() {
 }
 
 
-void RenderGraph::compileBarriers(const std::vector<std::uint32_t>& order) {
+static Result<void> validateQueueFamilyTransition(
+    const ResourceState& src,
+    const ResourceState& dst,
+    const ResourceEntry& res) {
+    if (src.queueFamily == VK_QUEUE_FAMILY_IGNORED
+        || dst.queueFamily == VK_QUEUE_FAMILY_IGNORED
+        || src.queueFamily == dst.queueFamily) {
+        return {};
+    }
+
+    std::string resourceName = res.name.empty() ? "(unnamed)" : res.name;
+    return Error{
+        "compile render graph",
+        0,
+        "queue-family ownership transfer requested for resource '"
+            + resourceName
+            + "' (src=" + std::to_string(src.queueFamily)
+            + ", dst=" + std::to_string(dst.queueFamily)
+            + "). RenderGraph executes on one queue family; explicit release/acquire"
+              " ownership transfer (including maintenance9 caveats) is not modeled yet."
+    };
+}
+
+Result<void> RenderGraph::compileBarriers(const std::vector<std::uint32_t>& order) {
     compiledPasses_.clear();
     compiledPasses_.reserve(order.size());
 
@@ -744,6 +767,12 @@ void RenderGraph::compileBarriers(const std::vector<std::uint32_t>& order) {
                 for (const auto& slice : slices) {
                     if (!slice.range.overlaps(acc.subresourceRange))
                         continue;
+
+                    auto queueCheck =
+                        validateQueueFamilyTransition(slice.state, acc.desiredState, res);
+                    if (!queueCheck) {
+                        return queueCheck.error();
+                    }
 
                     // Compute the overlap region.
                     SubresourceRange overlap;
@@ -780,16 +809,28 @@ void RenderGraph::compileBarriers(const std::vector<std::uint32_t>& order) {
                     newState.readAccessSinceWrite  = merged.readAccessSinceWrite
                                                    | acc.desiredState.readAccessSinceWrite;
                     newState.currentLayout = acc.desiredState.currentLayout;
+                    if (newState.queueFamily == VK_QUEUE_FAMILY_IGNORED) {
+                        newState.queueFamily = merged.queueFamily;
+                    }
                 } else {
                     // Write: reset readers, set new writer.
                     newState.readStagesSinceWrite  = VK_PIPELINE_STAGE_2_NONE;
                     newState.readAccessSinceWrite  = VK_ACCESS_2_NONE;
+                    if (newState.queueFamily == VK_QUEUE_FAMILY_IGNORED) {
+                        newState.queueFamily = map.queryState(acc.subresourceRange).queueFamily;
+                    }
                 }
                 map.setState(acc.subresourceRange, newState);
 
             } else {
                 // Buffer: single state, no subresources.
                 auto& state = bufferStates_[ri];
+
+                auto queueCheck =
+                    validateQueueFamilyTransition(state, acc.desiredState, res);
+                if (!queueCheck) {
+                    return queueCheck.error();
+                }
 
                 appendBufferBarrier(cp.barriers, BufferBarrierRequest{
                     .buffer = res.vkBuffer,
@@ -804,16 +845,25 @@ void RenderGraph::compileBarriers(const std::vector<std::uint32_t>& order) {
                 if (isRead) {
                     state.readStagesSinceWrite  |= acc.desiredState.lastWriteStage;
                     state.readAccessSinceWrite  |= acc.desiredState.readAccessSinceWrite;
+                    if (acc.desiredState.queueFamily != VK_QUEUE_FAMILY_IGNORED) {
+                        state.queueFamily = acc.desiredState.queueFamily;
+                    }
                 } else {
+                    std::uint32_t previousQueueFamily = state.queueFamily;
                     state = acc.desiredState;
                     state.readStagesSinceWrite  = VK_PIPELINE_STAGE_2_NONE;
                     state.readAccessSinceWrite  = VK_ACCESS_2_NONE;
+                    if (state.queueFamily == VK_QUEUE_FAMILY_IGNORED) {
+                        state.queueFamily = previousQueueFamily;
+                    }
                 }
             }
         }
 
         compiledPasses_.push_back(std::move(cp));
     }
+
+    return {};
 }
 
 
@@ -1299,10 +1349,14 @@ Result<void> RenderGraph::compile() {
         // Fast path: clear barrier batches (keeps vector capacity), recompile.
         for (auto& cp : compiledPasses_)
             cp.barriers.clear();
-        compileBarriers(*order);
+        auto barrierResult = compileBarriers(*order);
+        if (!barrierResult)
+            return barrierResult.error();
     } else {
         compiledPasses_.clear();
-        compileBarriers(*order);
+        auto barrierResult = compileBarriers(*order);
+        if (!barrierResult)
+            return barrierResult.error();
     }
     tBarriers = Clock::now();
 
