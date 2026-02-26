@@ -14,12 +14,6 @@ option(VKSDL_STRICT_WARNINGS "Enable stricter warning set" OFF)
 option(VKSDL_INSTALL "Generate install targets" ${PROJECT_IS_TOP_LEVEL})
 option(VKSDL_ENABLE_EXCEPTIONS "Enable exception throwing in error helpers" ON)
 
-if(VKSDL_ENABLE_EXCEPTIONS)
-    add_compile_definitions(VKSDL_ENABLE_EXCEPTIONS=1)
-else()
-    add_compile_definitions(VKSDL_ENABLE_EXCEPTIONS=0)
-endif()
-
 # --- Dependencies ---
 find_package(Vulkan REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
