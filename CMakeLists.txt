@@ -13,14 +13,17 @@ option(VKSDL_WERROR "Treat warnings as errors" ON)
 option(VKSDL_STRICT_WARNINGS "Enable stricter warning set" OFF)
 option(VKSDL_INSTALL "Generate install targets" ${PROJECT_IS_TOP_LEVEL})
 option(VKSDL_ENABLE_EXCEPTIONS "Enable exception throwing in error helpers" ON)
+option(VKSDL_BUILD_LOADERS "Build model/image loaders (requires stb, cgltf, tinyobjloader)" ON)
 
 # --- Dependencies ---
 find_package(Vulkan REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
-find_path(STB_INCLUDE_DIRS "stb_image.h")
-find_path(CGLTF_INCLUDE_DIRS "cgltf.h")
-find_path(TINYOBJLOADER_INCLUDE_DIRS "tiny_obj_loader.h")
+if(VKSDL_BUILD_LOADERS)
+    find_path(STB_INCLUDE_DIRS "stb_image.h")
+    find_path(CGLTF_INCLUDE_DIRS "cgltf.h")
+    find_path(TINYOBJLOADER_INCLUDE_DIRS "tiny_obj_loader.h")
+endif()
 
 # --- vksdl library ---
 add_library(vksdl STATIC
@@ -45,13 +48,9 @@ add_library(vksdl STATIC
     src/vulkan/descriptor_set.cpp
     src/vulkan/descriptor_layout.cpp
     src/vulkan/sampler.cpp
-    src/vulkan/texture.cpp
     src/vulkan/debug.cpp
     src/vulkan/query_pool.cpp
-    src/vulkan/mesh.cpp
     src/vulkan/pipeline_cache.cpp
-    src/vulkan/loader_gltf.cpp
-    src/vulkan/loader_obj.cpp
     src/vulkan/rt_functions.cpp
     src/vulkan/blas.cpp
     src/vulkan/tlas.cpp
@@ -67,6 +66,8 @@ add_library(vksdl STATIC
     src/vulkan/sampler_cache.cpp
     src/vulkan/transfer_queue.cpp
     src/vulkan/shader_reflect.cpp
+    src/vulkan/texture.cpp
+    src/vulkan/mesh.cpp
     src/graph/resource_state.cpp
     src/graph/barrier_compiler.cpp
     src/graph/pass.cpp
@@ -84,9 +85,19 @@ target_include_directories(vksdl PUBLIC
 
 target_link_libraries(vksdl PUBLIC Vulkan::Vulkan SDL3::SDL3)
 target_link_libraries(vksdl PRIVATE GPUOpen::VulkanMemoryAllocator)
-target_include_directories(vksdl PRIVATE ${STB_INCLUDE_DIRS})
-target_include_directories(vksdl PRIVATE ${CGLTF_INCLUDE_DIRS})
-target_include_directories(vksdl PRIVATE ${TINYOBJLOADER_INCLUDE_DIRS})
+
+if(VKSDL_BUILD_LOADERS)
+    target_sources(vksdl PRIVATE
+        src/vulkan/loader_gltf.cpp
+        src/vulkan/loader_obj.cpp
+    )
+    target_include_directories(vksdl PRIVATE ${STB_INCLUDE_DIRS})
+    target_include_directories(vksdl PRIVATE ${CGLTF_INCLUDE_DIRS})
+    target_include_directories(vksdl PRIVATE ${TINYOBJLOADER_INCLUDE_DIRS})
+    target_compile_definitions(vksdl PUBLIC VKSDL_HAS_LOADERS=1)
+else()
+    target_compile_definitions(vksdl PUBLIC VKSDL_HAS_LOADERS=0)
+endif()
 
 if(VKSDL_ENABLE_EXCEPTIONS)
     target_compile_definitions(vksdl PUBLIC VKSDL_ENABLE_EXCEPTIONS=1)

@@ -14,6 +14,8 @@ class Allocator;
 class Device;
 class Image;
 
+#if VKSDL_HAS_LOADERS
+
 // Pixel data loaded from an image file. Owns the pixel memory (freed by destructor).
 // Always RGBA, 4 channels, one byte per channel.
 //
@@ -42,6 +44,8 @@ private:
 // Load an image file (PNG, JPG, BMP, etc.) via stb_image.
 // Always loads as RGBA (4 channels) to match VK_FORMAT_R8G8B8A8_SRGB.
 [[nodiscard]] Result<ImageData> loadImage(const std::filesystem::path& path);
+
+#endif // VKSDL_HAS_LOADERS
 
 // Staged upload from CPU pixels to a GPU Image.
 // Creates a staging buffer, records layout transitions, copies data, waits for completion.

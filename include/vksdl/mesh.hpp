@@ -54,6 +54,8 @@ struct MeshData {
     }
 };
 
+#if VKSDL_HAS_LOADERS
+
 // CPU-side model data. Contains all meshes from a single file.
 // Move-only (copying large vertex data is expensive and probably a bug).
 struct ModelData {
@@ -73,6 +75,8 @@ private:
 // Format detected by file extension. Returns meshes with interleaved Vertex data
 // (position + normal + texCoord) and uint32 indices.
 [[nodiscard]] Result<ModelData> loadModel(const std::filesystem::path& path);
+
+#endif // VKSDL_HAS_LOADERS
 
 // GPU-side mesh. Owns device-local vertex + index buffers via VMA.
 // Created by uploadMesh(). Raw handle accessors for veteran-level Vulkan usage.

@@ -11,6 +11,7 @@
 #include <vk_mem_alloc.h>
 #pragma GCC diagnostic pop
 
+#if VKSDL_HAS_LOADERS
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -18,6 +19,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #pragma GCC diagnostic pop
+#endif // VKSDL_HAS_LOADERS
 
 #include <algorithm>
 #include <cmath>
@@ -25,6 +27,8 @@
 #include <string>
 
 namespace vksdl {
+
+#if VKSDL_HAS_LOADERS
 
 ImageData::~ImageData() {
     if (pixels) {
@@ -75,6 +79,8 @@ Result<ImageData> loadImage(const std::filesystem::path& path) {
 
     return data;
 }
+
+#endif // VKSDL_HAS_LOADERS
 
 Result<void> uploadToImage(
     const Allocator& allocator,

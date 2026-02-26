@@ -2,7 +2,10 @@
 #include <vksdl/allocator.hpp>
 #include <vksdl/device.hpp>
 
+#if VKSDL_HAS_LOADERS
 #include "mesh_loaders.hpp"
+#include <algorithm>
+#endif
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
@@ -11,10 +14,11 @@
 #include <vk_mem_alloc.h>
 #pragma GCC diagnostic pop
 
-#include <algorithm>
 #include <cstring>
 
 namespace vksdl {
+
+#if VKSDL_HAS_LOADERS
 
 Result<ModelData> loadModel(const std::filesystem::path& path) {
     std::string ext = path.extension().string();
@@ -41,6 +45,8 @@ Result<ModelData> loadModel(const std::filesystem::path& path) {
     model.meshes = std::move(meshes.value());
     return model;
 }
+
+#endif // VKSDL_HAS_LOADERS
 
 Mesh::~Mesh() {
     if (allocator_) {
