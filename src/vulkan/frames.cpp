@@ -175,6 +175,7 @@ Result<void> endSubmitOneShotBlocking(
                      "vkQueueSubmit failed"};
     }
 
+    // VKSDL_BLOCKING_WAIT: explicit one-shot helper; waits for completion by design.
     vr = vkQueueWaitIdle(queue);
     if (vr != VK_SUCCESS) {
         return Error{"wait one-shot queue idle",
