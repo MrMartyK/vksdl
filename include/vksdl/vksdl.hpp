@@ -16,6 +16,7 @@
 #include <vksdl/descriptor_allocator.hpp>
 #include <vksdl/descriptor_pool.hpp>
 #include <vksdl/descriptor_set.hpp>
+#include <vksdl/descriptor_layout.hpp>
 #include <vksdl/descriptor_writer.hpp>
 #include <vksdl/device.hpp>
 #include <vksdl/frame_descriptor_allocator.hpp>

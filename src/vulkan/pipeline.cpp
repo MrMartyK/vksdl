@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <fstream>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -388,6 +389,7 @@ Result<Pipeline> PipelineBuilder::buildWithFlags(VkPipelineCreateFlags flags) co
     // Local copies keep buildWithFlags() const while reflection mutates them.
     std::vector<VkDescriptorSetLayout> reflectedSetLayouts;
     std::vector<std::uint32_t> vertCode, fragCode;
+    std::optional<ReflectedLayout> localReflectedLayout;
     auto localPushConstantRanges   = pushConstantRanges_;
     auto localDescriptorSetLayouts = descriptorSetLayouts_;
 
@@ -417,6 +419,7 @@ Result<Pipeline> PipelineBuilder::buildWithFlags(VkPipelineCreateFlags flags) co
         if (!merged.ok()) { destroyModules(); return std::move(merged).error(); }
 
         const auto& layout = merged.value();
+        localReflectedLayout = layout;
 
         std::map<std::uint32_t, std::vector<VkDescriptorSetLayoutBinding>> bySet;
         for (const auto& rb : layout.bindings) {
@@ -623,6 +626,7 @@ Result<Pipeline> PipelineBuilder::buildWithFlags(VkPipelineCreateFlags flags) co
 
     p.bindPoint_ = VK_PIPELINE_BIND_POINT_GRAPHICS;
     p.ownedSetLayouts_ = std::move(reflectedSetLayouts);
+    p.reflectedLayout_ = std::move(localReflectedLayout);
     for (const auto& r : localPushConstantRanges) {
         p.pcStages_ |= r.stageFlags;
         auto end = r.offset + r.size;

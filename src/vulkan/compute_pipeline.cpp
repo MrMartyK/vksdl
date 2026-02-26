@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -102,6 +103,7 @@ Result<Pipeline> ComputePipelineBuilder::build() {
     }
 
     std::vector<VkDescriptorSetLayout> reflectedSetLayouts;
+    std::optional<ReflectedLayout> localReflectedLayout;
     std::vector<VkPushConstantRange> localPushConstantRanges;
     std::vector<VkDescriptorSetLayout> localDescriptorSetLayouts;
 
@@ -120,6 +122,7 @@ Result<Pipeline> ComputePipelineBuilder::build() {
         if (!refl.ok()) { destroyModule(); return std::move(refl).error(); }
 
         const auto& layout = refl.value();
+        localReflectedLayout = layout;
 
         std::map<std::uint32_t, std::vector<VkDescriptorSetLayoutBinding>> bySet;
         for (const auto& rb : layout.bindings) {
@@ -234,6 +237,7 @@ Result<Pipeline> ComputePipelineBuilder::build() {
 
     p.bindPoint_ = VK_PIPELINE_BIND_POINT_COMPUTE;
     p.ownedSetLayouts_ = std::move(reflectedSetLayouts);
+    p.reflectedLayout_ = std::move(localReflectedLayout);
     for (const auto& r : pushConstantRanges_) {
         p.pcStages_ |= r.stageFlags;
         auto end = r.offset + r.size;

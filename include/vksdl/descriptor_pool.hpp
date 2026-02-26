@@ -11,6 +11,7 @@
 namespace vksdl {
 
 class Device;
+class DescriptorLayout;
 
 // Growable descriptor pool allocator for allocating many descriptor sets.
 // When the current pool runs out, a new pool with 2x capacity is created.
@@ -28,6 +29,11 @@ public:
 
     // Grows automatically on exhaustion (2x capacity per new pool).
     [[nodiscard]] Result<VkDescriptorSet> allocate(VkDescriptorSetLayout layout);
+    [[nodiscard]] Result<VkDescriptorSet> allocate(const DescriptorLayout& layout);
+    [[nodiscard]] Result<std::vector<VkDescriptorSet>> allocateMany(
+        VkDescriptorSetLayout layout, std::uint32_t count);
+    [[nodiscard]] Result<std::vector<VkDescriptorSet>> allocateMany(
+        const DescriptorLayout& layout, std::uint32_t count);
 
     // Reclaims all descriptor sets for reuse. Does not free VkDescriptorPools.
     void reset();

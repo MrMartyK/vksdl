@@ -102,7 +102,22 @@ add_custom_command(
     DEPENDS ${COMP_SHADER_DIR}/noop.comp
     COMMENT "Compiling noop.comp -> noop.comp.spv"
 )
-add_custom_target(test_compute_shaders ALL DEPENDS ${COMP_SHADER_OUT}/noop.comp.spv)
+set(SPIRV_VALIDATE_REFLECT_TEST_CMD "")
+if(SPIRV_VAL)
+    set(SPIRV_VALIDATE_REFLECT_TEST_CMD COMMAND ${SPIRV_VAL} ${COMP_SHADER_OUT}/reflect_test.comp.spv)
+endif()
+add_custom_command(
+    OUTPUT ${COMP_SHADER_OUT}/reflect_test.comp.spv
+    COMMAND ${GLSLC} ${COMP_SHADER_DIR}/reflect_test.comp -o ${COMP_SHADER_OUT}/reflect_test.comp.spv
+    ${SPIRV_VALIDATE_REFLECT_TEST_CMD}
+    DEPENDS ${COMP_SHADER_DIR}/reflect_test.comp
+    COMMENT "Compiling reflect_test.comp -> reflect_test.comp.spv"
+)
+add_custom_target(test_compute_shaders ALL
+    DEPENDS
+        ${COMP_SHADER_OUT}/noop.comp.spv
+        ${COMP_SHADER_OUT}/reflect_test.comp.spv
+)
 add_dependencies(test_compute_pipeline test_compute_shaders)
 
 add_custom_command(TARGET test_compute_pipeline POST_BUILD

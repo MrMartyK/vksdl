@@ -25,6 +25,8 @@ int main() {
         .needDynamicRendering()
         .needSync2()
         .build().value();
+    auto allocator = vksdl::Allocator::create(instance, device);
+    assert(allocator.ok());
 
     // 1. Create compute pipeline from shader path
     {
@@ -125,6 +127,37 @@ int main() {
         std::printf("  descriptor set layout: ok\n");
 
         vkDestroyDescriptorSetLayout(device.vkDevice(), dsl, nullptr);
+    }
+
+    // 9. Reflected writer path
+    {
+        auto pipeline = vksdl::ComputePipelineBuilder(device)
+            .shader(shaderDir() / "reflect_test.comp.spv")
+            .reflectDescriptors()
+            .build();
+        assert(pipeline.ok());
+        assert(!pipeline.value().reflectedSetLayouts().empty());
+
+        auto image = vksdl::ImageBuilder(allocator.value())
+            .size(32, 32)
+            .format(VK_FORMAT_R8G8B8A8_UNORM)
+            .storage()
+            .build();
+        assert(image.ok());
+
+        auto pool = vksdl::DescriptorPool::create(device);
+        assert(pool.ok());
+
+        auto writer = vksdl::DescriptorWriter::forReflected(
+            pipeline.value(), pool.value(), 0);
+        assert(writer.ok());
+        assert(writer.value().descriptorSet() != VK_NULL_HANDLE);
+
+        writer.value()
+            .storageImage(0, image.value().vkImageView(), VK_IMAGE_LAYOUT_GENERAL)
+            .write(device);
+
+        std::printf("  reflected descriptor writer path: ok\n");
     }
 
     device.waitIdle();

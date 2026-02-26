@@ -1,4 +1,5 @@
 #include <vksdl/descriptor_pool.hpp>
+#include <vksdl/descriptor_layout.hpp>
 #include <vksdl/device.hpp>
 
 #include <cstdint>
@@ -120,6 +121,31 @@ Result<VkDescriptorSet> DescriptorPool::allocate(VkDescriptorSetLayout layout) {
 
     return Error{"allocate descriptor set", static_cast<std::int32_t>(vr),
                  "vkAllocateDescriptorSets failed after pool growth"};
+}
+
+Result<VkDescriptorSet> DescriptorPool::allocate(const DescriptorLayout& layout) {
+    return allocate(layout.vkDescriptorSetLayout());
+}
+
+Result<std::vector<VkDescriptorSet>> DescriptorPool::allocateMany(
+    VkDescriptorSetLayout layout, std::uint32_t count) {
+    std::vector<VkDescriptorSet> sets;
+    sets.reserve(count);
+
+    for (std::uint32_t i = 0; i < count; ++i) {
+        auto set = allocate(layout);
+        if (!set.ok()) {
+            return set.error();
+        }
+        sets.push_back(set.value());
+    }
+
+    return sets;
+}
+
+Result<std::vector<VkDescriptorSet>> DescriptorPool::allocateMany(
+    const DescriptorLayout& layout, std::uint32_t count) {
+    return allocateMany(layout.vkDescriptorSetLayout(), count);
 }
 
 void DescriptorPool::reset() {

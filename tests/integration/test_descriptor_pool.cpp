@@ -84,6 +84,26 @@ int main() {
     }
 
     {
+        auto layout = vksdl::DescriptorLayoutBuilder(device.value())
+            .addUniformBuffer(0, VK_SHADER_STAGE_VERTEX_BIT)
+            .build();
+        assert(layout.ok());
+        assert(layout.value().vkDescriptorSetLayout() != VK_NULL_HANDLE);
+
+        auto pool = vksdl::DescriptorPool::create(device.value(), 4);
+        assert(pool.ok());
+
+        auto sets = pool.value().allocateMany(layout.value(), 8);
+        assert(sets.ok());
+        assert(sets.value().size() == 8);
+        for (auto set : sets.value()) {
+            assert(set != VK_NULL_HANDLE);
+        }
+        assert(pool.value().allocatedSetCount() == 8);
+        std::printf("  allocateMany with DescriptorLayout: ok\n");
+    }
+
+    {
         auto pool = vksdl::DescriptorPool::create(device.value(), 16);
         assert(pool.ok());
 

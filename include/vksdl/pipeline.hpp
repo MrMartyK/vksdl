@@ -2,6 +2,7 @@
 
 #include <vksdl/error.hpp>
 #include <vksdl/result.hpp>
+#include <vksdl/shader_reflect.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -57,6 +58,9 @@ public:
     [[nodiscard]] const std::vector<VkDescriptorSetLayout>& reflectedSetLayouts() const {
         return ownedSetLayouts_;
     }
+    [[nodiscard]] const ReflectedLayout* reflectedLayout() const {
+        return reflectedLayout_ ? &*reflectedLayout_ : nullptr;
+    }
 
     // Bind this pipeline to a command buffer.
     void bind(VkCommandBuffer cmd) const;
@@ -106,6 +110,7 @@ private:
     std::uint32_t       pcSize_     = 0;
     // Descriptor set layouts owned by reflection (destroyed before layout).
     std::vector<VkDescriptorSetLayout> ownedSetLayouts_;
+    std::optional<ReflectedLayout> reflectedLayout_;
     // Pipeline creation feedback (populated by builders).
     std::optional<PipelineStats> stats_;
 };

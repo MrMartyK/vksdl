@@ -41,6 +41,7 @@ add_library(vksdl STATIC
     src/vulkan/image.cpp
     src/vulkan/compute_pipeline.cpp
     src/vulkan/descriptor_set.cpp
+    src/vulkan/descriptor_layout.cpp
     src/vulkan/sampler.cpp
     src/vulkan/texture.cpp
     src/vulkan/debug.cpp
