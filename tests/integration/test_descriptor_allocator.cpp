@@ -69,18 +69,19 @@ int main() {
     }
 
     {
-        auto alloc = vksdl::DescriptorAllocator::create(device.value(), 256);
+        // Use a tiny initial pool size to guarantee overflow on all drivers.
+        auto alloc = vksdl::DescriptorAllocator::create(device.value(), 2);
         assert(alloc.ok());
 
-        for (int i = 0; i < 300; ++i) {
+        for (int i = 0; i < 10; ++i) {
             auto set = alloc.value().allocate(layout);
             assert(set.ok() && "batch allocation failed");
             assert(set.value() != VK_NULL_HANDLE);
         }
 
-        assert(alloc.value().allocatedSetCount() == 300);
+        assert(alloc.value().allocatedSetCount() == 10);
         assert(alloc.value().poolCount() > 1);
-        std::printf("  3. allocate 300 sets (pool count: %u): ok\n",
+        std::printf("  3. allocate 10 sets from pool(2) (pool count: %u): ok\n",
                     alloc.value().poolCount());
     }
 

@@ -67,19 +67,21 @@ int main() {
     }
 
     {
-        auto pool = vksdl::DescriptorPool::create(device.value(), 4);
+        // Use a tiny initial pool size to guarantee overflow on all drivers.
+        auto pool = vksdl::DescriptorPool::create(device.value(), 2);
         assert(pool.ok());
 
         // Allocate well beyond the initial pool's maxSets.
-        for (int i = 0; i < 100; ++i) {
+        for (int i = 0; i < 10; ++i) {
             auto set = pool.value().allocate(layout);
             assert(set.ok() && "batch allocation failed");
             assert(set.value() != VK_NULL_HANDLE);
         }
 
-        assert(pool.value().allocatedSetCount() == 100);
+        assert(pool.value().allocatedSetCount() == 10);
         assert(pool.value().poolCount() > 1);
-        std::printf("  allocate 100 sets (pool count: %u): ok\n", pool.value().poolCount());
+        std::printf("  allocate 10 sets from pool(2) (pool count: %u): ok\n",
+                    pool.value().poolCount());
     }
 
     {

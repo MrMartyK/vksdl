@@ -27,14 +27,14 @@ std::size_t SamplerCache::KeyHash::operator()(const SamplerKey& k) const {
     };
 
     h = hashCombine(h, hashFloat(k.mipLodBias));
-    h = hashCombine(h, std::hash<int>{}(k.anisotropyEnable));
+    h = hashCombine(h, std::hash<int>{}(static_cast<int>(k.anisotropyEnable)));
     h = hashCombine(h, hashFloat(k.maxAnisotropy));
-    h = hashCombine(h, std::hash<int>{}(k.compareEnable));
+    h = hashCombine(h, std::hash<int>{}(static_cast<int>(k.compareEnable)));
     h = hashCombine(h, std::hash<int>{}(static_cast<int>(k.compareOp)));
     h = hashCombine(h, hashFloat(k.minLod));
     h = hashCombine(h, hashFloat(k.maxLod));
     h = hashCombine(h, std::hash<int>{}(static_cast<int>(k.borderColor)));
-    h = hashCombine(h, std::hash<int>{}(k.unnormalizedCoordinates));
+    h = hashCombine(h, std::hash<int>{}(static_cast<int>(k.unnormalizedCoordinates)));
     return h;
 }
 

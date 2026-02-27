@@ -311,12 +311,14 @@ QueueFamilies DeviceBuilder::findQueueFamilies(VkPhysicalDevice gpu) const {
 
         // Prefer a transfer-only family (TRANSFER but not GRAPHICS or COMPUTE).
         // Fall back to transfer+compute (but not graphics) if no pure transfer.
-        if (hasTransfer && !hasGraphics) {
-            if (!hasCompute && result.transfer == UINT32_MAX) {
+        // Dedicated transfer (!hasCompute) is preferred, so check it first.
+        if (hasTransfer && !hasGraphics && result.transfer == UINT32_MAX) {
+            if (!hasCompute) {
                 result.transfer = i; // ideal: dedicated transfer
-            } else if (hasCompute && result.transfer == UINT32_MAX) {
-                result.transfer = i; // acceptable: async compute+transfer
             }
+        }
+        if (hasTransfer && !hasGraphics && hasCompute && result.transfer == UINT32_MAX) {
+            result.transfer = i; // acceptable: async compute+transfer
         }
 
         // Dedicated compute: COMPUTE but not GRAPHICS. Nearly all such families
@@ -405,7 +407,7 @@ int DeviceBuilder::scoreDevice(VkPhysicalDevice gpu) const {
             }
         }
         if (hasDedicatedType) {
-            score += static_cast<int>(mem.memoryHeaps[i].size / (1024 * 1024));
+            score += static_cast<int>(mem.memoryHeaps[i].size / (1024ULL * 1024ULL));
             break;
         }
     }
