@@ -142,6 +142,14 @@ public:
 
     [[nodiscard]] std::string queryDeviceFault() const;
 
+    // Error recovery: device lost handling.
+    // Register a callback invoked when VK_ERROR_DEVICE_LOST is detected.
+    // Default: log to stderr + queryDeviceFault() + std::abort().
+    using DeviceLostCallback = std::function<void(const Device&)>;
+    void onDeviceLost(DeviceLostCallback cb);
+    [[nodiscard]] bool isDeviceLost() const { return deviceLost_; }
+    void reportDeviceLost() const;
+
     void waitIdle() const;
 
 private:
@@ -183,6 +191,9 @@ private:
     bool hasPipelineBinary_ = false;
     // Mesh shaders (VK_EXT_mesh_shader)
     bool hasMeshShaders_ = false;
+    // Device lost state and recovery callback
+    mutable bool deviceLost_ = false;
+    DeviceLostCallback deviceLostCallback_;
 
     // RT properties
     PFN_vkCmdTraceRaysKHR pfnTraceRays_    = nullptr;

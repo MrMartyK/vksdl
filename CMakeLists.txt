@@ -66,6 +66,7 @@ add_library(vksdl STATIC
     src/vulkan/bindless_table.cpp
     src/vulkan/push_descriptor_writer.cpp
     src/vulkan/sampler_cache.cpp
+    src/vulkan/event.cpp
     src/vulkan/transfer_queue.cpp
     src/vulkan/compute_queue.cpp
     src/vulkan/shader_reflect.cpp

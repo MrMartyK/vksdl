@@ -70,14 +70,15 @@ private:
 
     [[nodiscard]] Result<PendingCompute> submitInternal(VkCommandBuffer cmd);
 
-    VkDevice      device_      = VK_NULL_HANDLE;
-    VkQueue       queue_       = VK_NULL_HANDLE;
-    VkCommandPool pool_        = VK_NULL_HANDLE;
-    VkSemaphore   timeline_    = VK_NULL_HANDLE;
-    std::uint32_t srcFamily_   = UINT32_MAX;
-    std::uint32_t dstFamily_   = UINT32_MAX;
-    bool          crossFamily_ = false;
-    std::uint64_t counter_     = 0;
+    VkDevice          device_      = VK_NULL_HANDLE;
+    VkQueue           queue_       = VK_NULL_HANDLE;
+    VkCommandPool     pool_        = VK_NULL_HANDLE;
+    VkSemaphore       timeline_    = VK_NULL_HANDLE;
+    std::uint32_t     srcFamily_   = UINT32_MAX;
+    std::uint32_t     dstFamily_   = UINT32_MAX;
+    bool              crossFamily_ = false;
+    std::uint64_t     counter_     = 0;
+    const Device*     devicePtr_   = nullptr; // non-owning, for device-lost reporting
 };
 
 } // namespace vksdl

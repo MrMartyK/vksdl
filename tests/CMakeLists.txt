@@ -476,3 +476,15 @@ add_custom_command(TARGET test_spec_constants POST_BUILD
 add_executable(test_mesh_pipeline integration/test_mesh_pipeline.cpp)
 target_link_libraries(test_mesh_pipeline PRIVATE vksdl)
 add_test(NAME test_mesh_pipeline COMMAND test_mesh_pipeline)
+
+# --- Event test ---
+
+add_executable(test_event integration/test_event.cpp)
+target_link_libraries(test_event PRIVATE vksdl)
+add_test(NAME test_event COMMAND test_event)
+
+# --- Error recovery policy test ---
+
+add_executable(test_error_recovery integration/test_error_recovery.cpp)
+target_link_libraries(test_error_recovery PRIVATE vksdl)
+add_test(NAME test_error_recovery COMMAND test_error_recovery)

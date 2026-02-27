@@ -63,18 +63,19 @@ private:
     TransferQueue() = default;
     void destroy();
 
-    VkDevice        device_       = VK_NULL_HANDLE;
-    VkQueue         queue_        = VK_NULL_HANDLE;
-    VkCommandPool   pool_         = VK_NULL_HANDLE;
-    VkSemaphore     timeline_     = VK_NULL_HANDLE;
-    std::uint32_t   srcFamily_    = UINT32_MAX;
-    std::uint32_t   dstFamily_    = UINT32_MAX;
-    bool            crossFamily_  = false;
-    std::uint64_t   counter_      = 0;
+    VkDevice          device_       = VK_NULL_HANDLE;
+    VkQueue           queue_        = VK_NULL_HANDLE;
+    VkCommandPool     pool_         = VK_NULL_HANDLE;
+    VkSemaphore       timeline_     = VK_NULL_HANDLE;
+    std::uint32_t     srcFamily_    = UINT32_MAX;
+    std::uint32_t     dstFamily_    = UINT32_MAX;
+    bool              crossFamily_  = false;
+    std::uint64_t     counter_      = 0;
 
     // VMA allocator handle stored as void* to avoid pulling vk_mem_alloc.h
     // into the public header. Cast to VmaAllocator in the .cpp file.
-    void* allocator_ = nullptr;
+    void*             allocator_    = nullptr;
+    const Device*     devicePtr_    = nullptr; // non-owning, for device-lost reporting
 };
 
 } // namespace vksdl

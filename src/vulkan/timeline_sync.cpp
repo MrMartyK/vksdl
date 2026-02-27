@@ -1,5 +1,6 @@
 #include <vksdl/timeline_sync.hpp>
 #include <vksdl/window.hpp>
+#include "device_lost.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -232,18 +233,22 @@ void presentTimelineFrame(const Device& device, Swapchain& swapchain,
         device.presentQueue(), image.index,
         sync.renderDoneSemaphore(frame.index));
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR ||
-        result == VK_SUBOPTIMAL_KHR) {
-        device.waitIdle();
-        auto recreateRes = swapchain.recreate(window.pixelSize());
-#ifndef NDEBUG
-        if (!recreateRes.ok()) {
-            std::fprintf(stderr, "vksdl: presentTimelineFrame: swapchain recreate failed: %s\n",
-                         recreateRes.error().format().c_str());
+    if (result != VK_SUCCESS) {
+        if (detail::checkDeviceLost(device, result)) {
+            return;
         }
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            device.waitIdle();
+            auto recreateRes = swapchain.recreate(window.pixelSize());
+#ifndef NDEBUG
+            if (!recreateRes.ok()) {
+                std::fprintf(stderr, "vksdl: presentTimelineFrame: swapchain recreate failed: %s\n",
+                             recreateRes.error().format().c_str());
+            }
 #else
-        (void)recreateRes;
+            (void)recreateRes;
 #endif
+        }
     }
 }
 

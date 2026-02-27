@@ -1,5 +1,6 @@
 #include <vksdl/frames.hpp>
 #include <vksdl/window.hpp>
+#include "device_lost.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -228,17 +229,22 @@ void presentFrame(const Device& device, Swapchain& swapchain, const Window& wind
 
     VkResult result = swapchain.present(device.presentQueue(), image.index, frame.drawDone);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-        device.waitIdle();
-        auto recreateRes = swapchain.recreate(window.pixelSize());
-#ifndef NDEBUG
-        if (!recreateRes.ok()) {
-            std::fprintf(stderr, "vksdl: presentFrame: swapchain recreate failed: %s\n",
-                         recreateRes.error().format().c_str());
+    if (result != VK_SUCCESS) {
+        if (detail::checkDeviceLost(device, result)) {
+            return;
         }
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            device.waitIdle();
+            auto recreateRes = swapchain.recreate(window.pixelSize());
+#ifndef NDEBUG
+            if (!recreateRes.ok()) {
+                std::fprintf(stderr, "vksdl: presentFrame: swapchain recreate failed: %s\n",
+                             recreateRes.error().format().c_str());
+            }
 #else
-        (void) recreateRes;
+            (void) recreateRes;
 #endif
+        }
     }
 }
 

@@ -20,6 +20,7 @@
 #include <vksdl/descriptor_layout.hpp>
 #include <vksdl/descriptor_writer.hpp>
 #include <vksdl/device.hpp>
+#include <vksdl/event.hpp>
 #include <vksdl/frame_descriptor_allocator.hpp>
 #include <vksdl/fly_camera.hpp>
 #include <vksdl/orbit_camera.hpp>

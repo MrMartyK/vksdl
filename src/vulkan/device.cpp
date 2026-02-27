@@ -43,6 +43,8 @@ Device::Device(Device&& o) noexcept
       hasInvocationReorder_(o.hasInvocationReorder_),
       hasPipelineBinary_(o.hasPipelineBinary_),
       hasMeshShaders_(o.hasMeshShaders_),
+      deviceLost_(o.deviceLost_),
+      deviceLostCallback_(std::move(o.deviceLostCallback_)),
       pfnTraceRays_(o.pfnTraceRays_),
       pfnDrawMeshTasks_(o.pfnDrawMeshTasks_),
       rtHandleSize_(o.rtHandleSize_),
@@ -90,6 +92,8 @@ Device& Device::operator=(Device&& o) noexcept {
         hasInvocationReorder_ = o.hasInvocationReorder_;
         hasPipelineBinary_    = o.hasPipelineBinary_;
         hasMeshShaders_       = o.hasMeshShaders_;
+        deviceLost_           = o.deviceLost_;
+        deviceLostCallback_   = std::move(o.deviceLostCallback_);
         pfnTraceRays_         = o.pfnTraceRays_;
         pfnDrawMeshTasks_     = o.pfnDrawMeshTasks_;
         rtHandleSize_         = o.rtHandleSize_;
@@ -162,6 +166,27 @@ std::string Device::queryDeviceFault() const {
     }
 
     return result;
+}
+
+void Device::onDeviceLost(DeviceLostCallback cb) {
+    deviceLostCallback_ = std::move(cb);
+}
+
+void Device::reportDeviceLost() const {
+    deviceLost_ = true;
+    if (deviceLostCallback_) {
+        deviceLostCallback_(*this);
+        return;
+    }
+    // Default: log + fault info + abort
+    std::fprintf(stderr, "vksdl: VK_ERROR_DEVICE_LOST on '%s'\n", gpuName_.c_str());
+    if (hasDeviceFault_) {
+        auto fault = queryDeviceFault();
+        if (!fault.empty()) {
+            std::fprintf(stderr, "%s\n", fault.c_str());
+        }
+    }
+    std::abort();
 }
 
 DeviceBuilder::DeviceBuilder(const Instance& instance, const Surface& surface)

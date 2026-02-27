@@ -2,6 +2,7 @@
 #include <vksdl/allocator.hpp>
 #include <vksdl/buffer.hpp>
 #include <vksdl/device.hpp>
+#include "device_lost.hpp"
 
 #include <vk_mem_alloc.h>
 
@@ -29,10 +30,12 @@ TransferQueue::TransferQueue(TransferQueue&& o) noexcept
     : device_(o.device_), queue_(o.queue_), pool_(o.pool_),
       timeline_(o.timeline_), srcFamily_(o.srcFamily_),
       dstFamily_(o.dstFamily_), crossFamily_(o.crossFamily_),
-      counter_(o.counter_), allocator_(o.allocator_) {
-    o.device_   = VK_NULL_HANDLE;
-    o.pool_     = VK_NULL_HANDLE;
-    o.timeline_ = VK_NULL_HANDLE;
+      counter_(o.counter_), allocator_(o.allocator_),
+      devicePtr_(o.devicePtr_) {
+    o.device_    = VK_NULL_HANDLE;
+    o.pool_      = VK_NULL_HANDLE;
+    o.timeline_  = VK_NULL_HANDLE;
+    o.devicePtr_ = nullptr;
 }
 
 TransferQueue& TransferQueue::operator=(TransferQueue&& o) noexcept {
@@ -47,9 +50,11 @@ TransferQueue& TransferQueue::operator=(TransferQueue&& o) noexcept {
         crossFamily_ = o.crossFamily_;
         counter_     = o.counter_;
         allocator_   = o.allocator_;
+        devicePtr_   = o.devicePtr_;
         o.device_    = VK_NULL_HANDLE;
         o.pool_      = VK_NULL_HANDLE;
         o.timeline_  = VK_NULL_HANDLE;
+        o.devicePtr_ = nullptr;
     }
     return *this;
 }
@@ -58,6 +63,7 @@ Result<TransferQueue> TransferQueue::create(const Device& device,
                                              const Allocator& alloc) {
     TransferQueue tq;
     tq.device_    = device.vkDevice();
+    tq.devicePtr_ = &device;
     tq.allocator_ = static_cast<void*>(alloc.vmaAllocator());
     tq.dstFamily_ = device.queueFamilies().graphics;
 
@@ -192,6 +198,7 @@ Result<PendingTransfer> TransferQueue::uploadAsync(const Buffer& dst,
 
     vr = vkQueueSubmit(queue_, 1, &submitInfo, VK_NULL_HANDLE);
     if (vr != VK_SUCCESS) {
+        if (devicePtr_) detail::checkDeviceLost(*devicePtr_, vr);
         vmaDestroyBuffer(toVma(allocator_), stagingBuf, stagingAlloc);
         return Error{"async upload", static_cast<std::int32_t>(vr),
                      "vkQueueSubmit failed"};
@@ -204,7 +211,10 @@ Result<PendingTransfer> TransferQueue::uploadAsync(const Buffer& dst,
     waitInfo.pSemaphores    = &timeline_;
     waitInfo.pValues        = &signalValue;
     // VKSDL_BLOCKING_WAIT: uploadAsync currently waits CPU-side for completion.
-    vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
+    VkResult waitVr = vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
+    if (waitVr != VK_SUCCESS && devicePtr_) {
+        detail::checkDeviceLost(*devicePtr_, waitVr);
+    }
 
     vmaDestroyBuffer(toVma(allocator_), stagingBuf, stagingAlloc);
 

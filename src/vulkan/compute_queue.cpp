@@ -1,5 +1,6 @@
 #include <vksdl/compute_queue.hpp>
 #include <vksdl/device.hpp>
+#include "device_lost.hpp"
 
 namespace vksdl {
 
@@ -20,10 +21,11 @@ ComputeQueue::ComputeQueue(ComputeQueue&& o) noexcept
     : device_(o.device_), queue_(o.queue_), pool_(o.pool_),
       timeline_(o.timeline_), srcFamily_(o.srcFamily_),
       dstFamily_(o.dstFamily_), crossFamily_(o.crossFamily_),
-      counter_(o.counter_) {
-    o.device_   = VK_NULL_HANDLE;
-    o.pool_     = VK_NULL_HANDLE;
-    o.timeline_ = VK_NULL_HANDLE;
+      counter_(o.counter_), devicePtr_(o.devicePtr_) {
+    o.device_    = VK_NULL_HANDLE;
+    o.pool_      = VK_NULL_HANDLE;
+    o.timeline_  = VK_NULL_HANDLE;
+    o.devicePtr_ = nullptr;
 }
 
 ComputeQueue& ComputeQueue::operator=(ComputeQueue&& o) noexcept {
@@ -37,9 +39,11 @@ ComputeQueue& ComputeQueue::operator=(ComputeQueue&& o) noexcept {
         dstFamily_   = o.dstFamily_;
         crossFamily_ = o.crossFamily_;
         counter_     = o.counter_;
+        devicePtr_   = o.devicePtr_;
         o.device_    = VK_NULL_HANDLE;
         o.pool_      = VK_NULL_HANDLE;
         o.timeline_  = VK_NULL_HANDLE;
+        o.devicePtr_ = nullptr;
     }
     return *this;
 }
@@ -47,6 +51,7 @@ ComputeQueue& ComputeQueue::operator=(ComputeQueue&& o) noexcept {
 Result<ComputeQueue> ComputeQueue::create(const Device& device) {
     ComputeQueue cq;
     cq.device_    = device.vkDevice();
+    cq.devicePtr_ = &device;
     cq.dstFamily_ = device.queueFamilies().graphics;
 
     if (device.hasDedicatedCompute()) {
@@ -140,6 +145,7 @@ Result<PendingCompute> ComputeQueue::submitInternal(VkCommandBuffer cmd) {
 
     VkResult vr = vkQueueSubmit(queue_, 1, &submitInfo, VK_NULL_HANDLE);
     if (vr != VK_SUCCESS) {
+        if (devicePtr_) detail::checkDeviceLost(*devicePtr_, vr);
         return Error{"compute submit", static_cast<std::int32_t>(vr),
                      "vkQueueSubmit failed"};
     }
@@ -178,7 +184,10 @@ void ComputeQueue::waitFor(std::uint64_t value) const {
     waitInfo.pSemaphores    = &timeline_;
     waitInfo.pValues        = &value;
     // VKSDL_BLOCKING_WAIT: caller requested explicit wait on a specific value.
-    vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
+    VkResult vr = vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
+    if (vr != VK_SUCCESS && devicePtr_) {
+        detail::checkDeviceLost(*devicePtr_, vr);
+    }
 }
 
 void ComputeQueue::insertBufferAcquireBarrier(VkCommandBuffer cmd,
