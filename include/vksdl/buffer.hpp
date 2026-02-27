@@ -73,6 +73,11 @@ public:
     BufferBuilder& accelerationStructureInput();  // adds AS_BUILD_INPUT_READ_ONLY_BIT (requires VK_KHR_acceleration_structure)
     BufferBuilder& mapped();
 
+    // Memory priority hint [0, 1]. Higher values are evicted last under pressure.
+    // Effective only when the device reports hasMemoryPriority() == true.
+    // Default 0.5 (mid-priority, VMA default).
+    BufferBuilder& memoryPriority(float p);
+
     [[nodiscard]] Result<Buffer> build();
 
 private:
@@ -80,6 +85,7 @@ private:
     VkDevice           device_    = VK_NULL_HANDLE;
     VkDeviceSize       size_      = 0;
     VkBufferUsageFlags usage_     = 0;
+    float              priority_  = 0.5f;
     bool               mapped_    = false;
 };
 

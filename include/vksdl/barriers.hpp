@@ -2,6 +2,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include <cstdint>
+
 namespace vksdl {
 
 class Image;
@@ -82,5 +84,38 @@ void clearImage(VkCommandBuffer cmd, const Image& image,
 void transitionFromRTWrite(VkCommandBuffer cmd, VkImage image,
                            VkImageLayout targetLayout,
                            VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess);
+
+// Queue ownership transfer barriers (Vulkan 7.7.5).
+//
+// An ownership transfer requires a matching release+acquire pair:
+//  - release submitted on the source queue, signaling a semaphore
+//  - acquire submitted on the destination queue, waiting on that semaphore
+//
+// For buffers, use VK_WHOLE_SIZE for the full buffer range.
+// For images, pass the current layout; oldLayout==newLayout preserves content.
+
+// Release a buffer from srcFamily. Submit on the source queue.
+void barrierQueueRelease(VkCommandBuffer cmd,
+                         VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size,
+                         VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
+                         std::uint32_t srcFamily, std::uint32_t dstFamily);
+
+// Acquire a buffer on dstFamily. Submit on the destination queue.
+void barrierQueueAcquire(VkCommandBuffer cmd,
+                         VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size,
+                         VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
+                         std::uint32_t srcFamily, std::uint32_t dstFamily);
+
+// Release an image from srcFamily. Submit on the source queue.
+void barrierQueueRelease(VkCommandBuffer cmd,
+                         VkImage image, VkImageLayout layout,
+                         VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
+                         std::uint32_t srcFamily, std::uint32_t dstFamily);
+
+// Acquire an image on dstFamily. Submit on the destination queue.
+void barrierQueueAcquire(VkCommandBuffer cmd,
+                         VkImage image, VkImageLayout layout,
+                         VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
+                         std::uint32_t srcFamily, std::uint32_t dstFamily);
 
 } // namespace vksdl

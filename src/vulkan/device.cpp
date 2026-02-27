@@ -30,6 +30,8 @@ Device::Device(Device&& o) noexcept
       timestampPeriod_(o.timestampPeriod_),
       gpuName_(std::move(o.gpuName_)),
       hasDeviceFault_(o.hasDeviceFault_),
+      hasMemoryBudget_(o.hasMemoryBudget_),
+      hasMemoryPriority_(o.hasMemoryPriority_),
       hasUnifiedLayouts_(o.hasUnifiedLayouts_),
       hasGPL_(o.hasGPL_),
       hasGplFastLinking_(o.hasGplFastLinking_),
@@ -68,6 +70,8 @@ Device& Device::operator=(Device&& o) noexcept {
         timestampPeriod_   = o.timestampPeriod_;
         gpuName_           = std::move(o.gpuName_);
         hasDeviceFault_    = o.hasDeviceFault_;
+        hasMemoryBudget_   = o.hasMemoryBudget_;
+        hasMemoryPriority_ = o.hasMemoryPriority_;
         hasUnifiedLayouts_ = o.hasUnifiedLayouts_;
         hasGPL_            = o.hasGPL_;
         hasGplFastLinking_ = o.hasGplFastLinking_;
@@ -541,6 +545,18 @@ Result<Device> DeviceBuilder::build() {
     // Push descriptors: detect opportunistically.
     bool havePushDescriptors = hasExtension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 
+    // Memory budget: detect opportunistically. Enables accurate OS-reported
+    // heap usage in vmaGetHeapBudgets. Zero overhead when budget is not queried.
+    bool haveMemoryBudget = hasExtension(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+
+    // Memory priority: detect opportunistically. Allows the driver to prefer
+    // keeping higher-priority allocations resident under memory pressure.
+    bool haveMemoryPriority = hasExtension(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
+
+    VkPhysicalDeviceMemoryPriorityFeaturesEXT memPriorityFeatures{};
+    memPriorityFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
+    memPriorityFeatures.memoryPriority = VK_TRUE;
+
     // Graphics pipeline library: detect opportunistically (or required via needGPL()).
     bool haveGPL = hasExtension(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
 
@@ -562,6 +578,11 @@ Result<Device> DeviceBuilder::build() {
         auto* base = static_cast<VkBaseOutStructure*>(*it);
         base->pNext = static_cast<VkBaseOutStructure*>(pNextChain);
         pNextChain = *it;
+    }
+
+    if (haveMemoryPriority) {
+        memPriorityFeatures.pNext = pNextChain;
+        pNextChain = &memPriorityFeatures;
     }
 
     if (haveGPL) {
@@ -618,6 +639,12 @@ Result<Device> DeviceBuilder::build() {
     }
     if (havePushDescriptors) {
         allExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+    }
+    if (haveMemoryBudget) {
+        allExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+    }
+    if (haveMemoryPriority) {
+        allExtensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
     }
     if (haveGPL) {
         // Avoid duplicate if user already called needGPL().
@@ -679,6 +706,8 @@ Result<Device> DeviceBuilder::build() {
     }
 
     dev.hasDeviceFault_      = haveDeviceFault;
+    dev.hasMemoryBudget_     = haveMemoryBudget;
+    dev.hasMemoryPriority_   = haveMemoryPriority;
     dev.hasUnifiedLayouts_   = haveUnifiedLayouts;
     dev.hasPCCC_             = havePCCC;
     dev.hasPushDescriptors_  = havePushDescriptors;

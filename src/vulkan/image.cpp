@@ -131,6 +131,11 @@ ImageBuilder& ImageBuilder::mipmapped() {
     return *this;
 }
 
+ImageBuilder& ImageBuilder::memoryPriority(float p) {
+    priority_ = p;
+    return *this;
+}
+
 ImageBuilder& ImageBuilder::msaaColorAttachment() {
     usage_  = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     aspect_ = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -171,7 +176,8 @@ Result<Image> ImageBuilder::build() {
     imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     VmaAllocationCreateInfo allocCI{};
-    allocCI.usage = VMA_MEMORY_USAGE_AUTO;
+    allocCI.usage    = VMA_MEMORY_USAGE_AUTO;
+    allocCI.priority = priority_;
 
     Image img;
     img.allocator_ = allocator_;

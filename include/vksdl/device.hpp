@@ -75,6 +75,15 @@ public:
     // VK_EXT_device_fault support (opportunistic -- always safe to call)
     [[nodiscard]] bool hasDeviceFault() const { return hasDeviceFault_; }
 
+    // VK_EXT_memory_budget support (opportunistic).
+    // When true, Allocator::queryBudget() returns accurate OS-reported values.
+    [[nodiscard]] bool hasMemoryBudget() const { return hasMemoryBudget_; }
+
+    // VK_EXT_memory_priority support (opportunistic).
+    // When true, BufferBuilder/ImageBuilder::memoryPriority(p) influences
+    // which allocations are evicted first under memory pressure.
+    [[nodiscard]] bool hasMemoryPriority() const { return hasMemoryPriority_; }
+
     // VK_KHR_unified_image_layouts support (extremely new extension).
     // When true, images can stay in VK_IMAGE_LAYOUT_GENERAL without explicit
     // transitions. Barriers remain conservative by default -- this is detect-
@@ -129,6 +138,9 @@ private:
 
     // Device fault
     bool hasDeviceFault_ = false;
+    // Memory budget and priority extensions
+    bool hasMemoryBudget_   = false;
+    bool hasMemoryPriority_ = false;
     // Unified image layouts
     bool hasUnifiedLayouts_ = false;
     // Graphics pipeline library

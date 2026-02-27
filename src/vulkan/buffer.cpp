@@ -148,6 +148,11 @@ BufferBuilder& BufferBuilder::mapped() {
     return *this;
 }
 
+BufferBuilder& BufferBuilder::memoryPriority(float p) {
+    priority_ = p;
+    return *this;
+}
+
 Result<Buffer> BufferBuilder::build() {
     if (size_ == 0) {
         return Error{"create buffer", 0,
@@ -164,7 +169,8 @@ Result<Buffer> BufferBuilder::build() {
     bufCI.usage = usage_;
 
     VmaAllocationCreateInfo allocCI{};
-    allocCI.usage = VMA_MEMORY_USAGE_AUTO;
+    allocCI.usage    = VMA_MEMORY_USAGE_AUTO;
+    allocCI.priority = priority_;
 
     if (mapped_) {
         allocCI.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |

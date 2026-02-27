@@ -66,6 +66,11 @@ public:
     ImageBuilder& samples(VkSampleCountFlagBits s);
     ImageBuilder& mipLevels(std::uint32_t levels);
 
+    // Memory priority hint [0, 1]. Higher values are evicted last under pressure.
+    // Effective only when the device reports hasMemoryPriority() == true.
+    // Default 0.5 (mid-priority, VMA default).
+    ImageBuilder& memoryPriority(float p);
+
     [[nodiscard]] Result<Image> build();
 
 private:
@@ -78,6 +83,7 @@ private:
     VkImageAspectFlags    aspect_    = VK_IMAGE_ASPECT_COLOR_BIT;
     VkSampleCountFlagBits samples_   = VK_SAMPLE_COUNT_1_BIT;
     std::uint32_t         mipLevels_ = 1;
+    float                 priority_  = 0.5f;
     bool                  mipmapped_ = false;
 };
 

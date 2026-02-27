@@ -408,6 +408,24 @@ add_executable(test_indirect_buffer integration/test_indirect_buffer.cpp)
 target_link_libraries(test_indirect_buffer PRIVATE vksdl)
 add_test(NAME test_indirect_buffer COMMAND test_indirect_buffer)
 
+# --- Memory budget test ---
+
+add_executable(test_memory_budget integration/test_memory_budget.cpp)
+target_link_libraries(test_memory_budget PRIVATE vksdl)
+add_test(NAME test_memory_budget COMMAND test_memory_budget)
+
+# --- Memory priority test ---
+
+add_executable(test_memory_priority integration/test_memory_priority.cpp)
+target_link_libraries(test_memory_priority PRIVATE vksdl)
+add_test(NAME test_memory_priority COMMAND test_memory_priority)
+
+# --- Queue ownership transfer barrier test ---
+
+add_executable(test_queue_ownership integration/test_queue_ownership.cpp)
+target_link_libraries(test_queue_ownership PRIVATE vksdl)
+add_test(NAME test_queue_ownership COMMAND test_queue_ownership)
+
 # --- Spec constants test (needs compute + triangle shaders) ---
 
 set(SPIRV_VALIDATE_SPEC_CONST_CMD "")

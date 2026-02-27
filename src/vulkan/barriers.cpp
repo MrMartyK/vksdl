@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include <cstdint>
 #include <cstdio>
 
 namespace vksdl {
@@ -278,6 +279,106 @@ void transitionFromRTWrite(VkCommandBuffer cmd, VkImage image,
                     VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
                     VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
                     dstStage, dstAccess);
+}
+
+void barrierQueueRelease(VkCommandBuffer cmd,
+                         VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size,
+                         VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
+                         std::uint32_t srcFamily, std::uint32_t dstFamily) {
+    VkBufferMemoryBarrier2 barrier{};
+    barrier.sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+    barrier.srcStageMask        = srcStage;
+    barrier.srcAccessMask       = srcAccess;
+    barrier.dstStageMask        = VK_PIPELINE_STAGE_2_NONE;
+    barrier.dstAccessMask       = 0;
+    barrier.srcQueueFamilyIndex = srcFamily;
+    barrier.dstQueueFamilyIndex = dstFamily;
+    barrier.buffer              = buffer;
+    barrier.offset              = offset;
+    barrier.size                = size;
+
+    VkDependencyInfo dep{};
+    dep.sType                    = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep.bufferMemoryBarrierCount = 1;
+    dep.pBufferMemoryBarriers    = &barrier;
+
+    vkCmdPipelineBarrier2(cmd, &dep);
+}
+
+void barrierQueueAcquire(VkCommandBuffer cmd,
+                         VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size,
+                         VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
+                         std::uint32_t srcFamily, std::uint32_t dstFamily) {
+    VkBufferMemoryBarrier2 barrier{};
+    barrier.sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+    barrier.srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
+    barrier.srcAccessMask       = 0;
+    barrier.dstStageMask        = dstStage;
+    barrier.dstAccessMask       = dstAccess;
+    barrier.srcQueueFamilyIndex = srcFamily;
+    barrier.dstQueueFamilyIndex = dstFamily;
+    barrier.buffer              = buffer;
+    barrier.offset              = offset;
+    barrier.size                = size;
+
+    VkDependencyInfo dep{};
+    dep.sType                    = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep.bufferMemoryBarrierCount = 1;
+    dep.pBufferMemoryBarriers    = &barrier;
+
+    vkCmdPipelineBarrier2(cmd, &dep);
+}
+
+void barrierQueueRelease(VkCommandBuffer cmd,
+                         VkImage image, VkImageLayout layout,
+                         VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
+                         std::uint32_t srcFamily, std::uint32_t dstFamily) {
+    VkImageMemoryBarrier2 barrier{};
+    barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    barrier.srcStageMask        = srcStage;
+    barrier.srcAccessMask       = srcAccess;
+    barrier.dstStageMask        = VK_PIPELINE_STAGE_2_NONE;
+    barrier.dstAccessMask       = 0;
+    barrier.oldLayout           = layout;
+    barrier.newLayout           = layout; // preserve layout across ownership transfer
+    barrier.srcQueueFamilyIndex = srcFamily;
+    barrier.dstQueueFamilyIndex = dstFamily;
+    barrier.image               = image;
+    barrier.subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0,
+                                   VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS};
+
+    VkDependencyInfo dep{};
+    dep.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep.imageMemoryBarrierCount = 1;
+    dep.pImageMemoryBarriers    = &barrier;
+
+    vkCmdPipelineBarrier2(cmd, &dep);
+}
+
+void barrierQueueAcquire(VkCommandBuffer cmd,
+                         VkImage image, VkImageLayout layout,
+                         VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
+                         std::uint32_t srcFamily, std::uint32_t dstFamily) {
+    VkImageMemoryBarrier2 barrier{};
+    barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    barrier.srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
+    barrier.srcAccessMask       = 0;
+    barrier.dstStageMask        = dstStage;
+    barrier.dstAccessMask       = dstAccess;
+    barrier.oldLayout           = layout;
+    barrier.newLayout           = layout; // preserve layout across ownership transfer
+    barrier.srcQueueFamilyIndex = srcFamily;
+    barrier.dstQueueFamilyIndex = dstFamily;
+    barrier.image               = image;
+    barrier.subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0,
+                                   VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS};
+
+    VkDependencyInfo dep{};
+    dep.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep.imageMemoryBarrierCount = 1;
+    dep.pImageMemoryBarriers    = &barrier;
+
+    vkCmdPipelineBarrier2(cmd, &dep);
 }
 
 } // namespace vksdl
