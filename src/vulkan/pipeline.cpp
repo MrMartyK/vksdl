@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.h>
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
@@ -51,7 +52,7 @@ Pipeline::~Pipeline() {
     if (layout_ != VK_NULL_HANDLE && ownsLayout_) {
         vkDestroyPipelineLayout(device_, layout_, nullptr);
     }
-    for (auto dsl : ownedSetLayouts_) {
+    for (auto* dsl : ownedSetLayouts_) {
         vkDestroyDescriptorSetLayout(device_, dsl, nullptr);
     }
 }
@@ -73,7 +74,7 @@ Pipeline& Pipeline::operator=(Pipeline&& o) noexcept {
         if (layout_ != VK_NULL_HANDLE && ownsLayout_) {
             vkDestroyPipelineLayout(device_, layout_, nullptr);
         }
-        for (auto dsl : ownedSetLayouts_) {
+        for (auto* dsl : ownedSetLayouts_) {
             vkDestroyDescriptorSetLayout(device_, dsl, nullptr);
         }
 
@@ -458,8 +459,9 @@ Result<Pipeline> PipelineBuilder::buildWithFlags(VkPipelineCreateFlags flags) co
             VkDescriptorSetLayout dsl = VK_NULL_HANDLE;
             VkResult vr = vkCreateDescriptorSetLayout(device_, &ci, nullptr, &dsl);
             if (vr != VK_SUCCESS) {
-                for (auto prev : reflectedSetLayouts)
+                for (auto* prev : reflectedSetLayouts) {
                     vkDestroyDescriptorSetLayout(device_, prev, nullptr);
+                }
                 destroyModules();
                 return Error{"create reflected descriptor set layout",
                              static_cast<std::int32_t>(vr),
@@ -491,8 +493,9 @@ Result<Pipeline> PipelineBuilder::buildWithFlags(VkPipelineCreateFlags flags) co
 
         VkResult vr = vkCreatePipelineLayout(device_, &layoutCI, nullptr, &p.layout_);
         if (vr != VK_SUCCESS) {
-            for (auto dsl : reflectedSetLayouts)
+            for (auto* dsl : reflectedSetLayouts) {
                 vkDestroyDescriptorSetLayout(device_, dsl, nullptr);
+            }
             destroyModules();
             return Error{"create pipeline layout", static_cast<std::int32_t>(vr),
                          "vkCreatePipelineLayout failed"};
@@ -642,7 +645,7 @@ Result<Pipeline> PipelineBuilder::buildWithFlags(VkPipelineCreateFlags flags) co
             vkDestroyPipelineLayout(device_, p.layout_, nullptr);
             p.layout_ = VK_NULL_HANDLE;
         }
-        for (auto dsl : reflectedSetLayouts) {
+        for (auto* dsl : reflectedSetLayouts) {
             vkDestroyDescriptorSetLayout(device_, dsl, nullptr);
         }
         return Error{"create pipeline", static_cast<std::int32_t>(vr),
@@ -655,8 +658,9 @@ Result<Pipeline> PipelineBuilder::buildWithFlags(VkPipelineCreateFlags flags) co
     for (const auto& r : localPushConstantRanges) {
         p.pcStages_ |= r.stageFlags;
         auto end = r.offset + r.size;
-        if (end > p.pcSize_)
+        if (end > p.pcSize_) {
             p.pcSize_ = end;
+        }
     }
 
     PipelineStats stats;
@@ -665,11 +669,11 @@ Result<Pipeline> PipelineBuilder::buildWithFlags(VkPipelineCreateFlags flags) co
                       VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;
     stats.durationMs = static_cast<double>(pipelineFeedback.duration) / 1'000'000.0;
 
-    VkShaderStageFlagBits stageFlags[2] = {VK_SHADER_STAGE_VERTEX_BIT,
-                                           VK_SHADER_STAGE_FRAGMENT_BIT};
+    std::array<VkShaderStageFlagBits, 2> sfBits = {VK_SHADER_STAGE_VERTEX_BIT,
+                                                   VK_SHADER_STAGE_FRAGMENT_BIT};
     for (int i = 0; i < 2; ++i) {
         StageFeedback sf;
-        sf.stage = stageFlags[i];
+        sf.stage = sfBits[static_cast<std::size_t>(i)];
         sf.valid = (stageFeedbacks[i].flags & VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT) != 0;
         sf.cacheHit = (stageFeedbacks[i].flags &
                        VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;

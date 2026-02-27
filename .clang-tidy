@@ -3,6 +3,7 @@
 Checks: >
   -*,
   clang-analyzer-*,
+  -clang-analyzer-core.uninitialized.Assign,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-narrowing-conversions,

@@ -52,7 +52,7 @@ void generateFlatNormals(std::vector<Vertex>& vertices) {
             nz /= len;
         }
 
-        for (int j = 0; j < 3; ++j) {
+        for (std::size_t j = 0; j < 3; ++j) {
             vertices[i + j].normal[0] = nx;
             vertices[i + j].normal[1] = ny;
             vertices[i + j].normal[2] = nz;

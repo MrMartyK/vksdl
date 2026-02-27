@@ -48,7 +48,7 @@ void generateFlatNormals(std::vector<Vertex>& vertices) {
             nz /= len;
         }
 
-        for (int j = 0; j < 3; ++j) {
+        for (std::size_t j = 0; j < 3; ++j) {
             vertices[i + j].normal[0] = nx;
             vertices[i + j].normal[1] = ny;
             vertices[i + j].normal[2] = nz;
@@ -104,31 +104,36 @@ Result<std::vector<MeshData>> loadObj(const std::filesystem::path& path) {
             // Each face start points to the first index of a triangulated face (3 verts).
             // We unroll all vertices per triangle for flat normal generation.
             for (std::size_t start : faceStarts) {
-                for (int v = 0; v < 3; ++v) {
+                for (std::size_t v = 0; v < 3; ++v) {
                     const tinyobj::index_t& idx = shape.mesh.indices[start + v];
 
                     Vertex vert{};
-                    if (idx.vertex_index < 0 ||
-                        static_cast<std::size_t>(3 * idx.vertex_index + 2) >=
-                            attrib.vertices.size())
+                    if (idx.vertex_index < 0) {
                         continue;
-                    vert.position[0] = attrib.vertices[3 * idx.vertex_index + 0];
-                    vert.position[1] = attrib.vertices[3 * idx.vertex_index + 1];
-                    vert.position[2] = attrib.vertices[3 * idx.vertex_index + 2];
+                    }
+                    auto vi = static_cast<std::size_t>(idx.vertex_index);
+                    if (3 * vi + 2 >= attrib.vertices.size()) {
+                        continue;
+                    }
+                    vert.position[0] = attrib.vertices[3 * vi + 0];
+                    vert.position[1] = attrib.vertices[3 * vi + 1];
+                    vert.position[2] = attrib.vertices[3 * vi + 2];
 
-                    if (hasNormals && idx.normal_index >= 0 &&
-                        static_cast<std::size_t>(3 * idx.normal_index + 2) <
-                            attrib.normals.size()) {
-                        vert.normal[0] = attrib.normals[3 * idx.normal_index + 0];
-                        vert.normal[1] = attrib.normals[3 * idx.normal_index + 1];
-                        vert.normal[2] = attrib.normals[3 * idx.normal_index + 2];
+                    if (hasNormals && idx.normal_index >= 0) {
+                        auto ni = static_cast<std::size_t>(idx.normal_index);
+                        if (3 * ni + 2 < attrib.normals.size()) {
+                            vert.normal[0] = attrib.normals[3 * ni + 0];
+                            vert.normal[1] = attrib.normals[3 * ni + 1];
+                            vert.normal[2] = attrib.normals[3 * ni + 2];
+                        }
                     }
 
-                    if (hasUVs && idx.texcoord_index >= 0 &&
-                        static_cast<std::size_t>(2 * idx.texcoord_index + 1) <
-                            attrib.texcoords.size()) {
-                        vert.texCoord[0] = attrib.texcoords[2 * idx.texcoord_index + 0];
-                        vert.texCoord[1] = attrib.texcoords[2 * idx.texcoord_index + 1];
+                    if (hasUVs && idx.texcoord_index >= 0) {
+                        auto ti = static_cast<std::size_t>(idx.texcoord_index);
+                        if (2 * ti + 1 < attrib.texcoords.size()) {
+                            vert.texCoord[0] = attrib.texcoords[2 * ti + 0];
+                            vert.texCoord[1] = attrib.texcoords[2 * ti + 1];
+                        }
                     }
 
                     vertices.push_back(vert);
@@ -156,8 +161,8 @@ Result<std::vector<MeshData>> loadObj(const std::filesystem::path& path) {
             meshData.name = shape.name;
 
             // Material
-            if (matId >= 0 && matId < static_cast<int>(materials.size())) {
-                const auto& mat = materials[matId];
+            if (matId >= 0 && static_cast<std::size_t>(matId) < materials.size()) {
+                const auto& mat = materials[static_cast<std::size_t>(matId)];
                 meshData.material.name = mat.name;
                 meshData.material.baseColor[0] = mat.diffuse[0];
                 meshData.material.baseColor[1] = mat.diffuse[1];
