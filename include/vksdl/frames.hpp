@@ -56,10 +56,11 @@ private:
     FrameSync() = default;
     void destroy();
 
-    VkDevice                     device_  = VK_NULL_HANDLE;
-    VkCommandPool                pool_    = VK_NULL_HANDLE;
-    std::uint32_t                count_   = 0;
-    std::uint32_t                current_ = 0;
+    VkDevice                     device_    = VK_NULL_HANDLE;
+    const Device*                devicePtr_ = nullptr;
+    VkCommandPool                pool_      = VK_NULL_HANDLE;
+    std::uint32_t                count_     = 0;
+    std::uint32_t                current_   = 0;
     std::vector<VkCommandBuffer> cmds_;
     std::vector<VkSemaphore>     drawDone_;
     std::vector<VkFence>         fences_;

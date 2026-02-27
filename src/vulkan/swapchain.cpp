@@ -28,7 +28,8 @@ Swapchain::Swapchain(Swapchain&& o) noexcept
       hasPresentTiming_(o.hasPresentTiming_),
       useGoogleDisplayTiming_(o.useGoogleDisplayTiming_),
       pfnGetPastTiming_(o.pfnGetPastTiming_),
-      presentCounter_(o.presentCounter_) {
+      presentCounter_(o.presentCounter_),
+      googlePresentId_(o.googlePresentId_) {
     o.swapchain_       = VK_NULL_HANDLE;
     o.device_          = VK_NULL_HANDLE;
     o.pfnGetPastTiming_ = nullptr;
@@ -59,6 +60,7 @@ Swapchain& Swapchain::operator=(Swapchain&& o) noexcept {
         useGoogleDisplayTiming_ = o.useGoogleDisplayTiming_;
         pfnGetPastTiming_       = o.pfnGetPastTiming_;
         presentCounter_         = o.presentCounter_;
+        googlePresentId_        = o.googlePresentId_;
         o.swapchain_        = VK_NULL_HANDLE;
         o.device_           = VK_NULL_HANDLE;
         o.pfnGetPastTiming_ = nullptr;
@@ -173,7 +175,7 @@ VkResult Swapchain::present(VkQueue presentQueue,
     VkPresentTimeGOOGLE presentTime{};
     VkPresentTimesInfoGOOGLE timesInfo{};
     if (useGoogleDisplayTiming_) {
-        presentTime.presentID       = static_cast<std::uint32_t>(presentCounter_);
+        presentTime.presentID       = ++googlePresentId_;
         presentTime.desiredPresentTime = 0; // ASAP
         timesInfo.sType             = VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE;
         timesInfo.pNext             = nullptr;

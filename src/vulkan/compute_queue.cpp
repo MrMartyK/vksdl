@@ -168,7 +168,10 @@ void ComputeQueue::waitIdle() {
     waitInfo.pSemaphores    = &timeline_;
     waitInfo.pValues        = &counter_;
     // VKSDL_BLOCKING_WAIT: explicit queue drain requested by caller.
-    vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
+    VkResult vr = vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
+    if (vr != VK_SUCCESS && devicePtr_) {
+        detail::checkDeviceLost(*devicePtr_, vr);
+    }
 }
 
 bool ComputeQueue::isComplete(std::uint64_t value) const {

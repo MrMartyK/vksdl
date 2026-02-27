@@ -24,19 +24,22 @@ void TimelineSync::destroy() {
 TimelineSync::~TimelineSync() { destroy(); }
 
 TimelineSync::TimelineSync(TimelineSync&& o) noexcept
-    : device_(o.device_), pool_(o.pool_), timeline_(o.timeline_),
+    : device_(o.device_), devicePtr_(o.devicePtr_),
+      pool_(o.pool_), timeline_(o.timeline_),
       count_(o.count_), current_(o.current_), counter_(o.counter_),
       cmds_(std::move(o.cmds_)),
       renderDone_(std::move(o.renderDone_)) {
-    o.device_   = VK_NULL_HANDLE;
-    o.pool_     = VK_NULL_HANDLE;
-    o.timeline_ = VK_NULL_HANDLE;
+    o.device_    = VK_NULL_HANDLE;
+    o.devicePtr_ = nullptr;
+    o.pool_      = VK_NULL_HANDLE;
+    o.timeline_  = VK_NULL_HANDLE;
 }
 
 TimelineSync& TimelineSync::operator=(TimelineSync&& o) noexcept {
     if (this != &o) {
         destroy();
         device_     = o.device_;
+        devicePtr_  = o.devicePtr_;
         pool_       = o.pool_;
         timeline_   = o.timeline_;
         count_      = o.count_;
@@ -44,9 +47,10 @@ TimelineSync& TimelineSync::operator=(TimelineSync&& o) noexcept {
         counter_    = o.counter_;
         cmds_       = std::move(o.cmds_);
         renderDone_ = std::move(o.renderDone_);
-        o.device_   = VK_NULL_HANDLE;
-        o.pool_     = VK_NULL_HANDLE;
-        o.timeline_ = VK_NULL_HANDLE;
+        o.device_    = VK_NULL_HANDLE;
+        o.devicePtr_ = nullptr;
+        o.pool_      = VK_NULL_HANDLE;
+        o.timeline_  = VK_NULL_HANDLE;
     }
     return *this;
 }
@@ -59,8 +63,9 @@ Result<TimelineSync> TimelineSync::create(const Device& device,
     }
 
     TimelineSync ts;
-    ts.device_ = device.vkDevice();
-    ts.count_  = framesInFlight;
+    ts.device_    = device.vkDevice();
+    ts.devicePtr_ = &device;
+    ts.count_     = framesInFlight;
 
     VkCommandPoolCreateInfo poolCI{};
     poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -137,6 +142,7 @@ Result<TimelineFrame> TimelineSync::nextFrame() {
         // VKSDL_BLOCKING_WAIT: frame-slot timeline wait before command reuse.
         VkResult vr = vkWaitSemaphores(device_, &waitInfo, UINT64_MAX);
         if (vr != VK_SUCCESS) {
+            if (devicePtr_) detail::checkDeviceLost(*devicePtr_, vr);
             return Error{"wait for timeline semaphore",
                          static_cast<std::int32_t>(vr),
                          "vkWaitSemaphores failed for frame " + std::to_string(i)};

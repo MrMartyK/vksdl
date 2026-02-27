@@ -2,6 +2,7 @@
 #include <vksdl/command_pool.hpp>
 #include <vksdl/device.hpp>
 
+#include <atomic>
 #include <cstdlib>
 #include <mutex>
 #include <thread>
@@ -10,48 +11,51 @@
 
 namespace vksdl {
 
+// Monotonic generation counter. Each factory gets a unique ID to prevent
+// ABA problems when a new factory's Impl happens to land at the same address
+// as a previously destroyed factory.
+static std::atomic<std::uint64_t> g_factoryGen{0};
+
 struct CommandPoolFactory::Impl {
-    VkDevice      device = VK_NULL_HANDLE;
-    std::uint32_t family = 0;
+    VkDevice        device = VK_NULL_HANDLE;
+    std::uint32_t   family = 0;
+    std::uint64_t   generation = 0;
 
     std::mutex                                         mutex;
     std::vector<std::unique_ptr<CommandPool>>          pools;
     std::unordered_map<std::thread::id, CommandPool*>  threadMap;
 };
 
-// Thread-local map from Impl* (factory identity) to the per-thread CommandPool
-// for that factory. Allows multiple factory instances per thread without
-// conflicts, and naturally handles factory destruction: the dangling Impl*
-// key is never matched again once the factory is re-created at a new address.
+// Thread-local map keyed by generation (not address) to the per-thread
+// CommandPool for that factory. Using a monotonic generation prevents
+// stale entries from matching a new factory at the same address.
 namespace {
-thread_local std::unordered_map<void*, CommandPool*> tl_poolMap;
+thread_local std::unordered_map<std::uint64_t, CommandPool*> tl_poolMap;
 } // namespace
 
 Result<CommandPoolFactory> CommandPoolFactory::create(const Device& device,
                                                        std::uint32_t queueFamily) {
     CommandPoolFactory f;
     f.impl_ = std::make_unique<Impl>();
-    f.impl_->device = device.vkDevice();
-    f.impl_->family = queueFamily;
+    f.impl_->device     = device.vkDevice();
+    f.impl_->family     = queueFamily;
+    f.impl_->generation = g_factoryGen.fetch_add(1, std::memory_order_relaxed);
     return f;
 }
 
 CommandPoolFactory::~CommandPoolFactory() {
     if (!impl_) return;
-    // Remove stale entries from every registered thread's tl_poolMap.
-    // We can only reach the calling thread's map; other threads retain a
-    // dangling key, but since the Impl pointer is freed, the address will
-    // never match a newly created factory unless it happens to land at the
-    // same address. To defend against that, we also erase the entry in the
-    // current thread's map on destruction.
-    tl_poolMap.erase(impl_.get());
+    // Erase this thread's cache entry. Worker threads with stale entries
+    // are safe: their keys use a unique generation that will never match
+    // any future factory.
+    tl_poolMap.erase(impl_->generation);
 }
 
 CommandPoolFactory::CommandPoolFactory(CommandPoolFactory&&) noexcept = default;
 CommandPoolFactory& CommandPoolFactory::operator=(CommandPoolFactory&&) noexcept = default;
 
 CommandPool& CommandPoolFactory::getForCurrentThread() {
-    void* key = impl_.get();
+    std::uint64_t key = impl_->generation;
 
     // Fast path: thread already has a pool for this factory instance.
     auto it = tl_poolMap.find(key);

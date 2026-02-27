@@ -34,9 +34,11 @@ public:
              VkPipelineStageFlags2 srcStage,
              VkAccessFlags2 srcAccess) const;
 
-    // Record vkCmdWaitEvents2. The command buffer waits until the event is
-    // signaled, then makes dstStage/dstAccess operations visible.
+    // Record vkCmdWaitEvents2. srcStage must match the set() call's srcStage
+    // (Vulkan spec requirement). dstStage/dstAccess define the consumer side.
     void wait(VkCommandBuffer cmd,
+              VkPipelineStageFlags2 srcStage,
+              VkAccessFlags2 srcAccess,
               VkPipelineStageFlags2 dstStage,
               VkAccessFlags2 dstAccess) const;
 

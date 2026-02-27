@@ -67,12 +67,14 @@ void GpuEvent::set(VkCommandBuffer cmd,
 }
 
 void GpuEvent::wait(VkCommandBuffer cmd,
+                    VkPipelineStageFlags2 srcStage,
+                    VkAccessFlags2 srcAccess,
                     VkPipelineStageFlags2 dstStage,
                     VkAccessFlags2 dstAccess) const {
     VkMemoryBarrier2 barrier{};
     barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-    barrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE;
-    barrier.srcAccessMask = VK_ACCESS_2_NONE;
+    barrier.srcStageMask  = srcStage;
+    barrier.srcAccessMask = srcAccess;
     barrier.dstStageMask  = dstStage;
     barrier.dstAccessMask = dstAccess;
 

@@ -63,8 +63,9 @@ private:
     TimelineSync() = default;
     void destroy();
 
-    VkDevice                     device_   = VK_NULL_HANDLE;
-    VkCommandPool                pool_     = VK_NULL_HANDLE;
+    VkDevice                     device_    = VK_NULL_HANDLE;
+    const Device*                devicePtr_ = nullptr;
+    VkCommandPool                pool_      = VK_NULL_HANDLE;
     VkSemaphore                  timeline_ = VK_NULL_HANDLE;
     std::uint32_t                count_    = 0;
     std::uint32_t                current_  = 0;

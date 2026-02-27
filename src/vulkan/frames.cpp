@@ -29,24 +29,28 @@ FrameSync::~FrameSync() {
 }
 
 FrameSync::FrameSync(FrameSync&& o) noexcept
-    : device_(o.device_), pool_(o.pool_), count_(o.count_), current_(o.current_),
+    : device_(o.device_), devicePtr_(o.devicePtr_),
+      pool_(o.pool_), count_(o.count_), current_(o.current_),
       cmds_(std::move(o.cmds_)), drawDone_(std::move(o.drawDone_)), fences_(std::move(o.fences_)) {
-    o.device_ = VK_NULL_HANDLE;
-    o.pool_ = VK_NULL_HANDLE;
+    o.device_    = VK_NULL_HANDLE;
+    o.devicePtr_ = nullptr;
+    o.pool_      = VK_NULL_HANDLE;
 }
 
 FrameSync& FrameSync::operator=(FrameSync&& o) noexcept {
     if (this != &o) {
         destroy();
-        device_ = o.device_;
-        pool_ = o.pool_;
-        count_ = o.count_;
-        current_ = o.current_;
-        cmds_ = std::move(o.cmds_);
-        drawDone_ = std::move(o.drawDone_);
-        fences_ = std::move(o.fences_);
-        o.device_ = VK_NULL_HANDLE;
-        o.pool_ = VK_NULL_HANDLE;
+        device_    = o.device_;
+        devicePtr_ = o.devicePtr_;
+        pool_      = o.pool_;
+        count_     = o.count_;
+        current_   = o.current_;
+        cmds_      = std::move(o.cmds_);
+        drawDone_  = std::move(o.drawDone_);
+        fences_    = std::move(o.fences_);
+        o.device_    = VK_NULL_HANDLE;
+        o.devicePtr_ = nullptr;
+        o.pool_      = VK_NULL_HANDLE;
     }
     return *this;
 }
@@ -57,8 +61,9 @@ Result<FrameSync> FrameSync::create(const Device& device, std::uint32_t count) {
     }
 
     FrameSync fs;
-    fs.device_ = device.vkDevice();
-    fs.count_ = count;
+    fs.device_    = device.vkDevice();
+    fs.devicePtr_ = &device;
+    fs.count_     = count;
 
     VkCommandPoolCreateInfo poolCI{};
     poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -119,6 +124,7 @@ Result<Frame> FrameSync::nextFrame() {
     // VKSDL_BLOCKING_WAIT: frame-slot fence wait before command/fence reuse.
     VkResult vr = vkWaitForFences(device_, 1, &fences_[i], VK_TRUE, UINT64_MAX);
     if (vr != VK_SUCCESS) {
+        if (devicePtr_) detail::checkDeviceLost(*devicePtr_, vr);
         return Error{"wait for fence", static_cast<std::int32_t>(vr),
                      "vkWaitForFences failed for frame " + std::to_string(i)};
     }

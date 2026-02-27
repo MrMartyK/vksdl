@@ -35,7 +35,8 @@ public:
     // per thread. Lock-free after first call.
     [[nodiscard]] CommandPool& getForCurrentThread();
 
-    // Reset all registered pools. Call between frames from the main thread.
+    // Reset all registered pools. Call between frames when all worker threads
+    // have finished recording and no thread is allocating from any pool.
     void resetAll();
 
     // Implementation detail: exposed for thread_local cache in .cpp only.

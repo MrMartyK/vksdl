@@ -110,7 +110,8 @@ private:
     bool hasPresentTiming_       = false;
     bool useGoogleDisplayTiming_ = false;
     PFN_vkGetPastPresentationTimingGOOGLE pfnGetPastTiming_ = nullptr;
-    std::uint64_t presentCounter_ = 0; // monotonic counter for PresentTiming::presentId
+    std::uint64_t  presentCounter_    = 0; // monotonic counter for PresentTiming::presentId
+    std::uint32_t  googlePresentId_   = 0; // 32-bit counter for VkPresentTimeGOOGLE (wraps)
 };
 
 class SwapchainBuilder {
