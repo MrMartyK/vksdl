@@ -17,3 +17,11 @@ SDL3-*/
 DESIGN.md
 RENDER_GRAPH_DESIGN.md
 pipeline_log.txt
+
+# CI / verification build trees
+build-*/
+install-verify-integration/
+
+# Temp / tooling
+.tmp_issues.json
+.playwright-mcp/
