@@ -46,22 +46,47 @@ int main() {
         auto budgets = allocator.value().queryBudget();
         assert(!budgets.empty());
         std::printf("  queryBudget: %zu heap(s)\n", budgets.size());
+
+        std::uint64_t totalDeviceLocalUsage  = 0;
+        std::uint64_t totalDeviceLocalBudget = 0;
+
         for (std::size_t i = 0; i < budgets.size(); ++i) {
-            std::printf("    heap[%zu]: usage=%" PRIu64 " B  budget=%" PRIu64 " B\n",
+            std::printf("    heap[%zu]: usage=%" PRIu64 " B  budget=%" PRIu64 " B"
+                        "  heapSize=%" PRIu64 " B  flags=0x%x\n",
                         i,
                         static_cast<unsigned long long>(budgets[i].usage),
-                        static_cast<unsigned long long>(budgets[i].budget));
+                        static_cast<unsigned long long>(budgets[i].budget),
+                        static_cast<unsigned long long>(budgets[i].heapSize),
+                        static_cast<unsigned>(budgets[i].flags));
             // Budget must be non-zero (at minimum equals heap size).
             assert(budgets[i].budget > 0);
-        }
-    }
+            // Heap size must be non-zero.
+            assert(budgets[i].heapSize > 0);
 
-    {
+            if (budgets[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+                totalDeviceLocalUsage  += budgets[i].usage;
+                totalDeviceLocalBudget += budgets[i].budget;
+            }
+        }
+
+        // Verify gpuMemoryUsagePercent sums ALL device-local heaps, not just
+        // the largest one. On ReBAR systems this matters because the BAR region
+        // is a separate device-local heap.
         float pct = allocator.value().gpuMemoryUsagePercent();
         std::printf("  gpuMemoryUsagePercent: %.1f%%\n", static_cast<double>(pct));
-        // Percentage is in [0, 100].
+
+        if (totalDeviceLocalBudget > 0) {
+            float expected = static_cast<float>(totalDeviceLocalUsage) /
+                             static_cast<float>(totalDeviceLocalBudget) * 100.0f;
+            float diff = pct - expected;
+            if (diff < 0.0f) diff = -diff;
+            // Allow 0.1% tolerance for floating-point and timing between queries.
+            std::printf("  expected (summed): %.1f%%  diff: %.4f%%\n",
+                        static_cast<double>(expected), static_cast<double>(diff));
+            assert(diff < 0.1f);
+        }
+
         assert(pct >= 0.0f);
-        assert(pct <= 100.0f);
     }
 
     device.value().waitIdle();

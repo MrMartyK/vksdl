@@ -94,8 +94,10 @@ std::vector<HeapBudget> Allocator::queryBudget() const {
 
     std::vector<HeapBudget> result(heapCount);
     for (std::uint32_t i = 0; i < heapCount; ++i) {
-        result[i].usage  = vmaBudgets[i].usage;
-        result[i].budget = vmaBudgets[i].budget;
+        result[i].usage    = vmaBudgets[i].usage;
+        result[i].budget   = vmaBudgets[i].budget;
+        result[i].heapSize = memProps.memoryHeaps[i].size;
+        result[i].flags    = memProps.memoryHeaps[i].flags;
     }
     return result;
 }
@@ -110,28 +112,23 @@ float Allocator::gpuMemoryUsagePercent() const {
     }
     vkGetPhysicalDeviceMemoryProperties(physDev, &memProps);
 
-    // Find the largest DEVICE_LOCAL heap.
-    std::uint32_t bestHeap  = UINT32_MAX;
-    VkDeviceSize  bestSize  = 0;
-    for (std::uint32_t i = 0; i < memProps.memoryHeapCount; ++i) {
-        if (!(memProps.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT))
-            continue;
-        if (memProps.memoryHeaps[i].size > bestSize) {
-            bestSize = memProps.memoryHeaps[i].size;
-            bestHeap = i;
-        }
-    }
-
-    if (bestHeap == UINT32_MAX || bestSize == 0) return 0.0f;
-
     std::vector<VmaBudget> vmaBudgets(memProps.memoryHeapCount);
     vmaGetHeapBudgets(allocator_, vmaBudgets.data());
 
-    VkDeviceSize usage  = vmaBudgets[bestHeap].usage;
-    VkDeviceSize budget = vmaBudgets[bestHeap].budget;
+    // Sum usage and budget across ALL device-local heaps. On ReBAR systems
+    // there are two device-local heaps (main VRAM + host-visible BAR region).
+    // Using only the largest heap would make the BAR region's usage invisible.
+    VkDeviceSize totalUsage  = 0;
+    VkDeviceSize totalBudget = 0;
+    for (std::uint32_t i = 0; i < memProps.memoryHeapCount; ++i) {
+        if (!(memProps.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT))
+            continue;
+        totalUsage  += vmaBudgets[i].usage;
+        totalBudget += vmaBudgets[i].budget;
+    }
 
-    if (budget == 0) return 0.0f;
-    float pct = static_cast<float>(usage) / static_cast<float>(budget) * 100.0f;
+    if (totalBudget == 0) return 0.0f;
+    float pct = static_cast<float>(totalUsage) / static_cast<float>(totalBudget) * 100.0f;
     return pct < 0.0f ? 0.0f : pct;
 }
 

@@ -18,14 +18,19 @@ class Instance;
 class Device;
 
 // Per-heap memory budget snapshot.
-// usage  -- bytes currently allocated (includes all VMA pools + implicit objects).
-// budget -- bytes estimated available to this process by the OS.
-//           Exceeding budget may trigger eviction or stalls.
+// usage    -- bytes currently allocated (includes all VMA pools + implicit objects).
+// budget   -- bytes estimated available to this process by the OS.
+//             Exceeding budget may trigger eviction or stalls.
+// heapSize -- physical heap size from VkMemoryHeap::size.
+// flags    -- VkMemoryHeapFlags from VkMemoryHeap::flags
+//             (e.g. VK_MEMORY_HEAP_DEVICE_LOCAL_BIT).
 // When hasMemoryBudget() is false, usage equals blockBytes and budget equals
 // heapSize (both derived from VkPhysicalDeviceMemoryProperties, no OS query).
 struct HeapBudget {
-    std::uint64_t usage  = 0;
-    std::uint64_t budget = 0;
+    std::uint64_t      usage    = 0;
+    std::uint64_t      budget   = 0;
+    std::uint64_t      heapSize = 0;
+    VkMemoryHeapFlags  flags    = 0;
 };
 
 // Thread safety: thread-confined. VMA allocations require external
@@ -53,10 +58,11 @@ public:
     // to VMA statistics (no OS query).
     [[nodiscard]] std::vector<HeapBudget> queryBudget() const;
 
-    // Returns usage/budget ratio for the largest DEVICE_LOCAL heap as a
+    // Returns usage/budget ratio across all DEVICE_LOCAL heaps as a
     // percentage. Returns 0 when no device-local heap exists. Values above
     // 100 indicate over-budget (other processes competing for VRAM).
-    // Useful for a single-value "GPU memory pressure" indicator.
+    // Sums usage and budget across all device-local heaps (handles ReBAR
+    // systems where VRAM and host-visible BAR are separate device-local heaps).
     [[nodiscard]] float gpuMemoryUsagePercent() const;
 
 private:
