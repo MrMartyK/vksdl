@@ -426,6 +426,12 @@ add_executable(test_memory_priority integration/test_memory_priority.cpp)
 target_link_libraries(test_memory_priority PRIVATE vksdl)
 add_test(NAME test_memory_priority COMMAND test_memory_priority)
 
+# --- Pipeline binary detection test ---
+
+add_executable(test_pipeline_binary integration/test_pipeline_binary.cpp)
+target_link_libraries(test_pipeline_binary PRIVATE vksdl)
+add_test(NAME test_pipeline_binary COMMAND test_pipeline_binary)
+
 # --- Queue ownership transfer barrier test ---
 
 add_executable(test_queue_ownership integration/test_queue_ownership.cpp)
@@ -464,3 +470,9 @@ add_custom_command(TARGET test_spec_constants POST_BUILD
         ${CMAKE_BINARY_DIR}/examples/triangle/shaders
         $<TARGET_FILE_DIR:test_spec_constants>/shaders
 )
+
+# --- Mesh pipeline test ---
+
+add_executable(test_mesh_pipeline integration/test_mesh_pipeline.cpp)
+target_link_libraries(test_mesh_pipeline PRIVATE vksdl)
+add_test(NAME test_mesh_pipeline COMMAND test_mesh_pipeline)

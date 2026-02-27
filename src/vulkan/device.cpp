@@ -40,20 +40,25 @@ Device::Device(Device&& o) noexcept
       hasPCCC_(o.hasPCCC_),
       hasPushDescriptors_(o.hasPushDescriptors_),
       hasBindless_(o.hasBindless_),
+      hasInvocationReorder_(o.hasInvocationReorder_),
+      hasPipelineBinary_(o.hasPipelineBinary_),
+      hasMeshShaders_(o.hasMeshShaders_),
       pfnTraceRays_(o.pfnTraceRays_),
+      pfnDrawMeshTasks_(o.pfnDrawMeshTasks_),
       rtHandleSize_(o.rtHandleSize_),
       rtBaseAlignment_(o.rtBaseAlignment_),
       rtHandleAlignment_(o.rtHandleAlignment_),
       rtMaxRecursion_(o.rtMaxRecursion_),
       rtScratchAlignment_(o.rtScratchAlignment_) {
-    o.device_         = VK_NULL_HANDLE;
-    o.physicalDevice_ = VK_NULL_HANDLE;
-    o.graphicsQueue_  = VK_NULL_HANDLE;
-    o.presentQueue_   = VK_NULL_HANDLE;
-    o.transferQueue_  = VK_NULL_HANDLE;
-    o.computeQueue_   = VK_NULL_HANDLE;
-    o.families_       = {};
-    o.pfnTraceRays_   = nullptr;
+    o.device_           = VK_NULL_HANDLE;
+    o.physicalDevice_   = VK_NULL_HANDLE;
+    o.graphicsQueue_    = VK_NULL_HANDLE;
+    o.presentQueue_     = VK_NULL_HANDLE;
+    o.transferQueue_    = VK_NULL_HANDLE;
+    o.computeQueue_     = VK_NULL_HANDLE;
+    o.families_         = {};
+    o.pfnTraceRays_     = nullptr;
+    o.pfnDrawMeshTasks_ = nullptr;
 }
 
 Device& Device::operator=(Device&& o) noexcept {
@@ -82,20 +87,25 @@ Device& Device::operator=(Device&& o) noexcept {
         hasPCCC_           = o.hasPCCC_;
         hasPushDescriptors_ = o.hasPushDescriptors_;
         hasBindless_        = o.hasBindless_;
-        pfnTraceRays_      = o.pfnTraceRays_;
-        rtHandleSize_      = o.rtHandleSize_;
-        rtBaseAlignment_   = o.rtBaseAlignment_;
-        rtHandleAlignment_ = o.rtHandleAlignment_;
-        rtMaxRecursion_    = o.rtMaxRecursion_;
-        rtScratchAlignment_ = o.rtScratchAlignment_;
-        o.device_         = VK_NULL_HANDLE;
-        o.physicalDevice_ = VK_NULL_HANDLE;
-        o.graphicsQueue_  = VK_NULL_HANDLE;
-        o.presentQueue_   = VK_NULL_HANDLE;
-        o.transferQueue_  = VK_NULL_HANDLE;
-        o.computeQueue_   = VK_NULL_HANDLE;
-        o.families_       = {};
-        o.pfnTraceRays_   = nullptr;
+        hasInvocationReorder_ = o.hasInvocationReorder_;
+        hasPipelineBinary_    = o.hasPipelineBinary_;
+        hasMeshShaders_       = o.hasMeshShaders_;
+        pfnTraceRays_         = o.pfnTraceRays_;
+        pfnDrawMeshTasks_     = o.pfnDrawMeshTasks_;
+        rtHandleSize_         = o.rtHandleSize_;
+        rtBaseAlignment_      = o.rtBaseAlignment_;
+        rtHandleAlignment_    = o.rtHandleAlignment_;
+        rtMaxRecursion_       = o.rtMaxRecursion_;
+        rtScratchAlignment_   = o.rtScratchAlignment_;
+        o.device_           = VK_NULL_HANDLE;
+        o.physicalDevice_   = VK_NULL_HANDLE;
+        o.graphicsQueue_    = VK_NULL_HANDLE;
+        o.presentQueue_     = VK_NULL_HANDLE;
+        o.transferQueue_    = VK_NULL_HANDLE;
+        o.computeQueue_     = VK_NULL_HANDLE;
+        o.families_         = {};
+        o.pfnTraceRays_     = nullptr;
+        o.pfnDrawMeshTasks_ = nullptr;
     }
     return *this;
 }
@@ -181,6 +191,12 @@ DeviceBuilder& DeviceBuilder::needGPL() {
     requireExtension(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
     requireExtension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
     needGPL_ = true;
+    return *this;
+}
+
+DeviceBuilder& DeviceBuilder::needMeshShaders() {
+    requireExtension(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+    needMeshShaders_ = true;
     return *this;
 }
 
@@ -533,6 +549,14 @@ Result<Device> DeviceBuilder::build() {
     rqFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
     rqFeatures.rayQuery = VK_TRUE;
 
+    // Mesh shader feature struct (only used when needMeshShaders_ is set).
+    VkPhysicalDeviceMeshShaderFeaturesEXT meshFeatures{};
+    meshFeatures.sType     = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+    meshFeatures.meshShader = VK_TRUE;
+    // taskShader is optional at the pipeline level but must be enabled at the device
+    // level to allow task shaders to be used in any pipeline on this device.
+    meshFeatures.taskShader = VK_TRUE;
+
     // Enumerate available extensions for opportunistic feature detection.
     std::uint32_t availExtCount = 0;
     vkEnumerateDeviceExtensionProperties(bestGpu, nullptr, &availExtCount, nullptr);
@@ -554,6 +578,14 @@ Result<Device> DeviceBuilder::build() {
     VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV serFeatures{};
     serFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_NV;
     serFeatures.rayTracingInvocationReorder = VK_TRUE;
+
+    // Pipeline binary: detect opportunistically. Allows pipelines to be
+    // captured as driver-opaque blobs and reloaded to skip compilation.
+    bool havePipelineBinary = hasExtension(VK_KHR_PIPELINE_BINARY_EXTENSION_NAME);
+
+    VkPhysicalDevicePipelineBinaryFeaturesKHR pipelineBinaryFeatures{};
+    pipelineBinaryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_BINARY_FEATURES_KHR;
+    pipelineBinaryFeatures.pipelineBinaries = VK_TRUE;
 
     // Device fault: enable opportunistically for better VK_ERROR_DEVICE_LOST
     // diagnostics. No behavioral impact when no fault occurs.
@@ -620,6 +652,16 @@ Result<Device> DeviceBuilder::build() {
         pNextChain = &serFeatures;
     }
 
+    if (havePipelineBinary) {
+        pipelineBinaryFeatures.pNext = pNextChain;
+        pNextChain = &pipelineBinaryFeatures;
+    }
+
+    if (needMeshShaders_) {
+        meshFeatures.pNext = pNextChain;
+        pNextChain = &meshFeatures;
+    }
+
     if (needRayQuery_) {
         rqFeatures.pNext = pNextChain;
         pNextChain = &rqFeatures;
@@ -665,6 +707,9 @@ Result<Device> DeviceBuilder::build() {
     }
     if (haveMemoryPriority) {
         allExtensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
+    }
+    if (havePipelineBinary) {
+        allExtensions.push_back(VK_KHR_PIPELINE_BINARY_EXTENSION_NAME);
     }
     if (haveGPL) {
         // Avoid duplicate if user already called needGPL().
@@ -737,6 +782,9 @@ Result<Device> DeviceBuilder::build() {
     dev.hasPCCC_             = havePCCC;
     dev.hasPushDescriptors_  = havePushDescriptors;
     dev.hasBindless_         = haveBindless;
+    dev.hasInvocationReorder_ = haveSer;
+    dev.hasPipelineBinary_   = havePipelineBinary;
+    dev.hasMeshShaders_      = needMeshShaders_;
 
     // Query GPL properties when the extension is enabled.
     if (haveGPL) {
@@ -763,6 +811,11 @@ Result<Device> DeviceBuilder::build() {
     if (needRayTracingPipeline_) {
         dev.pfnTraceRays_ = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(
             vkGetDeviceProcAddr(dev.device_, "vkCmdTraceRaysKHR"));
+    }
+
+    if (needMeshShaders_) {
+        dev.pfnDrawMeshTasks_ = reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(
+            vkGetDeviceProcAddr(dev.device_, "vkCmdDrawMeshTasksEXT"));
     }
 
     VkSampleCountFlags combined = devProps.limits.framebufferColorSampleCounts

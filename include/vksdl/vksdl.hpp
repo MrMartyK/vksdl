@@ -12,6 +12,7 @@
 #include <vksdl/barriers.hpp>
 #include <vksdl/buffer.hpp>
 #include <vksdl/compute_pipeline.hpp>
+#include <vksdl/mesh_pipeline.hpp>
 #include <vksdl/debug.hpp>
 #include <vksdl/descriptor_allocator.hpp>
 #include <vksdl/descriptor_pool.hpp>

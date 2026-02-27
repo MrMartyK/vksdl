@@ -102,6 +102,7 @@ private:
     friend class PipelineBuilder;
     friend class ComputePipelineBuilder;
     friend class RayTracingPipelineBuilder;
+    friend class MeshPipelineBuilder;
     friend class PipelineCompiler;
     Pipeline() = default;
 

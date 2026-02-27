@@ -125,6 +125,21 @@ public:
     // runtimeDescriptorArray, and at least one updateAfterBind feature.
     [[nodiscard]] bool hasBindless() const { return hasBindless_; }
 
+    // VK_NV_ray_tracing_invocation_reorder (SER) support.
+    // When true, the driver reorders RT shader invocations for better
+    // coherence. Zero behavioral impact -- purely a performance optimization.
+    [[nodiscard]] bool hasInvocationReorder() const { return hasInvocationReorder_; }
+
+    // VK_KHR_pipeline_binary support (opportunistic detection).
+    // When true, pipeline binaries can be captured and reloaded to skip
+    // shader compilation on subsequent runs.
+    [[nodiscard]] bool hasPipelineBinary() const { return hasPipelineBinary_; }
+
+    // VK_EXT_mesh_shader support.
+    // When true, MeshPipelineBuilder is usable and drawMeshTasksFn() is valid.
+    [[nodiscard]] bool hasMeshShaders() const { return hasMeshShaders_; }
+    [[nodiscard]] PFN_vkCmdDrawMeshTasksEXT drawMeshTasksFn() const { return pfnDrawMeshTasks_; }
+
     [[nodiscard]] std::string queryDeviceFault() const;
 
     void waitIdle() const;
@@ -162,9 +177,17 @@ private:
     bool hasPushDescriptors_ = false;
     // Bindless descriptors (Vulkan 1.2 descriptor indexing)
     bool hasBindless_ = false;
+    // SER (shader execution reorder)
+    bool hasInvocationReorder_ = false;
+    // Pipeline binary (VK_KHR_pipeline_binary)
+    bool hasPipelineBinary_ = false;
+    // Mesh shaders (VK_EXT_mesh_shader)
+    bool hasMeshShaders_ = false;
 
     // RT properties
     PFN_vkCmdTraceRaysKHR pfnTraceRays_    = nullptr;
+    // Mesh shader function pointer (null when not loaded)
+    PFN_vkCmdDrawMeshTasksEXT pfnDrawMeshTasks_ = nullptr;
     std::uint32_t rtHandleSize_      = 0;
     std::uint32_t rtBaseAlignment_   = 0;
     std::uint32_t rtHandleAlignment_ = 0;
@@ -184,6 +207,7 @@ public:
     DeviceBuilder& needRayTracingPipeline();
     DeviceBuilder& needRayQuery();
     DeviceBuilder& needGPL();
+    DeviceBuilder& needMeshShaders(); // requires VK_EXT_mesh_shader
     DeviceBuilder& needAsyncCompute(); // preference, not requirement -- falls back to graphics
     DeviceBuilder& preferDiscreteGpu();
     DeviceBuilder& preferIntegratedGpu();
@@ -231,6 +255,7 @@ private:
     bool needRayQuery_              = false;
     bool needAccelerationStructure_ = false;
     bool needGPL_                   = false;
+    bool needMeshShaders_           = false;
     bool needAsyncCompute_          = false;
 };
 

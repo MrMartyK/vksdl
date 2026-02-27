@@ -52,6 +52,8 @@ add_library(vksdl STATIC
     src/vulkan/query_pool.cpp
     src/vulkan/pipeline_cache.cpp
     src/vulkan/rt_functions.cpp
+    src/vulkan/mesh_functions.cpp
+    src/vulkan/mesh_pipeline.cpp
     src/vulkan/blas.cpp
     src/vulkan/tlas.cpp
     src/vulkan/rt_pipeline.cpp
