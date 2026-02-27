@@ -169,7 +169,9 @@ public:
     PipelineBuilder& dynamicTopology();
     PipelineBuilder& dynamicFrontFace();
 
-    // Specialization constants: accumulate entries + data for all stages.
+    // Specialization constants shared across all stages (vertex + fragment).
+    // For per-stage specialization, use specialize() with a manually built
+    // VkSpecializationInfo.
     // T must be a trivially copyable scalar (int, float, bool, uint32_t, etc.).
     template<typename T>
     PipelineBuilder& specConstant(std::uint32_t constantId, const T& value) {

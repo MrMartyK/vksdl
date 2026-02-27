@@ -111,20 +111,35 @@ int main() {
             transferFamily, graphicsFamily);
         vkEndCommandBuffer(acquireCmd);
 
-        // Submit release, then acquire (without a semaphore -- same family path
-        // or GPU ordering via queue submission order on same queue).
-        VkSubmitInfo si{};
-        si.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        si.commandBufferCount = 1;
-        si.pCommandBuffers    = &releaseCmd;
-        vr = vkQueueSubmit(dev.transferQueue(), 1, &si, VK_NULL_HANDLE);
+        // Submit release signaling a semaphore, acquire waiting on it.
+        VkSemaphoreCreateInfo semCI{};
+        semCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        VkSemaphore xferDone = VK_NULL_HANDLE;
+        vr = vkCreateSemaphore(dev.vkDevice(), &semCI, nullptr, &xferDone);
         assert(vr == VK_SUCCESS);
-        vkQueueWaitIdle(dev.transferQueue());
 
-        si.pCommandBuffers = &acquireCmd;
-        vr = vkQueueSubmit(dev.graphicsQueue(), 1, &si, VK_NULL_HANDLE);
+        VkSubmitInfo relSI{};
+        relSI.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        relSI.commandBufferCount   = 1;
+        relSI.pCommandBuffers      = &releaseCmd;
+        relSI.signalSemaphoreCount = 1;
+        relSI.pSignalSemaphores    = &xferDone;
+        vr = vkQueueSubmit(dev.transferQueue(), 1, &relSI, VK_NULL_HANDLE);
+        assert(vr == VK_SUCCESS);
+
+        VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        VkSubmitInfo acqSI{};
+        acqSI.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        acqSI.waitSemaphoreCount   = 1;
+        acqSI.pWaitSemaphores      = &xferDone;
+        acqSI.pWaitDstStageMask    = &waitStage;
+        acqSI.commandBufferCount   = 1;
+        acqSI.pCommandBuffers      = &acquireCmd;
+        vr = vkQueueSubmit(dev.graphicsQueue(), 1, &acqSI, VK_NULL_HANDLE);
         assert(vr == VK_SUCCESS);
         vkQueueWaitIdle(dev.graphicsQueue());
+
+        vkDestroySemaphore(dev.vkDevice(), xferDone, nullptr);
 
         std::printf("  buffer queue ownership transfer: ok\n");
     }
@@ -160,18 +175,34 @@ int main() {
             transferFamily, graphicsFamily);
         vkEndCommandBuffer(acquireCmd);
 
-        VkSubmitInfo si{};
-        si.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        si.commandBufferCount = 1;
-        si.pCommandBuffers    = &releaseCmd;
-        vr = vkQueueSubmit(dev.transferQueue(), 1, &si, VK_NULL_HANDLE);
+        VkSemaphoreCreateInfo semCI{};
+        semCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        VkSemaphore imgXferDone = VK_NULL_HANDLE;
+        vr = vkCreateSemaphore(dev.vkDevice(), &semCI, nullptr, &imgXferDone);
         assert(vr == VK_SUCCESS);
-        vkQueueWaitIdle(dev.transferQueue());
 
-        si.pCommandBuffers = &acquireCmd;
-        vr = vkQueueSubmit(dev.graphicsQueue(), 1, &si, VK_NULL_HANDLE);
+        VkSubmitInfo relSI{};
+        relSI.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        relSI.commandBufferCount   = 1;
+        relSI.pCommandBuffers      = &releaseCmd;
+        relSI.signalSemaphoreCount = 1;
+        relSI.pSignalSemaphores    = &imgXferDone;
+        vr = vkQueueSubmit(dev.transferQueue(), 1, &relSI, VK_NULL_HANDLE);
+        assert(vr == VK_SUCCESS);
+
+        VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        VkSubmitInfo acqSI{};
+        acqSI.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        acqSI.waitSemaphoreCount   = 1;
+        acqSI.pWaitSemaphores      = &imgXferDone;
+        acqSI.pWaitDstStageMask    = &waitStage;
+        acqSI.commandBufferCount   = 1;
+        acqSI.pCommandBuffers      = &acquireCmd;
+        vr = vkQueueSubmit(dev.graphicsQueue(), 1, &acqSI, VK_NULL_HANDLE);
         assert(vr == VK_SUCCESS);
         vkQueueWaitIdle(dev.graphicsQueue());
+
+        vkDestroySemaphore(dev.vkDevice(), imgXferDone, nullptr);
 
         std::printf("  image queue ownership transfer: ok\n");
     }

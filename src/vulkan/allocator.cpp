@@ -132,7 +132,7 @@ float Allocator::gpuMemoryUsagePercent() const {
 
     if (budget == 0) return 0.0f;
     float pct = static_cast<float>(usage) / static_cast<float>(budget) * 100.0f;
-    return pct < 0.0f ? 0.0f : (pct > 100.0f ? 100.0f : pct);
+    return pct < 0.0f ? 0.0f : pct;
 }
 
 } // namespace vksdl

@@ -257,7 +257,7 @@ Result<Pipeline> ComputePipelineBuilder::build() {
     p.bindPoint_ = VK_PIPELINE_BIND_POINT_COMPUTE;
     p.ownedSetLayouts_ = std::move(reflectedSetLayouts);
     p.reflectedLayout_ = std::move(localReflectedLayout);
-    for (const auto& r : pushConstantRanges_) {
+    for (const auto& r : activePCRanges) {
         p.pcStages_ |= r.stageFlags;
         auto end = r.offset + r.size;
         if (end > p.pcSize_) p.pcSize_ = end;

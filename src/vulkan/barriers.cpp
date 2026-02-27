@@ -332,7 +332,8 @@ void barrierQueueAcquire(VkCommandBuffer cmd,
 void barrierQueueRelease(VkCommandBuffer cmd,
                          VkImage image, VkImageLayout layout,
                          VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
-                         std::uint32_t srcFamily, std::uint32_t dstFamily) {
+                         std::uint32_t srcFamily, std::uint32_t dstFamily,
+                         VkImageAspectFlags aspect) {
     VkImageMemoryBarrier2 barrier{};
     barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
     barrier.srcStageMask        = srcStage;
@@ -344,7 +345,7 @@ void barrierQueueRelease(VkCommandBuffer cmd,
     barrier.srcQueueFamilyIndex = srcFamily;
     barrier.dstQueueFamilyIndex = dstFamily;
     barrier.image               = image;
-    barrier.subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0,
+    barrier.subresourceRange    = {aspect, 0,
                                    VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS};
 
     VkDependencyInfo dep{};
@@ -358,7 +359,8 @@ void barrierQueueRelease(VkCommandBuffer cmd,
 void barrierQueueAcquire(VkCommandBuffer cmd,
                          VkImage image, VkImageLayout layout,
                          VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
-                         std::uint32_t srcFamily, std::uint32_t dstFamily) {
+                         std::uint32_t srcFamily, std::uint32_t dstFamily,
+                         VkImageAspectFlags aspect) {
     VkImageMemoryBarrier2 barrier{};
     barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
     barrier.srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
@@ -370,7 +372,7 @@ void barrierQueueAcquire(VkCommandBuffer cmd,
     barrier.srcQueueFamilyIndex = srcFamily;
     barrier.dstQueueFamilyIndex = dstFamily;
     barrier.image               = image;
-    barrier.subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0,
+    barrier.subresourceRange    = {aspect, 0,
                                    VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS};
 
     VkDependencyInfo dep{};

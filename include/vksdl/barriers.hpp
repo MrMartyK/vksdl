@@ -107,15 +107,19 @@ void barrierQueueAcquire(VkCommandBuffer cmd,
                          std::uint32_t srcFamily, std::uint32_t dstFamily);
 
 // Release an image from srcFamily. Submit on the source queue.
+// aspect defaults to COLOR_BIT; pass DEPTH_BIT for depth images.
 void barrierQueueRelease(VkCommandBuffer cmd,
                          VkImage image, VkImageLayout layout,
                          VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
-                         std::uint32_t srcFamily, std::uint32_t dstFamily);
+                         std::uint32_t srcFamily, std::uint32_t dstFamily,
+                         VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT);
 
 // Acquire an image on dstFamily. Submit on the destination queue.
+// aspect defaults to COLOR_BIT; pass DEPTH_BIT for depth images.
 void barrierQueueAcquire(VkCommandBuffer cmd,
                          VkImage image, VkImageLayout layout,
                          VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
-                         std::uint32_t srcFamily, std::uint32_t dstFamily);
+                         std::uint32_t srcFamily, std::uint32_t dstFamily,
+                         VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT);
 
 } // namespace vksdl

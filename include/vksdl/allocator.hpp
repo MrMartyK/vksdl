@@ -54,7 +54,8 @@ public:
     [[nodiscard]] std::vector<HeapBudget> queryBudget() const;
 
     // Returns usage/budget ratio for the largest DEVICE_LOCAL heap as a
-    // percentage in [0, 100]. Returns 0 when no device-local heap exists.
+    // percentage. Returns 0 when no device-local heap exists. Values above
+    // 100 indicate over-budget (other processes competing for VRAM).
     // Useful for a single-value "GPU memory pressure" indicator.
     [[nodiscard]] float gpuMemoryUsagePercent() const;
 
