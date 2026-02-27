@@ -212,6 +212,7 @@ private:
 
     VkDevice device_ = VK_NULL_HANDLE;
     void*    allocator_ = nullptr; // VmaAllocator, stored as void*
+    bool     hasUnifiedLayouts_ = false;
 
     std::vector<PassDecl>        passes_;
     std::vector<ResourceEntry>   resources_;

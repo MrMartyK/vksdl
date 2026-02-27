@@ -25,7 +25,8 @@ static VmaAllocator toVma(void* p) { return static_cast<VmaAllocator>(p); }
 
 RenderGraph::RenderGraph(const Device& device, const Allocator& allocator)
     : device_(device.vkDevice()),
-      allocator_(allocator.vmaAllocator()) {
+      allocator_(allocator.vmaAllocator()),
+      hasUnifiedLayouts_(device.hasUnifiedImageLayouts()) {
     auto alloc = DescriptorAllocator::create(device);
     if (alloc.ok()) {
         descAllocator_ = std::make_unique<DescriptorAllocator>(std::move(alloc).value());
@@ -42,6 +43,7 @@ RenderGraph::~RenderGraph() { destroy(); }
 
 RenderGraph::RenderGraph(RenderGraph&& o) noexcept
     : device_(o.device_), allocator_(o.allocator_),
+      hasUnifiedLayouts_(o.hasUnifiedLayouts_),
       passes_(std::move(o.passes_)),
       resources_(std::move(o.resources_)),
       imageMaps_(std::move(o.imageMaps_)),
@@ -74,6 +76,7 @@ RenderGraph& RenderGraph::operator=(RenderGraph&& o) noexcept {
         destroy();
         device_           = o.device_;
         allocator_        = o.allocator_;
+        hasUnifiedLayouts_ = o.hasUnifiedLayouts_;
         passes_           = std::move(o.passes_);
         resources_        = std::move(o.resources_);
         imageMaps_        = std::move(o.imageMaps_);
@@ -787,18 +790,32 @@ Result<void> RenderGraph::compileBarriers(const std::vector<std::uint32_t>& orde
                     overlap.levelCount = mipEnd - overlap.baseMipLevel;
                     overlap.layerCount = layerEnd - overlap.baseArrayLayer;
 
+                    // When unified layouts are active, suppress layout
+                    // transitions between known layouts. The initial
+                    // UNDEFINED -> X transition is preserved (spec requires it).
+                    ResourceState srcState = slice.state;
+                    ResourceState dstState = acc.desiredState;
+                    if (hasUnifiedLayouts_
+                        && srcState.currentLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
+                        srcState.currentLayout = VK_IMAGE_LAYOUT_GENERAL;
+                        dstState.currentLayout = VK_IMAGE_LAYOUT_GENERAL;
+                    }
+
                     appendImageBarrier(cp.barriers, ImageBarrierRequest{
                         .image  = res.vkImage,
                         .range  = overlap,
                         .aspect = res.aspect,
-                        .src    = slice.state,
-                        .dst    = acc.desiredState,
+                        .src    = srcState,
+                        .dst    = dstState,
                         .isRead = isRead,
                     });
                 }
 
                 // Update tracked state for the accessed range.
                 ResourceState newState = acc.desiredState;
+                if (hasUnifiedLayouts_) {
+                    newState.currentLayout = VK_IMAGE_LAYOUT_GENERAL;
+                }
                 if (isRead) {
                     // Preserve writer info from current state, add this read.
                     ResourceState merged = map.queryState(acc.subresourceRange);
