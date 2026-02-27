@@ -25,3 +25,4 @@ install-verify-integration/
 # Temp / tooling
 .tmp_issues.json
 .playwright-mcp/
+*.ps1
