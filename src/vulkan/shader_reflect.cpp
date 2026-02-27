@@ -13,6 +13,7 @@
 #pragma GCC diagnostic ignored "-Wswitch"
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Woverflow"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
