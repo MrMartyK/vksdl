@@ -24,6 +24,7 @@ Device::Device(Device&& o) noexcept
       graphicsQueue_(o.graphicsQueue_),
       presentQueue_(o.presentQueue_),
       transferQueue_(o.transferQueue_),
+      computeQueue_(o.computeQueue_),
       families_(o.families_),
       minUboAlignment_(o.minUboAlignment_),
       maxMsaaSamples_(o.maxMsaaSamples_),
@@ -50,6 +51,7 @@ Device::Device(Device&& o) noexcept
     o.graphicsQueue_  = VK_NULL_HANDLE;
     o.presentQueue_   = VK_NULL_HANDLE;
     o.transferQueue_  = VK_NULL_HANDLE;
+    o.computeQueue_   = VK_NULL_HANDLE;
     o.families_       = {};
     o.pfnTraceRays_   = nullptr;
 }
@@ -64,6 +66,7 @@ Device& Device::operator=(Device&& o) noexcept {
         graphicsQueue_     = o.graphicsQueue_;
         presentQueue_      = o.presentQueue_;
         transferQueue_     = o.transferQueue_;
+        computeQueue_      = o.computeQueue_;
         families_          = o.families_;
         minUboAlignment_   = o.minUboAlignment_;
         maxMsaaSamples_    = o.maxMsaaSamples_;
@@ -90,6 +93,7 @@ Device& Device::operator=(Device&& o) noexcept {
         o.graphicsQueue_  = VK_NULL_HANDLE;
         o.presentQueue_   = VK_NULL_HANDLE;
         o.transferQueue_  = VK_NULL_HANDLE;
+        o.computeQueue_   = VK_NULL_HANDLE;
         o.families_       = {};
         o.pfnTraceRays_   = nullptr;
     }
@@ -177,6 +181,13 @@ DeviceBuilder& DeviceBuilder::needGPL() {
     requireExtension(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
     requireExtension(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
     needGPL_ = true;
+    return *this;
+}
+
+DeviceBuilder& DeviceBuilder::needAsyncCompute() {
+    // Records preference only. findQueueFamilies() scans for a dedicated
+    // compute family regardless; this flag is available for future scoring.
+    needAsyncCompute_ = true;
     return *this;
 }
 
@@ -281,6 +292,12 @@ QueueFamilies DeviceBuilder::findQueueFamilies(VkPhysicalDevice gpu) const {
             } else if (hasCompute && result.transfer == UINT32_MAX) {
                 result.transfer = i; // acceptable: async compute+transfer
             }
+        }
+
+        // Dedicated compute: COMPUTE but not GRAPHICS. Nearly all such families
+        // also have TRANSFER, so we don't filter on it.
+        if (hasCompute && !hasGraphics && result.compute == UINT32_MAX) {
+            result.compute = i;
         }
     }
 
@@ -416,6 +433,9 @@ Result<Device> DeviceBuilder::build() {
     std::set<std::uint32_t> uniqueFamilies = {families.graphics, families.present};
     if (families.transfer != UINT32_MAX) {
         uniqueFamilies.insert(families.transfer);
+    }
+    if (families.compute != UINT32_MAX) {
+        uniqueFamilies.insert(families.compute);
     }
     std::vector<VkDeviceQueueCreateInfo> queueCIs;
     float priority = 1.0f;
@@ -703,6 +723,11 @@ Result<Device> DeviceBuilder::build() {
         vkGetDeviceQueue(dev.device_, families.transfer, 0, &dev.transferQueue_);
     } else {
         dev.transferQueue_ = dev.graphicsQueue_;
+    }
+    if (families.compute != UINT32_MAX) {
+        vkGetDeviceQueue(dev.device_, families.compute, 0, &dev.computeQueue_);
+    } else {
+        dev.computeQueue_ = dev.graphicsQueue_;
     }
 
     dev.hasDeviceFault_      = haveDeviceFault;

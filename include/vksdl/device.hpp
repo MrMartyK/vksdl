@@ -26,6 +26,7 @@ struct QueueFamilies {
     std::uint32_t graphics = UINT32_MAX;
     std::uint32_t present  = UINT32_MAX;
     std::uint32_t transfer = UINT32_MAX; // dedicated transfer, UINT32_MAX = none
+    std::uint32_t compute  = UINT32_MAX; // dedicated compute,  UINT32_MAX = none
 
     [[nodiscard]] bool valid() const {
         return graphics != UINT32_MAX && present != UINT32_MAX;
@@ -37,6 +38,10 @@ struct QueueFamilies {
 
     [[nodiscard]] bool hasDedicatedTransfer() const {
         return transfer != UINT32_MAX && transfer != graphics;
+    }
+
+    [[nodiscard]] bool hasDedicatedCompute() const {
+        return compute != UINT32_MAX && compute != graphics;
     }
 };
 
@@ -56,8 +61,11 @@ public:
     [[nodiscard]] VkQueue          graphicsQueue()     const { return graphicsQueue_; }
     [[nodiscard]] VkQueue          presentQueue()      const { return presentQueue_; }
     [[nodiscard]] VkQueue          transferQueue()     const { return transferQueue_; }
+    [[nodiscard]] VkQueue          computeQueue()      const { return computeQueue_; }
     [[nodiscard]] QueueFamilies    queueFamilies()     const { return families_; }
     [[nodiscard]] bool             hasDedicatedTransfer() const { return families_.hasDedicatedTransfer(); }
+    [[nodiscard]] bool             hasAsyncCompute()      const { return families_.hasDedicatedCompute(); }
+    [[nodiscard]] bool             hasDedicatedCompute()  const { return families_.hasDedicatedCompute(); }
     [[nodiscard]] VkDeviceSize           minUniformBufferOffsetAlignment() const { return minUboAlignment_; }
     [[nodiscard]] VkSampleCountFlagBits  maxMsaaSamples()  const { return maxMsaaSamples_; }
     [[nodiscard]] float                  timestampPeriod() const { return timestampPeriod_; }
@@ -130,6 +138,7 @@ private:
     VkQueue          graphicsQueue_  = VK_NULL_HANDLE;
     VkQueue          presentQueue_   = VK_NULL_HANDLE;
     VkQueue          transferQueue_  = VK_NULL_HANDLE;
+    VkQueue          computeQueue_   = VK_NULL_HANDLE;
     QueueFamilies         families_;
     VkDeviceSize          minUboAlignment_  = 256;
     VkSampleCountFlagBits maxMsaaSamples_   = VK_SAMPLE_COUNT_1_BIT;
@@ -175,6 +184,7 @@ public:
     DeviceBuilder& needRayTracingPipeline();
     DeviceBuilder& needRayQuery();
     DeviceBuilder& needGPL();
+    DeviceBuilder& needAsyncCompute(); // preference, not requirement -- falls back to graphics
     DeviceBuilder& preferDiscreteGpu();
     DeviceBuilder& preferIntegratedGpu();
 
@@ -221,6 +231,7 @@ private:
     bool needRayQuery_              = false;
     bool needAccelerationStructure_ = false;
     bool needGPL_                   = false;
+    bool needAsyncCompute_          = false;
 };
 
 } // namespace vksdl

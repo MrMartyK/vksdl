@@ -241,6 +241,12 @@ add_executable(test_transfer_queue integration/test_transfer_queue.cpp)
 target_link_libraries(test_transfer_queue PRIVATE vksdl)
 add_test(NAME test_transfer_queue COMMAND test_transfer_queue)
 
+# --- Async compute test ---
+
+add_executable(test_async_compute integration/test_async_compute.cpp)
+target_link_libraries(test_async_compute PRIVATE vksdl)
+add_test(NAME test_async_compute COMMAND test_async_compute)
+
 # --- Descriptor allocator test ---
 
 add_executable(test_descriptor_allocator integration/test_descriptor_allocator.cpp)

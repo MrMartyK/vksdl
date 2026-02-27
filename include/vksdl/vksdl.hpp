@@ -47,6 +47,7 @@
 #include <vksdl/texture.hpp>
 #include <vksdl/timeline_sync.hpp>
 #include <vksdl/transfer_queue.hpp>
+#include <vksdl/compute_queue.hpp>
 #include <vksdl/transform.hpp>
 #include <vksdl/util.hpp>
 #include <vksdl/vulkan_wsi.hpp>

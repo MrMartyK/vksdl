@@ -65,6 +65,7 @@ add_library(vksdl STATIC
     src/vulkan/push_descriptor_writer.cpp
     src/vulkan/sampler_cache.cpp
     src/vulkan/transfer_queue.cpp
+    src/vulkan/compute_queue.cpp
     src/vulkan/shader_reflect.cpp
     src/vulkan/texture.cpp
     src/vulkan/mesh.cpp
