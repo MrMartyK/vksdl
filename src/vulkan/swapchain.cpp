@@ -24,9 +24,14 @@ Swapchain::Swapchain(Swapchain&& o) noexcept
       imageCountRequested_(o.imageCountRequested_),
       families_(o.families_),
       images_(std::move(o.images_)), views_(std::move(o.views_)),
-      imageReadySems_(std::move(o.imageReadySems_)), semIndex_(o.semIndex_) {
-    o.swapchain_ = VK_NULL_HANDLE;
-    o.device_    = VK_NULL_HANDLE;
+      imageReadySems_(std::move(o.imageReadySems_)), semIndex_(o.semIndex_),
+      hasPresentTiming_(o.hasPresentTiming_),
+      useGoogleDisplayTiming_(o.useGoogleDisplayTiming_),
+      pfnGetPastTiming_(o.pfnGetPastTiming_),
+      presentCounter_(o.presentCounter_) {
+    o.swapchain_       = VK_NULL_HANDLE;
+    o.device_          = VK_NULL_HANDLE;
+    o.pfnGetPastTiming_ = nullptr;
 }
 
 Swapchain& Swapchain::operator=(Swapchain&& o) noexcept {
@@ -48,10 +53,15 @@ Swapchain& Swapchain::operator=(Swapchain&& o) noexcept {
         families_  = o.families_;
         images_    = std::move(o.images_);
         views_     = std::move(o.views_);
-        imageReadySems_ = std::move(o.imageReadySems_);
-        semIndex_  = o.semIndex_;
-        o.swapchain_ = VK_NULL_HANDLE;
-        o.device_    = VK_NULL_HANDLE;
+        imageReadySems_         = std::move(o.imageReadySems_);
+        semIndex_               = o.semIndex_;
+        hasPresentTiming_       = o.hasPresentTiming_;
+        useGoogleDisplayTiming_ = o.useGoogleDisplayTiming_;
+        pfnGetPastTiming_       = o.pfnGetPastTiming_;
+        presentCounter_         = o.presentCounter_;
+        o.swapchain_        = VK_NULL_HANDLE;
+        o.device_           = VK_NULL_HANDLE;
+        o.pfnGetPastTiming_ = nullptr;
     }
     return *this;
 }
@@ -148,6 +158,8 @@ Result<SwapchainImage> Swapchain::nextImage() {
 VkResult Swapchain::present(VkQueue presentQueue,
                             std::uint32_t imageIndex,
                             VkSemaphore renderFinished) {
+    ++presentCounter_;
+
     VkPresentInfoKHR pi{};
     pi.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     pi.waitSemaphoreCount = 1;
@@ -156,7 +168,54 @@ VkResult Swapchain::present(VkQueue presentQueue,
     pi.pSwapchains        = &swapchain_;
     pi.pImageIndices      = &imageIndex;
 
+    // Chain VkPresentTimesInfoGOOGLE when using VK_GOOGLE_display_timing so
+    // the driver can correlate presentId with the recorded timing data.
+    VkPresentTimeGOOGLE presentTime{};
+    VkPresentTimesInfoGOOGLE timesInfo{};
+    if (useGoogleDisplayTiming_) {
+        presentTime.presentID       = static_cast<std::uint32_t>(presentCounter_);
+        presentTime.desiredPresentTime = 0; // ASAP
+        timesInfo.sType             = VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE;
+        timesInfo.pNext             = nullptr;
+        timesInfo.swapchainCount    = 1;
+        timesInfo.pTimes            = &presentTime;
+        pi.pNext = &timesInfo;
+    }
+
     return vkQueuePresentKHR(presentQueue, &pi);
+}
+
+std::vector<PresentTiming> Swapchain::queryPastPresentTiming() const {
+    if (!hasPresentTiming_ || swapchain_ == VK_NULL_HANDLE) {
+        return {};
+    }
+
+    if (useGoogleDisplayTiming_ && pfnGetPastTiming_) {
+        std::uint32_t count = 0;
+        VkResult vr = pfnGetPastTiming_(device_, swapchain_, &count, nullptr);
+        if (vr != VK_SUCCESS || count == 0) return {};
+
+        std::vector<VkPastPresentationTimingGOOGLE> raw(count);
+        vr = pfnGetPastTiming_(device_, swapchain_, &count, raw.data());
+        if (vr != VK_SUCCESS && vr != VK_INCOMPLETE) return {};
+
+        std::vector<PresentTiming> result;
+        result.reserve(count);
+        for (std::uint32_t i = 0; i < count; ++i) {
+            PresentTiming pt;
+            pt.presentId           = raw[i].presentID;
+            pt.desiredPresentTime  = raw[i].desiredPresentTime;
+            pt.actualPresentTime   = raw[i].actualPresentTime;
+            pt.earliestPresentTime = raw[i].earliestPresentTime;
+            pt.presentMargin       = raw[i].presentMargin;
+            result.push_back(pt);
+        }
+        return result;
+    }
+
+    // VK_EXT_present_timing: function pointers not yet defined in SDK headers.
+    // Return empty until SDK support is available.
+    return {};
 }
 
 Result<void> Swapchain::recreate(Size newSize) {
@@ -243,7 +302,10 @@ SwapchainBuilder::SwapchainBuilder(const Device& device, const Surface& surface)
     : device_(device.vkDevice()),
       gpu_(device.vkPhysicalDevice()),
       surface_(surface.vkSurface()),
-      families_(device.queueFamilies()) {}
+      families_(device.queueFamilies()),
+      hasPresentTiming_(device.hasPresentTiming()),
+      // Prefer VK_EXT_present_timing (newer) -- fall back to GOOGLE when only that is available.
+      useGoogleTiming_(device.hasPresentTiming() && !device.hasExtPresentTiming()) {}
 
 SwapchainBuilder& SwapchainBuilder::size(Size windowPixelSize) {
     size_ = windowPixelSize;
@@ -399,6 +461,12 @@ Result<Swapchain> SwapchainBuilder::build() {
     sc.presentMode_ = vkMode;
     sc.imageCountRequested_ = imgCount;
     sc.families_  = families_;
+    sc.hasPresentTiming_       = hasPresentTiming_;
+    sc.useGoogleDisplayTiming_ = useGoogleTiming_;
+    if (useGoogleTiming_) {
+        sc.pfnGetPastTiming_ = reinterpret_cast<PFN_vkGetPastPresentationTimingGOOGLE>(
+            vkGetDeviceProcAddr(device_, "vkGetPastPresentationTimingGOOGLE"));
+    }
 
     VkResult vr = vkCreateSwapchainKHR(device_, &ci, nullptr, &sc.swapchain_);
     if (vr != VK_SUCCESS) {

@@ -43,6 +43,9 @@ Device::Device(Device&& o) noexcept
       hasInvocationReorder_(o.hasInvocationReorder_),
       hasPipelineBinary_(o.hasPipelineBinary_),
       hasMeshShaders_(o.hasMeshShaders_),
+      hasPresentTiming_(o.hasPresentTiming_),
+      hasGoogleDisplayTiming_(o.hasGoogleDisplayTiming_),
+      hasExtPresentTiming_(o.hasExtPresentTiming_),
       deviceLost_(o.deviceLost_),
       deviceLostCallback_(std::move(o.deviceLostCallback_)),
       pfnTraceRays_(o.pfnTraceRays_),
@@ -91,8 +94,11 @@ Device& Device::operator=(Device&& o) noexcept {
         hasBindless_        = o.hasBindless_;
         hasInvocationReorder_ = o.hasInvocationReorder_;
         hasPipelineBinary_    = o.hasPipelineBinary_;
-        hasMeshShaders_       = o.hasMeshShaders_;
-        deviceLost_           = o.deviceLost_;
+        hasMeshShaders_          = o.hasMeshShaders_;
+        hasPresentTiming_        = o.hasPresentTiming_;
+        hasGoogleDisplayTiming_  = o.hasGoogleDisplayTiming_;
+        hasExtPresentTiming_     = o.hasExtPresentTiming_;
+        deviceLost_              = o.deviceLost_;
         deviceLostCallback_   = std::move(o.deviceLostCallback_);
         pfnTraceRays_         = o.pfnTraceRays_;
         pfnDrawMeshTasks_     = o.pfnDrawMeshTasks_;
@@ -630,6 +636,13 @@ Result<Device> DeviceBuilder::build() {
     // keeping higher-priority allocations resident under memory pressure.
     bool haveMemoryPriority = hasExtension(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
 
+    // Present timing: detect either extension. Prefer VK_EXT_present_timing
+    // (newer, cross-platform) over VK_GOOGLE_display_timing (older, Android).
+    // VK_EXT_present_timing may not be in current SDK headers -- check string only.
+    bool haveGoogleDisplayTiming = hasExtension(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
+    bool haveExtPresentTiming    = hasExtension("VK_EXT_present_timing");
+    bool havePresentTiming       = haveExtPresentTiming || haveGoogleDisplayTiming;
+
     VkPhysicalDeviceMemoryPriorityFeaturesEXT memPriorityFeatures{};
     memPriorityFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
     memPriorityFeatures.memoryPriority = VK_TRUE;
@@ -736,6 +749,15 @@ Result<Device> DeviceBuilder::build() {
     if (havePipelineBinary) {
         allExtensions.push_back(VK_KHR_PIPELINE_BINARY_EXTENSION_NAME);
     }
+    if (haveGoogleDisplayTiming) {
+        allExtensions.push_back(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
+    }
+    // VK_EXT_present_timing: SDK headers may not define it yet, but we can
+    // still enable it as a string if present on the device.
+    if (haveExtPresentTiming) {
+        allExtensions.push_back("VK_EXT_present_timing");
+    }
+
     if (haveGPL) {
         // Avoid duplicate if user already called needGPL().
         bool alreadyInList = false;
@@ -810,6 +832,9 @@ Result<Device> DeviceBuilder::build() {
     dev.hasInvocationReorder_ = haveSer;
     dev.hasPipelineBinary_   = havePipelineBinary;
     dev.hasMeshShaders_      = needMeshShaders_;
+    dev.hasPresentTiming_        = havePresentTiming;
+    dev.hasGoogleDisplayTiming_  = haveGoogleDisplayTiming;
+    dev.hasExtPresentTiming_     = haveExtPresentTiming;
 
     // Query GPL properties when the extension is enabled.
     if (haveGPL) {

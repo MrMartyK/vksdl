@@ -13,6 +13,16 @@
 
 namespace vksdl {
 
+// Unified present timing record. Returned by Swapchain::queryPastPresentTiming().
+// Maps from both VK_EXT_present_timing and VK_GOOGLE_display_timing.
+struct PresentTiming {
+    std::uint64_t presentId           = 0; // monotonic present counter
+    std::uint64_t desiredPresentTime  = 0; // ns, 0 = ASAP
+    std::uint64_t actualPresentTime   = 0; // ns, when frame was displayed
+    std::uint64_t earliestPresentTime = 0; // ns, earliest the frame could have been displayed
+    std::uint64_t presentMargin       = 0; // ns, slack between submission and display
+};
+
 // Image returned by nextImage().
 struct SwapchainImage {
     std::uint32_t index      = 0;
@@ -64,6 +74,14 @@ public:
     // Convenience: bundles device.waitIdle() + recreate(window.pixelSize()).
     [[nodiscard]] Result<void> recreate(const Device& device, const Window& window);
 
+    // Present timing support. Mirrors device.hasPresentTiming().
+    // When true, queryPastPresentTiming() returns actual display timestamps.
+    [[nodiscard]] bool hasPresentTiming() const { return hasPresentTiming_; }
+
+    // Query past present timing records from the driver.
+    // Returns an empty vector when the extension is not available.
+    [[nodiscard]] std::vector<PresentTiming> queryPastPresentTiming() const;
+
 private:
     friend class SwapchainBuilder;
     Swapchain() = default;
@@ -87,6 +105,12 @@ private:
     std::vector<VkImageView>  views_;
     std::vector<VkSemaphore>  imageReadySems_; // one per swapchain image
     std::uint32_t             semIndex_ = 0;   // round-robin index
+
+    // Present timing state
+    bool hasPresentTiming_       = false;
+    bool useGoogleDisplayTiming_ = false;
+    PFN_vkGetPastPresentationTimingGOOGLE pfnGetPastTiming_ = nullptr;
+    std::uint64_t presentCounter_ = 0; // monotonic counter for PresentTiming::presentId
 };
 
 class SwapchainBuilder {
@@ -111,7 +135,9 @@ private:
     bool             preferSrgb_  = true;
     VkColorSpaceKHR  colorSpace_  = VK_COLOR_SPACE_MAX_ENUM_KHR; // MAX_ENUM = not set
     PresentMode      presentMode_ = PresentMode::MailboxOrFifo;
-    std::uint32_t    imageCount_  = 0; // 0 = let builder choose (min+1)
+    std::uint32_t    imageCount_          = 0; // 0 = let builder choose (min+1)
+    bool             hasPresentTiming_    = false;
+    bool             useGoogleTiming_     = false;
 };
 
 } // namespace vksdl

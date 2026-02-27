@@ -135,6 +135,13 @@ public:
     // shader compilation on subsequent runs.
     [[nodiscard]] bool hasPipelineBinary() const { return hasPipelineBinary_; }
 
+    // Present timing support (VK_EXT_present_timing or VK_GOOGLE_display_timing).
+    // hasPresentTiming() returns true when either extension is available.
+    // Swapchain uses VK_EXT_present_timing when present, else VK_GOOGLE_display_timing.
+    [[nodiscard]] bool hasPresentTiming()        const { return hasPresentTiming_; }
+    [[nodiscard]] bool hasGoogleDisplayTiming()  const { return hasGoogleDisplayTiming_; }
+    [[nodiscard]] bool hasExtPresentTiming()     const { return hasExtPresentTiming_; }
+
     // VK_EXT_mesh_shader support.
     // When true, MeshPipelineBuilder is usable and drawMeshTasksFn() is valid.
     [[nodiscard]] bool hasMeshShaders() const { return hasMeshShaders_; }
@@ -191,6 +198,10 @@ private:
     bool hasPipelineBinary_ = false;
     // Mesh shaders (VK_EXT_mesh_shader)
     bool hasMeshShaders_ = false;
+    // Present timing (VK_EXT_present_timing or VK_GOOGLE_display_timing)
+    bool hasPresentTiming_       = false;
+    bool hasGoogleDisplayTiming_ = false;
+    bool hasExtPresentTiming_    = false;
     // Device lost state and recovery callback
     mutable bool deviceLost_ = false;
     DeviceLostCallback deviceLostCallback_;
