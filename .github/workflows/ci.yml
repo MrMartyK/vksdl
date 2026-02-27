@@ -137,6 +137,47 @@ jobs:
           CXX: g++-14
         run: bash scripts/check-header-self-containment.sh build
 
+  # ── Windows (MSVC) ───────────────────────────────────────────────
+  windows-msvc:
+    name: Windows (MSVC)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@06218f81a3cbd7dce502fdc666c8db2af725b442 # v1
+        with:
+          vulkan_version: ${{ env.VULKAN_SDK_VER }}
+          cache: true
+          stripdown: true
+
+      - name: Restore vcpkg packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-msvc-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-msvc-
+
+      - name: Bootstrap vcpkg
+        run: .\vcpkg\bootstrap-vcpkg.bat
+
+      - name: Configure
+        run: >-
+          cmake -B build -S .
+          -G "Visual Studio 17 2022" -A x64
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DVKSDL_BUILD_EXAMPLES=OFF
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Unit tests
+        run: >-
+          ctest --test-dir build --output-on-failure -C Release
+          -R "test_error|test_result|test_projection|test_transform|test_native_accessors|test_wsi_extensions|test_resource_state|test_barrier_compiler"
+
   # ── Windows (MSYS2 UCRT64) ────────────────────────────────────────
   windows-ucrt:
     name: Windows (UCRT64)

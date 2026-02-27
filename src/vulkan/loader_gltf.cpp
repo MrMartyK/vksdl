@@ -1,13 +1,26 @@
 #include "mesh_loaders.hpp"
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4244) // conversion, possible loss of data
+#pragma warning(disable : 4245) // signed/unsigned mismatch in initialization
+#pragma warning(disable : 4505) // unreferenced local function
+#pragma warning(disable : 4996) // 'fopen'/'strcpy'/'strncpy': unsafe CRT function
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 
 #include <algorithm>
 #include <cmath>

@@ -125,7 +125,7 @@ target_include_directories(vksdl PRIVATE ${SPIRV_REFLECT_DIR} ${SPIRV_REFLECT_DI
 
 # --- Compiler warnings ---
 if(MSVC)
-    target_compile_options(vksdl PRIVATE /W4 /permissive-)
+    target_compile_options(vksdl PRIVATE /W4 /permissive- /Zc:__cplusplus /utf-8)
     if(VKSDL_WERROR)
         target_compile_options(vksdl PRIVATE /WX)
     endif()

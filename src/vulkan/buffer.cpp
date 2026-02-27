@@ -2,12 +2,23 @@
 #include <vksdl/allocator.hpp>
 #include <vksdl/device.hpp>
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4189) // local variable initialized but not referenced
+#pragma warning(disable : 4244) // conversion, possible loss of data
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
 #include <vk_mem_alloc.h>
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 
 #include <cstring>
 

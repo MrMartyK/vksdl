@@ -1,12 +1,24 @@
 #include "mesh_loaders.hpp"
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4244) // conversion, possible loss of data
+#pragma warning(disable : 4245) // signed/unsigned mismatch in initialization
+#pragma warning(disable : 4996) // unsafe CRT function
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 
 #include <cmath>
 #include <unordered_map>

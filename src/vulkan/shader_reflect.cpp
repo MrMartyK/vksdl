@@ -1,6 +1,12 @@
 // SPIRV-Reflect: compiled as a single translation unit, same pattern as VMA.
 // Suppress warnings from third-party code.
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4189) // local variable initialized but not referenced
+#pragma warning(disable : 4244) // conversion, possible loss of data
+#pragma warning(disable : 4505) // unreferenced local function
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
@@ -15,7 +21,9 @@
 #include <spirv_reflect.h>
 #include <spirv_reflect.c>
 
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 

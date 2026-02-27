@@ -3,22 +3,45 @@
 #include <vksdl/device.hpp>
 #include <vksdl/image.hpp>
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4189) // local variable initialized but not referenced
+#pragma warning(disable : 4244) // conversion, possible loss of data
+#pragma warning(disable : 4245) // signed/unsigned mismatch in initialization
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 #include <vk_mem_alloc.h>
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 
 #if VKSDL_HAS_LOADERS
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4244) // conversion, possible loss of data
+#pragma warning(disable : 4245) // signed/unsigned mismatch in initialization
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 #endif // VKSDL_HAS_LOADERS
 
 #include <algorithm>
