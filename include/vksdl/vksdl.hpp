@@ -7,6 +7,8 @@
 #include <vksdl/error.hpp>
 #include <vksdl/result.hpp>
 #include <vksdl/allocator.hpp>
+#include <vksdl/command_pool.hpp>
+#include <vksdl/command_pool_factory.hpp>
 #include <vksdl/bindless_table.hpp>
 #include <vksdl/app.hpp>
 #include <vksdl/barriers.hpp>

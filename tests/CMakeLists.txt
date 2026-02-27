@@ -488,3 +488,21 @@ add_test(NAME test_event COMMAND test_event)
 add_executable(test_error_recovery integration/test_error_recovery.cpp)
 target_link_libraries(test_error_recovery PRIVATE vksdl)
 add_test(NAME test_error_recovery COMMAND test_error_recovery)
+
+# --- Command pool test ---
+
+add_executable(test_command_pool integration/test_command_pool.cpp)
+target_link_libraries(test_command_pool PRIVATE vksdl)
+add_test(NAME test_command_pool COMMAND test_command_pool)
+
+# --- Command pool factory test ---
+
+add_executable(test_command_pool_factory integration/test_command_pool_factory.cpp)
+target_link_libraries(test_command_pool_factory PRIVATE vksdl)
+add_test(NAME test_command_pool_factory COMMAND test_command_pool_factory)
+
+# --- Present timing detection test ---
+
+add_executable(test_present_timing integration/test_present_timing.cpp)
+target_link_libraries(test_present_timing PRIVATE vksdl)
+add_test(NAME test_present_timing COMMAND test_present_timing)
