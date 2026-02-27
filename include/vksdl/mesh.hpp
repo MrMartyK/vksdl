@@ -31,20 +31,20 @@ static_assert(sizeof(Vertex) == 32, "Vertex layout changed -- update shaders");
 // Texture loading is the user's responsibility via loadImage().
 struct Material {
     float baseColor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-    float metallic     = 0.0f;
-    float roughness    = 1.0f;
+    float metallic = 0.0f;
+    float roughness = 1.0f;
     std::string name;
-    std::filesystem::path diffuseTexture;  // empty if no texture; resolved against model dir
+    std::filesystem::path diffuseTexture; // empty if no texture; resolved against model dir
 };
 
 // CPU-side mesh data for one sub-mesh. Loaded by loadModel().
 // Veterans access .vertices.data() and .indices.data() for custom upload via
 // existing BufferBuilder + uploadToBuffer.
 struct MeshData {
-    std::vector<Vertex>        vertices;
+    std::vector<Vertex> vertices;
     std::vector<std::uint32_t> indices;
-    Material                   material;
-    std::string                name;
+    Material material;
+    std::string name;
 
     [[nodiscard]] VkDeviceSize vertexSizeBytes() const {
         return static_cast<VkDeviceSize>(vertices.size()) * sizeof(Vertex);
@@ -66,7 +66,7 @@ struct ModelData {
     ModelData(const ModelData&) = delete;
     ModelData& operator=(const ModelData&) = delete;
 
-private:
+  private:
     friend Result<ModelData> loadModel(const std::filesystem::path&);
     ModelData() = default;
 };
@@ -83,37 +83,43 @@ private:
 //
 // Thread safety: immutable after construction.
 class Mesh {
-public:
+  public:
     ~Mesh();
     Mesh(Mesh&&) noexcept;
     Mesh& operator=(Mesh&&) noexcept;
     Mesh(const Mesh&) = delete;
     Mesh& operator=(const Mesh&) = delete;
 
-    [[nodiscard]] VkBuffer      vkVertexBuffer() const { return vertexBuffer_; }
-    [[nodiscard]] VkBuffer      vkIndexBuffer()  const { return indexBuffer_; }
-    [[nodiscard]] std::uint32_t vertexCount()    const { return vertexCount_; }
-    [[nodiscard]] std::uint32_t indexCount()     const { return indexCount_; }
+    [[nodiscard]] VkBuffer vkVertexBuffer() const {
+        return vertexBuffer_;
+    }
+    [[nodiscard]] VkBuffer vkIndexBuffer() const {
+        return indexBuffer_;
+    }
+    [[nodiscard]] std::uint32_t vertexCount() const {
+        return vertexCount_;
+    }
+    [[nodiscard]] std::uint32_t indexCount() const {
+        return indexCount_;
+    }
 
-private:
+  private:
     friend Result<Mesh> uploadMesh(const Allocator&, const Device&, const MeshData&);
     Mesh() = default;
 
-    VmaAllocator  allocator_     = nullptr;
-    VkBuffer      vertexBuffer_  = VK_NULL_HANDLE;
-    VmaAllocation vertexAlloc_   = nullptr;
-    VkBuffer      indexBuffer_   = VK_NULL_HANDLE;
-    VmaAllocation indexAlloc_    = nullptr;
-    std::uint32_t vertexCount_   = 0;
-    std::uint32_t indexCount_    = 0;
+    VmaAllocator allocator_ = nullptr;
+    VkBuffer vertexBuffer_ = VK_NULL_HANDLE;
+    VmaAllocation vertexAlloc_ = nullptr;
+    VkBuffer indexBuffer_ = VK_NULL_HANDLE;
+    VmaAllocation indexAlloc_ = nullptr;
+    std::uint32_t vertexCount_ = 0;
+    std::uint32_t indexCount_ = 0;
 };
 
 // Staged upload: creates device-local vertex + index buffers from MeshData,
 // copies data via staging buffers, waits for completion.
 // Blocking -- suitable for init-time uploads only.
-[[nodiscard]] Result<Mesh> uploadMesh(
-    const Allocator& allocator,
-    const Device& device,
-    const MeshData& meshData);
+[[nodiscard]] Result<Mesh> uploadMesh(const Allocator& allocator, const Device& device,
+                                      const MeshData& meshData);
 
 } // namespace vksdl

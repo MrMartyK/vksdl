@@ -12,55 +12,44 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_debug_name")
-        .requireVulkan(1, 3)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_debug_name")
+                        .requireVulkan(1, 3)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
     assert(allocator.ok());
 
     {
-        auto buf = vksdl::BufferBuilder(allocator.value())
-            .size(64)
-            .uniformBuffer()
-            .build();
+        auto buf = vksdl::BufferBuilder(allocator.value()).size(64).uniformBuffer().build();
         assert(buf.ok());
 
-        vksdl::debugName(device.value().vkDevice(), buf.value().vkBuffer(),
-                         "test uniform buffer");
+        vksdl::debugName(device.value().vkDevice(), buf.value().vkBuffer(), "test uniform buffer");
         std::printf("  debugName buffer: ok\n");
     }
 
     {
-        auto sampler = vksdl::SamplerBuilder(device.value())
-            .nearest()
-            .repeat()
-            .build();
+        auto sampler = vksdl::SamplerBuilder(device.value()).nearest().repeat().build();
         assert(sampler.ok());
 
-        vksdl::debugName(device.value().vkDevice(), sampler.value().vkSampler(),
-                         "test sampler");
+        vksdl::debugName(device.value().vkDevice(), sampler.value().vkSampler(), "test sampler");
         std::printf("  debugName sampler: ok\n");
     }
 
     {
-        auto buf = vksdl::BufferBuilder(allocator.value())
-            .size(128)
-            .uniformBuffer()
-            .build();
+        auto buf = vksdl::BufferBuilder(allocator.value()).size(128).uniformBuffer().build();
         assert(buf.ok());
 
         vksdl::debugName(device.value().vkDevice(), VK_OBJECT_TYPE_BUFFER,
@@ -73,8 +62,8 @@ int main() {
     // descriptor set layout, pipeline layout, shader module.
     {
         VkCommandPoolCreateInfo poolCI{};
-        poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         poolCI.queueFamilyIndex = device.value().queueFamilies().graphics;
 
         VkCommandPool cmdPool = VK_NULL_HANDLE;
@@ -130,8 +119,8 @@ int main() {
         layoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 
         VkDescriptorSetLayout dsLayout = VK_NULL_HANDLE;
-        VkResult vr = vkCreateDescriptorSetLayout(device.value().vkDevice(), &layoutCI,
-                                                   nullptr, &dsLayout);
+        VkResult vr =
+            vkCreateDescriptorSetLayout(device.value().vkDevice(), &layoutCI, nullptr, &dsLayout);
         assert(vr == VK_SUCCESS);
 
         vksdl::debugName(device.value().vkDevice(), dsLayout, "test descriptor set layout");
@@ -144,8 +133,8 @@ int main() {
         plCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
         VkPipelineLayout pipeLayout = VK_NULL_HANDLE;
-        VkResult vr = vkCreatePipelineLayout(device.value().vkDevice(), &plCI,
-                                              nullptr, &pipeLayout);
+        VkResult vr =
+            vkCreatePipelineLayout(device.value().vkDevice(), &plCI, nullptr, &pipeLayout);
         assert(vr == VK_SUCCESS);
 
         vksdl::debugName(device.value().vkDevice(), pipeLayout, "test pipeline layout");

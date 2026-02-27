@@ -1,9 +1,9 @@
-#include <vksdl/graph/render_graph.hpp>
 #include <vksdl/allocator.hpp>
 #include <vksdl/buffer.hpp>
 #include <vksdl/descriptor_allocator.hpp>
 #include <vksdl/descriptor_writer.hpp>
 #include <vksdl/device.hpp>
+#include <vksdl/graph/render_graph.hpp>
 #include <vksdl/image.hpp>
 #include <vksdl/shader_reflect.hpp>
 
@@ -20,53 +20,47 @@
 namespace vksdl::graph {
 
 // Cast void* back to VmaAllocator for internal use.
-static VmaAllocator toVma(void* p) { return static_cast<VmaAllocator>(p); }
-
+static VmaAllocator toVma(void* p) {
+    return static_cast<VmaAllocator>(p);
+}
 
 RenderGraph::RenderGraph(const Device& device, const Allocator& allocator)
-    : device_(device.vkDevice()),
-      allocator_(allocator.vmaAllocator()),
+    : device_(device.vkDevice()), allocator_(allocator.vmaAllocator()),
       hasUnifiedLayouts_(device.hasUnifiedImageLayouts()) {
     auto alloc = DescriptorAllocator::create(device);
     if (alloc.ok()) {
         descAllocator_ = std::make_unique<DescriptorAllocator>(std::move(alloc).value());
     } else {
 #ifndef NDEBUG
-        std::fprintf(stderr, "[vksdl::graph] DescriptorAllocator creation failed: %s\n"
+        std::fprintf(stderr,
+                     "[vksdl::graph] DescriptorAllocator creation failed: %s\n"
                      "  Layer 2 auto-bind will be unavailable.\n",
                      alloc.error().message.c_str());
 #endif
     }
 }
 
-RenderGraph::~RenderGraph() { destroy(); }
+RenderGraph::~RenderGraph() {
+    destroy();
+}
 
 RenderGraph::RenderGraph(RenderGraph&& o) noexcept
-    : device_(o.device_), allocator_(o.allocator_),
-      hasUnifiedLayouts_(o.hasUnifiedLayouts_),
-      passes_(std::move(o.passes_)),
-      resources_(std::move(o.resources_)),
-      imageMaps_(std::move(o.imageMaps_)),
-      bufferStates_(std::move(o.bufferStates_)),
-      adj_(std::move(o.adj_)),
-      inDegree_(std::move(o.inDegree_)),
-      compiledPasses_(std::move(o.compiledPasses_)),
-      isCompiled_(o.isCompiled_),
-      stats_(std::move(o.stats_)),
-      transientImages_(std::move(o.transientImages_)),
-      transientBuffers_(std::move(o.transientBuffers_)),
-      imagePool_(std::move(o.imagePool_)),
-      bufferPool_(std::move(o.bufferPool_)),
-      lastGraphHash_(o.lastGraphHash_),
+    : device_(o.device_), allocator_(o.allocator_), hasUnifiedLayouts_(o.hasUnifiedLayouts_),
+      passes_(std::move(o.passes_)), resources_(std::move(o.resources_)),
+      imageMaps_(std::move(o.imageMaps_)), bufferStates_(std::move(o.bufferStates_)),
+      adj_(std::move(o.adj_)), inDegree_(std::move(o.inDegree_)),
+      compiledPasses_(std::move(o.compiledPasses_)), isCompiled_(o.isCompiled_),
+      stats_(std::move(o.stats_)), transientImages_(std::move(o.transientImages_)),
+      transientBuffers_(std::move(o.transientBuffers_)), imagePool_(std::move(o.imagePool_)),
+      bufferPool_(std::move(o.bufferPool_)), lastGraphHash_(o.lastGraphHash_),
       cachedOrder_(std::move(o.cachedOrder_)),
       cachedImageHandles_(std::move(o.cachedImageHandles_)),
       cachedViewHandles_(std::move(o.cachedViewHandles_)),
       cachedBufferHandles_(std::move(o.cachedBufferHandles_)),
-      cachedStats_(std::move(o.cachedStats_)),
-      descAllocator_(std::move(o.descAllocator_)),
+      cachedStats_(std::move(o.cachedStats_)), descAllocator_(std::move(o.descAllocator_)),
       dslCache_(std::move(o.dslCache_)) {
-    o.device_     = VK_NULL_HANDLE;
-    o.allocator_  = nullptr;
+    o.device_ = VK_NULL_HANDLE;
+    o.allocator_ = nullptr;
     o.isCompiled_ = false;
     o.lastGraphHash_ = 0;
 }
@@ -74,32 +68,32 @@ RenderGraph::RenderGraph(RenderGraph&& o) noexcept
 RenderGraph& RenderGraph::operator=(RenderGraph&& o) noexcept {
     if (this != &o) {
         destroy();
-        device_           = o.device_;
-        allocator_        = o.allocator_;
+        device_ = o.device_;
+        allocator_ = o.allocator_;
         hasUnifiedLayouts_ = o.hasUnifiedLayouts_;
-        passes_           = std::move(o.passes_);
-        resources_        = std::move(o.resources_);
-        imageMaps_        = std::move(o.imageMaps_);
-        bufferStates_     = std::move(o.bufferStates_);
-        adj_              = std::move(o.adj_);
-        inDegree_         = std::move(o.inDegree_);
-        compiledPasses_   = std::move(o.compiledPasses_);
-        isCompiled_       = o.isCompiled_;
-        stats_            = std::move(o.stats_);
-        transientImages_  = std::move(o.transientImages_);
+        passes_ = std::move(o.passes_);
+        resources_ = std::move(o.resources_);
+        imageMaps_ = std::move(o.imageMaps_);
+        bufferStates_ = std::move(o.bufferStates_);
+        adj_ = std::move(o.adj_);
+        inDegree_ = std::move(o.inDegree_);
+        compiledPasses_ = std::move(o.compiledPasses_);
+        isCompiled_ = o.isCompiled_;
+        stats_ = std::move(o.stats_);
+        transientImages_ = std::move(o.transientImages_);
         transientBuffers_ = std::move(o.transientBuffers_);
-        imagePool_        = std::move(o.imagePool_);
-        bufferPool_       = std::move(o.bufferPool_);
-        lastGraphHash_        = o.lastGraphHash_;
-        cachedOrder_          = std::move(o.cachedOrder_);
-        cachedImageHandles_   = std::move(o.cachedImageHandles_);
-        cachedViewHandles_    = std::move(o.cachedViewHandles_);
-        cachedBufferHandles_  = std::move(o.cachedBufferHandles_);
-        cachedStats_          = std::move(o.cachedStats_);
-        descAllocator_        = std::move(o.descAllocator_);
-        dslCache_             = std::move(o.dslCache_);
-        o.device_     = VK_NULL_HANDLE;
-        o.allocator_  = nullptr;
+        imagePool_ = std::move(o.imagePool_);
+        bufferPool_ = std::move(o.bufferPool_);
+        lastGraphHash_ = o.lastGraphHash_;
+        cachedOrder_ = std::move(o.cachedOrder_);
+        cachedImageHandles_ = std::move(o.cachedImageHandles_);
+        cachedViewHandles_ = std::move(o.cachedViewHandles_);
+        cachedBufferHandles_ = std::move(o.cachedBufferHandles_);
+        cachedStats_ = std::move(o.cachedStats_);
+        descAllocator_ = std::move(o.descAllocator_);
+        dslCache_ = std::move(o.dslCache_);
+        o.device_ = VK_NULL_HANDLE;
+        o.allocator_ = nullptr;
         o.isCompiled_ = false;
         o.lastGraphHash_ = 0;
     }
@@ -120,7 +114,8 @@ void RenderGraph::destroy() {
 }
 
 void RenderGraph::destroyTransients() {
-    if (device_ == VK_NULL_HANDLE) return;
+    if (device_ == VK_NULL_HANDLE)
+        return;
     auto vma = toVma(allocator_);
 
     for (auto& t : transientImages_) {
@@ -150,7 +145,8 @@ void RenderGraph::recycleTransients() {
 }
 
 void RenderGraph::destroyPool() {
-    if (device_ == VK_NULL_HANDLE) return;
+    if (device_ == VK_NULL_HANDLE)
+        return;
     auto vma = toVma(allocator_);
 
     for (auto& t : imagePool_) {
@@ -168,113 +164,99 @@ void RenderGraph::destroyPool() {
     bufferPool_.clear();
 }
 
-
-ResourceHandle RenderGraph::importImage(
-    VkImage image, VkImageView view, VkFormat format,
-    std::uint32_t width, std::uint32_t height,
-    const ResourceState& initialState,
-    std::uint32_t mipLevels, std::uint32_t arrayLayers,
-    std::string_view name) {
+ResourceHandle RenderGraph::importImage(VkImage image, VkImageView view, VkFormat format,
+                                        std::uint32_t width, std::uint32_t height,
+                                        const ResourceState& initialState, std::uint32_t mipLevels,
+                                        std::uint32_t arrayLayers, std::string_view name) {
 
     ResourceHandle h{static_cast<std::uint32_t>(resources_.size())};
 
     ResourceEntry entry{};
-    entry.tag          = ResourceTag::External;
-    entry.kind         = ResourceKind::Image;
-    entry.name         = name;
-    entry.vkImage      = image;
-    entry.vkImageView  = view;
-    entry.imageDesc    = {width, height, format, 0, mipLevels, arrayLayers,
-                          VK_SAMPLE_COUNT_1_BIT};
-    entry.aspect       = aspectFromFormat(format);
+    entry.tag = ResourceTag::External;
+    entry.kind = ResourceKind::Image;
+    entry.name = name;
+    entry.vkImage = image;
+    entry.vkImageView = view;
+    entry.imageDesc = {width, height, format, 0, mipLevels, arrayLayers, VK_SAMPLE_COUNT_1_BIT};
+    entry.aspect = aspectFromFormat(format);
     entry.initialState = initialState;
     resources_.push_back(entry);
 
     return h;
 }
 
-ResourceHandle RenderGraph::importImage(
-    const Image& image, const ResourceState& initialState,
-    std::string_view name) {
-    return importImage(image.vkImage(), image.vkImageView(), image.format(),
-                       image.extent().width, image.extent().height,
-                       initialState, image.mipLevels(), 1, name);
+ResourceHandle RenderGraph::importImage(const Image& image, const ResourceState& initialState,
+                                        std::string_view name) {
+    return importImage(image.vkImage(), image.vkImageView(), image.format(), image.extent().width,
+                       image.extent().height, initialState, image.mipLevels(), 1, name);
 }
 
-ResourceHandle RenderGraph::importBuffer(
-    VkBuffer buffer, VkDeviceSize size,
-    const ResourceState& initialState,
-    std::string_view name) {
+ResourceHandle RenderGraph::importBuffer(VkBuffer buffer, VkDeviceSize size,
+                                         const ResourceState& initialState, std::string_view name) {
 
     ResourceHandle h{static_cast<std::uint32_t>(resources_.size())};
 
     ResourceEntry entry{};
-    entry.tag          = ResourceTag::External;
-    entry.kind         = ResourceKind::Buffer;
-    entry.name         = name;
-    entry.vkBuffer     = buffer;
-    entry.bufferSize   = size;
+    entry.tag = ResourceTag::External;
+    entry.kind = ResourceKind::Buffer;
+    entry.name = name;
+    entry.vkBuffer = buffer;
+    entry.bufferSize = size;
     entry.initialState = initialState;
     resources_.push_back(entry);
 
     return h;
 }
 
-ResourceHandle RenderGraph::importBuffer(
-    const Buffer& buffer, const ResourceState& initialState,
-    std::string_view name) {
+ResourceHandle RenderGraph::importBuffer(const Buffer& buffer, const ResourceState& initialState,
+                                         std::string_view name) {
     return importBuffer(buffer.vkBuffer(), buffer.size(), initialState, name);
 }
 
-ResourceHandle RenderGraph::createImage(const ImageDesc& desc,
-                                         std::string_view name) {
+ResourceHandle RenderGraph::createImage(const ImageDesc& desc, std::string_view name) {
     ResourceHandle h{static_cast<std::uint32_t>(resources_.size())};
 
     ResourceEntry entry{};
-    entry.tag       = ResourceTag::Transient;
-    entry.kind      = ResourceKind::Image;
-    entry.name      = name;
+    entry.tag = ResourceTag::Transient;
+    entry.kind = ResourceKind::Image;
+    entry.name = name;
     entry.imageDesc = desc;
-    entry.aspect    = aspectFromFormat(desc.format);
+    entry.aspect = aspectFromFormat(desc.format);
     resources_.push_back(entry);
 
     return h;
 }
 
-ResourceHandle RenderGraph::createBuffer(const BufferDesc& desc,
-                                          std::string_view name) {
+ResourceHandle RenderGraph::createBuffer(const BufferDesc& desc, std::string_view name) {
     ResourceHandle h{static_cast<std::uint32_t>(resources_.size())};
 
     ResourceEntry entry{};
-    entry.tag        = ResourceTag::Transient;
-    entry.kind       = ResourceKind::Buffer;
-    entry.name       = name;
+    entry.tag = ResourceTag::Transient;
+    entry.kind = ResourceKind::Buffer;
+    entry.name = name;
     entry.bufferDesc = desc;
     resources_.push_back(entry);
 
     return h;
 }
 
-
-void RenderGraph::addPass(std::string_view name, PassType type,
-                           SetupFn setup, RecordFn record) {
+void RenderGraph::addPass(std::string_view name, PassType type, SetupFn setup, RecordFn record) {
     PassBuilder builder(type);
     setup(builder);
 
     PassDecl decl;
-    decl.name     = std::string(name);
-    decl.type     = type;
-    decl.accesses     = std::move(builder.accesses_);
-    decl.recordFn     = std::move(record);
+    decl.name = std::string(name);
+    decl.type = type;
+    decl.accesses = std::move(builder.accesses_);
+    decl.recordFn = std::move(record);
     decl.colorTargets = std::move(builder.colorTargets_);
-    decl.depthTarget  = std::move(builder.depthTarget_);
+    decl.depthTarget = std::move(builder.depthTarget_);
     passes_.push_back(std::move(decl));
 }
 
-void RenderGraph::addPass(std::string_view name, PassType type,
-                           VkPipeline pipeline, VkPipelineLayout pipelineLayout,
-                           const ReflectedLayout& reflection,
-                           SetupFn setup, RecordFn record) {
+void RenderGraph::addPass(std::string_view name, PassType type, VkPipeline pipeline,
+                          VkPipelineLayout pipelineLayout, const ReflectedLayout& reflection,
+                          SetupFn setup, RecordFn record) {
     PassBuilder builder(type);
     setup(builder);
 
@@ -282,7 +264,8 @@ void RenderGraph::addPass(std::string_view name, PassType type,
     // call the appropriate Layer 0 method so the barrier compiler sees it.
     for (const auto& rb : reflection.bindings) {
         auto it = builder.bindMap_.find(rb.name);
-        if (it == builder.bindMap_.end()) continue;
+        if (it == builder.bindMap_.end())
+            continue;
 
         ResourceHandle h = it->second.handle;
         switch (rb.type) {
@@ -314,27 +297,28 @@ void RenderGraph::addPass(std::string_view name, PassType type,
     }
 
     PassDecl decl;
-    decl.name           = std::string(name);
-    decl.type           = type;
-    decl.accesses       = std::move(builder.accesses_);
-    decl.recordFn       = std::move(record);
-    decl.colorTargets   = std::move(builder.colorTargets_);
-    decl.depthTarget    = std::move(builder.depthTarget_);
-    decl.pipeline       = pipeline;
+    decl.name = std::string(name);
+    decl.type = type;
+    decl.accesses = std::move(builder.accesses_);
+    decl.recordFn = std::move(record);
+    decl.colorTargets = std::move(builder.colorTargets_);
+    decl.depthTarget = std::move(builder.depthTarget_);
+    decl.pipeline = pipeline;
     decl.pipelineLayout = pipelineLayout;
-    decl.reflection     = &reflection;
+    decl.reflection = &reflection;
     decl.defaultSampler = builder.defaultSampler_;
-    decl.bindMap         = std::move(builder.bindMap_);
+    decl.bindMap = std::move(builder.bindMap_);
     passes_.push_back(std::move(decl));
 }
-
 
 void RenderGraph::resolveRemainingCounts() {
     for (auto& pass : passes_) {
         for (auto& acc : pass.accesses) {
-            if (!acc.handle.valid()) continue;
+            if (!acc.handle.valid())
+                continue;
             const auto& res = resources_[acc.handle.index];
-            if (res.kind != ResourceKind::Image) continue;
+            if (res.kind != ResourceKind::Image)
+                continue;
 
             auto& r = acc.subresourceRange;
             if (r.levelCount == VK_REMAINING_MIP_LEVELS)
@@ -345,13 +329,14 @@ void RenderGraph::resolveRemainingCounts() {
     }
 }
 
-
 void RenderGraph::accumulateTransientUsage() {
     for (const auto& pass : passes_) {
         for (const auto& acc : pass.accesses) {
-            if (!acc.handle.valid()) continue;
+            if (!acc.handle.valid())
+                continue;
             auto& res = resources_[acc.handle.index];
-            if (res.tag != ResourceTag::Transient) continue;
+            if (res.tag != ResourceTag::Transient)
+                continue;
 
             if (res.kind == ResourceKind::Image) {
                 VkImageLayout layout = acc.desiredState.currentLayout;
@@ -361,35 +346,33 @@ void RenderGraph::accumulateTransientUsage() {
                 else if (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
                     res.imageDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 else if (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
-                    res.imageDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-                                        |  VK_IMAGE_USAGE_SAMPLED_BIT;
+                    res.imageDesc.usage |=
+                        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
                 else if (layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
                     res.imageDesc.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
                 else if (layout == VK_IMAGE_LAYOUT_GENERAL) {
-                    if (isWriteAccess(acc.desiredState.lastWriteAccess)
-                     || (acc.desiredState.readAccessSinceWrite
-                         & VK_ACCESS_2_SHADER_STORAGE_READ_BIT))
+                    if (isWriteAccess(acc.desiredState.lastWriteAccess) ||
+                        (acc.desiredState.readAccessSinceWrite &
+                         VK_ACCESS_2_SHADER_STORAGE_READ_BIT))
                         res.imageDesc.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-                }
-                else if (layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+                } else if (layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
                     res.imageDesc.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
                 else if (layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
                     res.imageDesc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
                 // Input attachment.
-                if (acc.desiredState.readAccessSinceWrite
-                    & VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT)
+                if (acc.desiredState.readAccessSinceWrite & VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT)
                     res.imageDesc.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
             } else {
                 // Buffer: accumulate from access masks.
-                VkAccessFlags2 a = acc.desiredState.lastWriteAccess
-                                 | acc.desiredState.readAccessSinceWrite;
+                VkAccessFlags2 a =
+                    acc.desiredState.lastWriteAccess | acc.desiredState.readAccessSinceWrite;
 
                 if (a & VK_ACCESS_2_UNIFORM_READ_BIT)
                     res.bufferDesc.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-                if (a & (VK_ACCESS_2_SHADER_STORAGE_READ_BIT
-                       | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT))
+                if (a &
+                    (VK_ACCESS_2_SHADER_STORAGE_READ_BIT | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT))
                     res.bufferDesc.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
                 if (a & VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT)
                     res.bufferDesc.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -406,10 +389,9 @@ void RenderGraph::accumulateTransientUsage() {
     }
 }
 
-
 void RenderGraph::buildAdjacency() {
     const auto passCount = static_cast<std::uint32_t>(passes_.size());
-    const auto resCount  = static_cast<std::uint32_t>(resources_.size());
+    const auto resCount = static_cast<std::uint32_t>(resources_.size());
 
     // Flat bool matrix for deduplication (avoids hash map allocation).
     std::vector<bool> adjMatrix(passCount * passCount, false);
@@ -425,17 +407,18 @@ void RenderGraph::buildAdjacency() {
 
     for (std::uint32_t pi = 0; pi < passCount; ++pi) {
         for (const auto& acc : passes_[pi].accesses) {
-            if (!acc.handle.valid()) continue;
+            if (!acc.handle.valid())
+                continue;
             std::uint32_t ri = acc.handle.index;
             auto& ra = perResource[ri];
 
-            bool writes = (acc.access == AccessType::Write
-                        || acc.access == AccessType::ReadWrite);
-            bool reads  = (acc.access == AccessType::Read
-                        || acc.access == AccessType::ReadWrite);
+            bool writes = (acc.access == AccessType::Write || acc.access == AccessType::ReadWrite);
+            bool reads = (acc.access == AccessType::Read || acc.access == AccessType::ReadWrite);
 
-            if (writes) ra.writers.push_back(pi);
-            if (reads)  ra.readers.push_back(pi);
+            if (writes)
+                ra.writers.push_back(pi);
+            if (reads)
+                ra.readers.push_back(pi);
         }
     }
 
@@ -453,9 +436,9 @@ void RenderGraph::buildAdjacency() {
         for (auto w : ra.writers) {
             for (auto r : ra.readers) {
                 if (w < r)
-                    adjMatrix[w * passCount + r] = true;   // RAW
+                    adjMatrix[w * passCount + r] = true; // RAW
                 else if (r < w)
-                    adjMatrix[r * passCount + w] = true;   // WAR
+                    adjMatrix[r * passCount + w] = true; // WAR
             }
         }
 
@@ -477,7 +460,6 @@ void RenderGraph::buildAdjacency() {
     }
 }
 
-
 Result<std::vector<std::uint32_t>> RenderGraph::topologicalSort() {
     const auto passCount = static_cast<std::uint32_t>(passes_.size());
 
@@ -494,7 +476,8 @@ Result<std::vector<std::uint32_t>> RenderGraph::topologicalSort() {
     order.reserve(passCount);
 
     while (!q.empty()) {
-        auto u = q.front(); q.pop();
+        auto u = q.front();
+        q.pop();
         order.push_back(u);
         for (auto v : adj_[u]) {
             if (--inDeg[v] == 0)
@@ -503,13 +486,11 @@ Result<std::vector<std::uint32_t>> RenderGraph::topologicalSort() {
     }
 
     if (order.size() != passCount) {
-        return Error{"compile render graph", 0,
-                     "cycle detected in pass dependencies"};
+        return Error{"compile render graph", 0, "cycle detected in pass dependencies"};
     }
 
     return order;
 }
-
 
 void RenderGraph::computeLifetimes(const std::vector<std::uint32_t>& order) {
     // Map from original pass index to sorted position.
@@ -519,15 +500,17 @@ void RenderGraph::computeLifetimes(const std::vector<std::uint32_t>& order) {
 
     for (std::uint32_t pi = 0; pi < static_cast<std::uint32_t>(passes_.size()); ++pi) {
         for (const auto& acc : passes_[pi].accesses) {
-            if (!acc.handle.valid()) continue;
+            if (!acc.handle.valid())
+                continue;
             auto& res = resources_[acc.handle.index];
             std::uint32_t pos = sortedPos[pi];
-            if (pos < res.firstPass) res.firstPass = pos;
-            if (pos > res.lastPass || res.lastPass == UINT32_MAX) res.lastPass = pos;
+            if (pos < res.firstPass)
+                res.firstPass = pos;
+            if (pos > res.lastPass || res.lastPass == UINT32_MAX)
+                res.lastPass = pos;
         }
     }
 }
-
 
 Result<void> RenderGraph::allocateTransients() {
     auto vma = toVma(allocator_);
@@ -543,16 +526,19 @@ Result<void> RenderGraph::allocateTransients() {
     // Count transient images/buffers for fast-path eligibility.
     std::uint32_t transImgCount = 0, transBufCount = 0;
     for (const auto& res : resources_) {
-        if (res.tag != ResourceTag::Transient) continue;
-        if (res.kind == ResourceKind::Image) ++transImgCount;
-        else ++transBufCount;
+        if (res.tag != ResourceTag::Transient)
+            continue;
+        if (res.kind == ResourceKind::Image)
+            ++transImgCount;
+        else
+            ++transBufCount;
     }
-    bool fastPool = (imagePool_.size() == transImgCount &&
-                     bufferPool_.size() == transBufCount);
+    bool fastPool = (imagePool_.size() == transImgCount && bufferPool_.size() == transBufCount);
 
     for (std::uint32_t ri = 0; ri < static_cast<std::uint32_t>(resources_.size()); ++ri) {
         auto& res = resources_[ri];
-        if (res.tag != ResourceTag::Transient) continue;
+        if (res.tag != ResourceTag::Transient)
+            continue;
 
         if (res.kind == ResourceKind::Image) {
             bool found = false;
@@ -560,7 +546,7 @@ Result<void> RenderGraph::allocateTransients() {
             if (fastPool && imgPoolIdx < static_cast<std::uint32_t>(imagePool_.size())) {
                 // Sequential pool consumption (deterministic, no search).
                 auto& pooled = imagePool_[imgPoolIdx++];
-                res.vkImage     = pooled.image;
+                res.vkImage = pooled.image;
                 res.vkImageView = pooled.view;
                 transientImages_.push_back(pooled);
                 found = true;
@@ -569,7 +555,7 @@ Result<void> RenderGraph::allocateTransients() {
                 for (std::size_t pi = 0; pi < imagePool_.size(); ++pi) {
                     if (imagePool_[pi].desc == res.imageDesc &&
                         imagePool_[pi].image != VK_NULL_HANDLE) {
-                        res.vkImage     = imagePool_[pi].image;
+                        res.vkImage = imagePool_[pi].image;
                         res.vkImageView = imagePool_[pi].view;
                         transientImages_.push_back(imagePool_[pi]);
                         imagePool_[pi].image = VK_NULL_HANDLE; // mark consumed
@@ -581,16 +567,16 @@ Result<void> RenderGraph::allocateTransients() {
 
             if (!found) {
                 VkImageCreateInfo ci{};
-                ci.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-                ci.imageType     = VK_IMAGE_TYPE_2D;
-                ci.format        = res.imageDesc.format;
-                ci.extent        = {res.imageDesc.width, res.imageDesc.height, 1};
-                ci.mipLevels     = res.imageDesc.mipLevels;
-                ci.arrayLayers   = res.imageDesc.arrayLayers;
-                ci.samples       = res.imageDesc.samples;
-                ci.tiling        = VK_IMAGE_TILING_OPTIMAL;
-                ci.usage         = res.imageDesc.usage;
-                ci.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+                ci.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+                ci.imageType = VK_IMAGE_TYPE_2D;
+                ci.format = res.imageDesc.format;
+                ci.extent = {res.imageDesc.width, res.imageDesc.height, 1};
+                ci.mipLevels = res.imageDesc.mipLevels;
+                ci.arrayLayers = res.imageDesc.arrayLayers;
+                ci.samples = res.imageDesc.samples;
+                ci.tiling = VK_IMAGE_TILING_OPTIMAL;
+                ci.usage = res.imageDesc.usage;
+                ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
                 ci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
                 VmaAllocationCreateInfo allocCI{};
@@ -605,16 +591,13 @@ Result<void> RenderGraph::allocateTransients() {
                 }
 
                 VkImageViewCreateInfo viewCI{};
-                viewCI.sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                viewCI.image            = image;
-                viewCI.viewType         = (res.imageDesc.arrayLayers > 1)
-                                        ? VK_IMAGE_VIEW_TYPE_2D_ARRAY
-                                        : VK_IMAGE_VIEW_TYPE_2D;
-                viewCI.format           = res.imageDesc.format;
+                viewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                viewCI.image = image;
+                viewCI.viewType = (res.imageDesc.arrayLayers > 1) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY
+                                                                  : VK_IMAGE_VIEW_TYPE_2D;
+                viewCI.format = res.imageDesc.format;
                 viewCI.subresourceRange = {
-                    res.aspect,
-                    0, res.imageDesc.mipLevels,
-                    0, res.imageDesc.arrayLayers,
+                    res.aspect, 0, res.imageDesc.mipLevels, 0, res.imageDesc.arrayLayers,
                 };
 
                 VkImageView view = VK_NULL_HANDLE;
@@ -625,7 +608,7 @@ Result<void> RenderGraph::allocateTransients() {
                                  "failed to create image view for transient"};
                 }
 
-                res.vkImage     = image;
+                res.vkImage = image;
                 res.vkImageView = view;
                 transientImages_.push_back({res.imageDesc, image, view, allocation});
             }
@@ -635,7 +618,7 @@ Result<void> RenderGraph::allocateTransients() {
 
             if (fastPool && bufPoolIdx < static_cast<std::uint32_t>(bufferPool_.size())) {
                 auto& pooled = bufferPool_[bufPoolIdx++];
-                res.vkBuffer   = pooled.buffer;
+                res.vkBuffer = pooled.buffer;
                 res.bufferSize = res.bufferDesc.size;
                 transientBuffers_.push_back(pooled);
                 found = true;
@@ -643,7 +626,7 @@ Result<void> RenderGraph::allocateTransients() {
                 for (std::size_t pi = 0; pi < bufferPool_.size(); ++pi) {
                     if (bufferPool_[pi].desc == res.bufferDesc &&
                         bufferPool_[pi].buffer != VK_NULL_HANDLE) {
-                        res.vkBuffer   = bufferPool_[pi].buffer;
+                        res.vkBuffer = bufferPool_[pi].buffer;
                         res.bufferSize = res.bufferDesc.size;
                         transientBuffers_.push_back(bufferPool_[pi]);
                         bufferPool_[pi].buffer = VK_NULL_HANDLE; // mark consumed
@@ -655,9 +638,9 @@ Result<void> RenderGraph::allocateTransients() {
 
             if (!found) {
                 VkBufferCreateInfo ci{};
-                ci.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-                ci.size        = res.bufferDesc.size;
-                ci.usage       = res.bufferDesc.usage;
+                ci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+                ci.size = res.bufferDesc.size;
+                ci.usage = res.bufferDesc.usage;
                 ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
                 VmaAllocationCreateInfo allocCI{};
@@ -671,7 +654,7 @@ Result<void> RenderGraph::allocateTransients() {
                                  "VMA failed to allocate transient buffer"};
                 }
 
-                res.vkBuffer   = buffer;
+                res.vkBuffer = buffer;
                 res.bufferSize = res.bufferDesc.size;
                 transientBuffers_.push_back({res.bufferDesc, buffer, allocation});
             }
@@ -685,18 +668,15 @@ Result<void> RenderGraph::allocateTransients() {
         bufferPool_.clear();
     } else {
         // Remove consumed entries (marked with VK_NULL_HANDLE).
-        std::erase_if(imagePool_, [](const TransientImage& t) {
-            return t.image == VK_NULL_HANDLE;
-        });
-        std::erase_if(bufferPool_, [](const TransientBuffer& t) {
-            return t.buffer == VK_NULL_HANDLE;
-        });
+        std::erase_if(imagePool_,
+                      [](const TransientImage& t) { return t.image == VK_NULL_HANDLE; });
+        std::erase_if(bufferPool_,
+                      [](const TransientBuffer& t) { return t.buffer == VK_NULL_HANDLE; });
         destroyPool();
     }
 
     return {};
 }
-
 
 void RenderGraph::initStateTrackers() {
     imageMaps_.clear();
@@ -710,10 +690,8 @@ void RenderGraph::initStateTrackers() {
     for (std::uint32_t ri = 0; ri < static_cast<std::uint32_t>(resources_.size()); ++ri) {
         const auto& res = resources_[ri];
         if (res.kind == ResourceKind::Image) {
-            imageMaps_.emplace_back(
-                res.imageDesc.mipLevels,
-                res.imageDesc.arrayLayers,
-                res.initialState);
+            imageMaps_.emplace_back(res.imageDesc.mipLevels, res.imageDesc.arrayLayers,
+                                    res.initialState);
         } else {
             imageMaps_.emplace_back(1, 1); // placeholder
             bufferStates_[ri] = res.initialState;
@@ -721,28 +699,21 @@ void RenderGraph::initStateTrackers() {
     }
 }
 
-
-static Result<void> validateQueueFamilyTransition(
-    const ResourceState& src,
-    const ResourceState& dst,
-    const ResourceEntry& res) {
-    if (src.queueFamily == VK_QUEUE_FAMILY_IGNORED
-        || dst.queueFamily == VK_QUEUE_FAMILY_IGNORED
-        || src.queueFamily == dst.queueFamily) {
+static Result<void> validateQueueFamilyTransition(const ResourceState& src,
+                                                  const ResourceState& dst,
+                                                  const ResourceEntry& res) {
+    if (src.queueFamily == VK_QUEUE_FAMILY_IGNORED || dst.queueFamily == VK_QUEUE_FAMILY_IGNORED ||
+        src.queueFamily == dst.queueFamily) {
         return {};
     }
 
     std::string resourceName = res.name.empty() ? "(unnamed)" : res.name;
-    return Error{
-        "compile render graph",
-        0,
-        "queue-family ownership transfer requested for resource '"
-            + resourceName
-            + "' (src=" + std::to_string(src.queueFamily)
-            + ", dst=" + std::to_string(dst.queueFamily)
-            + "). RenderGraph executes on one queue family; explicit release/acquire"
-              " ownership transfer (including maintenance9 caveats) is not modeled yet."
-    };
+    return Error{"compile render graph", 0,
+                 "queue-family ownership transfer requested for resource '" + resourceName +
+                     "' (src=" + std::to_string(src.queueFamily) +
+                     ", dst=" + std::to_string(dst.queueFamily) +
+                     "). RenderGraph executes on one queue family; explicit release/acquire"
+                     " ownership transfer (including maintenance9 caveats) is not modeled yet."};
 }
 
 Result<void> RenderGraph::compileBarriers(const std::vector<std::uint32_t>& order) {
@@ -755,7 +726,8 @@ Result<void> RenderGraph::compileBarriers(const std::vector<std::uint32_t>& orde
         const auto& pass = passes_[passIdx];
 
         for (const auto& acc : pass.accesses) {
-            if (!acc.handle.valid()) continue;
+            if (!acc.handle.valid())
+                continue;
             std::uint32_t ri = acc.handle.index;
             const auto& res = resources_[ri];
 
@@ -779,14 +751,14 @@ Result<void> RenderGraph::compileBarriers(const std::vector<std::uint32_t>& orde
 
                     // Compute the overlap region.
                     SubresourceRange overlap;
-                    overlap.baseMipLevel   = std::max(slice.range.baseMipLevel,
-                                                       acc.subresourceRange.baseMipLevel);
-                    overlap.baseArrayLayer = std::max(slice.range.baseArrayLayer,
-                                                       acc.subresourceRange.baseArrayLayer);
-                    std::uint32_t mipEnd   = std::min(slice.range.mipEnd(),
-                                                       acc.subresourceRange.mipEnd());
-                    std::uint32_t layerEnd = std::min(slice.range.layerEnd(),
-                                                       acc.subresourceRange.layerEnd());
+                    overlap.baseMipLevel =
+                        std::max(slice.range.baseMipLevel, acc.subresourceRange.baseMipLevel);
+                    overlap.baseArrayLayer =
+                        std::max(slice.range.baseArrayLayer, acc.subresourceRange.baseArrayLayer);
+                    std::uint32_t mipEnd =
+                        std::min(slice.range.mipEnd(), acc.subresourceRange.mipEnd());
+                    std::uint32_t layerEnd =
+                        std::min(slice.range.layerEnd(), acc.subresourceRange.layerEnd());
                     overlap.levelCount = mipEnd - overlap.baseMipLevel;
                     overlap.layerCount = layerEnd - overlap.baseArrayLayer;
 
@@ -795,20 +767,19 @@ Result<void> RenderGraph::compileBarriers(const std::vector<std::uint32_t>& orde
                     // UNDEFINED -> X transition is preserved (spec requires it).
                     ResourceState srcState = slice.state;
                     ResourceState dstState = acc.desiredState;
-                    if (hasUnifiedLayouts_
-                        && srcState.currentLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
+                    if (hasUnifiedLayouts_ && srcState.currentLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
                         srcState.currentLayout = VK_IMAGE_LAYOUT_GENERAL;
                         dstState.currentLayout = VK_IMAGE_LAYOUT_GENERAL;
                     }
 
                     appendImageBarrier(cp.barriers, ImageBarrierRequest{
-                        .image  = res.vkImage,
-                        .range  = overlap,
-                        .aspect = res.aspect,
-                        .src    = srcState,
-                        .dst    = dstState,
-                        .isRead = isRead,
-                    });
+                                                        .image = res.vkImage,
+                                                        .range = overlap,
+                                                        .aspect = res.aspect,
+                                                        .src = srcState,
+                                                        .dst = dstState,
+                                                        .isRead = isRead,
+                                                    });
                 }
 
                 // Update tracked state for the accessed range.
@@ -819,20 +790,20 @@ Result<void> RenderGraph::compileBarriers(const std::vector<std::uint32_t>& orde
                 if (isRead) {
                     // Preserve writer info from current state, add this read.
                     ResourceState merged = map.queryState(acc.subresourceRange);
-                    newState.lastWriteStage  = merged.lastWriteStage;
+                    newState.lastWriteStage = merged.lastWriteStage;
                     newState.lastWriteAccess = merged.lastWriteAccess;
-                    newState.readStagesSinceWrite  = merged.readStagesSinceWrite
-                                                   | acc.desiredState.lastWriteStage;
-                    newState.readAccessSinceWrite  = merged.readAccessSinceWrite
-                                                   | acc.desiredState.readAccessSinceWrite;
+                    newState.readStagesSinceWrite =
+                        merged.readStagesSinceWrite | acc.desiredState.lastWriteStage;
+                    newState.readAccessSinceWrite =
+                        merged.readAccessSinceWrite | acc.desiredState.readAccessSinceWrite;
                     newState.currentLayout = acc.desiredState.currentLayout;
                     if (newState.queueFamily == VK_QUEUE_FAMILY_IGNORED) {
                         newState.queueFamily = merged.queueFamily;
                     }
                 } else {
                     // Write: reset readers, set new writer.
-                    newState.readStagesSinceWrite  = VK_PIPELINE_STAGE_2_NONE;
-                    newState.readAccessSinceWrite  = VK_ACCESS_2_NONE;
+                    newState.readStagesSinceWrite = VK_PIPELINE_STAGE_2_NONE;
+                    newState.readAccessSinceWrite = VK_ACCESS_2_NONE;
                     if (newState.queueFamily == VK_QUEUE_FAMILY_IGNORED) {
                         newState.queueFamily = map.queryState(acc.subresourceRange).queueFamily;
                     }
@@ -843,33 +814,32 @@ Result<void> RenderGraph::compileBarriers(const std::vector<std::uint32_t>& orde
                 // Buffer: single state, no subresources.
                 auto& state = bufferStates_[ri];
 
-                auto queueCheck =
-                    validateQueueFamilyTransition(state, acc.desiredState, res);
+                auto queueCheck = validateQueueFamilyTransition(state, acc.desiredState, res);
                 if (!queueCheck) {
                     return queueCheck.error();
                 }
 
                 appendBufferBarrier(cp.barriers, BufferBarrierRequest{
-                    .buffer = res.vkBuffer,
-                    .offset = 0,
-                    .size   = VK_WHOLE_SIZE,
-                    .src    = state,
-                    .dst    = acc.desiredState,
-                    .isRead = isRead,
-                });
+                                                     .buffer = res.vkBuffer,
+                                                     .offset = 0,
+                                                     .size = VK_WHOLE_SIZE,
+                                                     .src = state,
+                                                     .dst = acc.desiredState,
+                                                     .isRead = isRead,
+                                                 });
 
                 // Update tracked state.
                 if (isRead) {
-                    state.readStagesSinceWrite  |= acc.desiredState.lastWriteStage;
-                    state.readAccessSinceWrite  |= acc.desiredState.readAccessSinceWrite;
+                    state.readStagesSinceWrite |= acc.desiredState.lastWriteStage;
+                    state.readAccessSinceWrite |= acc.desiredState.readAccessSinceWrite;
                     if (acc.desiredState.queueFamily != VK_QUEUE_FAMILY_IGNORED) {
                         state.queueFamily = acc.desiredState.queueFamily;
                     }
                 } else {
                     std::uint32_t previousQueueFamily = state.queueFamily;
                     state = acc.desiredState;
-                    state.readStagesSinceWrite  = VK_PIPELINE_STAGE_2_NONE;
-                    state.readAccessSinceWrite  = VK_ACCESS_2_NONE;
+                    state.readStagesSinceWrite = VK_PIPELINE_STAGE_2_NONE;
+                    state.readAccessSinceWrite = VK_ACCESS_2_NONE;
                     if (state.queueFamily == VK_QUEUE_FAMILY_IGNORED) {
                         state.queueFamily = previousQueueFamily;
                     }
@@ -883,12 +853,14 @@ Result<void> RenderGraph::compileBarriers(const std::vector<std::uint32_t>& orde
     return {};
 }
 
-
 static VkAttachmentLoadOp toVkLoadOp(LoadOp op) {
     switch (op) {
-    case LoadOp::Clear:    return VK_ATTACHMENT_LOAD_OP_CLEAR;
-    case LoadOp::Load:     return VK_ATTACHMENT_LOAD_OP_LOAD;
-    case LoadOp::DontCare: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    case LoadOp::Clear:
+        return VK_ATTACHMENT_LOAD_OP_CLEAR;
+    case LoadOp::Load:
+        return VK_ATTACHMENT_LOAD_OP_LOAD;
+    case LoadOp::DontCare:
+        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     }
     return VK_ATTACHMENT_LOAD_OP_DONT_CARE; // unreachable
 }
@@ -925,23 +897,24 @@ void RenderGraph::resolveRenderTargets(const std::vector<std::uint32_t>& order) 
         // Determine the max color attachment index to size the vector.
         std::uint32_t maxIndex = 0;
         for (const auto& ct : passDecl.colorTargets)
-            if (ct.index >= maxIndex) maxIndex = ct.index + 1;
+            if (ct.index >= maxIndex)
+                maxIndex = ct.index + 1;
 
         rr.colorAttachments.resize(maxIndex);
         for (auto& att : rr.colorAttachments) {
             att = {};
-            att.sType     = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            att.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
             att.imageView = VK_NULL_HANDLE;
         }
 
         for (const auto& ct : passDecl.colorTargets) {
             const auto& res = resources_[ct.handle.index];
 
-            auto& att      = rr.colorAttachments[ct.index];
-            att.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            att.imageView   = res.vkImageView;
+            auto& att = rr.colorAttachments[ct.index];
+            att.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            att.imageView = res.vkImageView;
             att.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            att.loadOp      = toVkLoadOp(ct.loadOp);
+            att.loadOp = toVkLoadOp(ct.loadOp);
             att.clearValue.color = ct.clearValue;
 
             // Store op inference: transient last use -> DONT_CARE, else STORE.
@@ -953,14 +926,14 @@ void RenderGraph::resolveRenderTargets(const std::vector<std::uint32_t>& order) 
 
         // Resolve depth attachment.
         if (passDecl.depthTarget) {
-            const auto& dt  = *passDecl.depthTarget;
+            const auto& dt = *passDecl.depthTarget;
             const auto& res = resources_[dt.handle.index];
 
             rr.hasDepth = true;
-            auto& att       = rr.depthAttachment;
-            att.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            att.imageView   = res.vkImageView;
-            att.loadOp      = toVkLoadOp(dt.loadOp);
+            auto& att = rr.depthAttachment;
+            att.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            att.imageView = res.vkImageView;
+            att.loadOp = toVkLoadOp(dt.loadOp);
             att.clearValue.depthStencil = {dt.clearDepth, dt.clearStencil};
 
             if (dt.depthWrite == DepthWrite::Enabled) {
@@ -972,30 +945,32 @@ void RenderGraph::resolveRenderTargets(const std::vector<std::uint32_t>& order) 
                     att.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             } else {
                 att.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                att.storeOp     = VK_ATTACHMENT_STORE_OP_NONE;
+                att.storeOp = VK_ATTACHMENT_STORE_OP_NONE;
             }
         }
     }
 }
 
 Result<void> RenderGraph::resolveDescriptors() {
-    if (!descAllocator_) return {};
+    if (!descAllocator_)
+        return {};
 
     for (auto& cp : compiledPasses_) {
         const auto& passDecl = passes_[cp.passIndex];
-        if (!passDecl.reflection) continue;
+        if (!passDecl.reflection)
+            continue;
 
         auto& desc = cp.descriptors;
-        desc.pipeline       = passDecl.pipeline;
+        desc.pipeline = passDecl.pipeline;
         desc.pipelineLayout = passDecl.pipelineLayout;
-        desc.bindPoint      = (passDecl.type == PassType::Compute)
-                            ? VK_PIPELINE_BIND_POINT_COMPUTE
-                            : VK_PIPELINE_BIND_POINT_GRAPHICS;
+        desc.bindPoint = (passDecl.type == PassType::Compute) ? VK_PIPELINE_BIND_POINT_COMPUTE
+                                                              : VK_PIPELINE_BIND_POINT_GRAPHICS;
 
         // Find max set index.
         std::uint32_t maxSet = 0;
         for (const auto& rb : passDecl.reflection->bindings)
-            if (rb.set >= maxSet) maxSet = rb.set + 1;
+            if (rb.set >= maxSet)
+                maxSet = rb.set + 1;
 
         desc.sets.assign(maxSet, VK_NULL_HANDLE);
 
@@ -1006,13 +981,14 @@ Result<void> RenderGraph::resolveDescriptors() {
             bool hasGraphManaged = false;
 
             for (const auto& rb : passDecl.reflection->bindings) {
-                if (rb.set != si) continue;
+                if (rb.set != si)
+                    continue;
 
                 VkDescriptorSetLayoutBinding lb{};
-                lb.binding         = rb.binding;
-                lb.descriptorType  = rb.type;
+                lb.binding = rb.binding;
+                lb.descriptorType = rb.type;
                 lb.descriptorCount = rb.count;
-                lb.stageFlags      = rb.stages;
+                lb.stageFlags = rb.stages;
                 layoutBindings.push_back(lb);
 
                 if (passDecl.bindMap.count(rb.name))
@@ -1024,16 +1000,16 @@ Result<void> RenderGraph::resolveDescriptors() {
 
             // Create DSL.
             VkDescriptorSetLayoutCreateInfo dslCI{};
-            dslCI.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            dslCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             dslCI.bindingCount = static_cast<std::uint32_t>(layoutBindings.size());
-            dslCI.pBindings    = layoutBindings.data();
+            dslCI.pBindings = layoutBindings.data();
 
             VkDescriptorSetLayout dsl = VK_NULL_HANDLE;
             VkResult dslResult = vkCreateDescriptorSetLayout(device_, &dslCI, nullptr, &dsl);
             if (dslResult != VK_SUCCESS)
                 return Error{"vkCreateDescriptorSetLayout", static_cast<int32_t>(dslResult),
                              "failed to create descriptor set layout for pass '" +
-                             std::string(passDecl.name) + "' set " + std::to_string(si)};
+                                 std::string(passDecl.name) + "' set " + std::to_string(si)};
             dslCache_.push_back(dsl);
 
             // Allocate set.
@@ -1041,7 +1017,7 @@ Result<void> RenderGraph::resolveDescriptors() {
             if (!setResult.ok())
                 return Error{"DescriptorAllocator::allocate", 0,
                              "failed to allocate descriptor set for pass '" +
-                             std::string(passDecl.name) + "' set " + std::to_string(si)};
+                                 std::string(passDecl.name) + "' set " + std::to_string(si)};
             VkDescriptorSet set = setResult.value();
             desc.sets[si] = set;
 
@@ -1049,28 +1025,29 @@ Result<void> RenderGraph::resolveDescriptors() {
             DescriptorWriter writer(set);
 
             for (const auto& rb : passDecl.reflection->bindings) {
-                if (rb.set != si) continue;
+                if (rb.set != si)
+                    continue;
                 auto it = passDecl.bindMap.find(rb.name);
-                if (it == passDecl.bindMap.end()) continue;
+                if (it == passDecl.bindMap.end())
+                    continue;
 
                 ResourceHandle h = it->second.handle;
-                if (!h.valid()) continue;
+                if (!h.valid())
+                    continue;
                 const auto& res = resources_[h.index];
 
                 switch (rb.type) {
                 case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
                 case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE: {
                     VkSampler sampler = it->second.samplerOverride != VK_NULL_HANDLE
-                                      ? it->second.samplerOverride
-                                      : passDecl.defaultSampler;
+                                            ? it->second.samplerOverride
+                                            : passDecl.defaultSampler;
                     writer.image(rb.binding, res.vkImageView,
-                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler,
-                                 rb.type);
+                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, rb.type);
                     break;
                 }
                 case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-                    writer.storageImage(rb.binding, res.vkImageView,
-                                        VK_IMAGE_LAYOUT_GENERAL);
+                    writer.storageImage(rb.binding, res.vkImageView, VK_IMAGE_LAYOUT_GENERAL);
                     break;
                 case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                 case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
@@ -1091,10 +1068,9 @@ Result<void> RenderGraph::resolveDescriptors() {
     return {};
 }
 
-
 // FNV-1a hash for graph structure caching.
 static std::uint64_t fnv1a(const void* data, std::size_t len,
-                            std::uint64_t h = 14695981039346656037ULL) {
+                           std::uint64_t h = 14695981039346656037ULL) {
     auto p = static_cast<const std::uint8_t*>(data);
     for (std::size_t i = 0; i < len; ++i) {
         h ^= p[i];
@@ -1103,12 +1079,11 @@ static std::uint64_t fnv1a(const void* data, std::size_t len,
     return h;
 }
 
-static std::uint64_t hashGraphStructure(
-    const std::vector<PassDecl>& passes,
-    const std::vector<ResourceEntry>& resources) {
+static std::uint64_t hashGraphStructure(const std::vector<PassDecl>& passes,
+                                        const std::vector<ResourceEntry>& resources) {
     // Hash pass count + resource count.
     auto passCount = static_cast<std::uint32_t>(passes.size());
-    auto resCount  = static_cast<std::uint32_t>(resources.size());
+    auto resCount = static_cast<std::uint32_t>(resources.size());
     auto h = fnv1a(&passCount, sizeof(passCount));
     h = fnv1a(&resCount, sizeof(resCount), h);
 
@@ -1120,8 +1095,7 @@ static std::uint64_t hashGraphStructure(
         for (const auto& acc : pass.accesses) {
             h = fnv1a(&acc.handle.index, sizeof(acc.handle.index), h);
             h = fnv1a(&acc.access, sizeof(acc.access), h);
-            h = fnv1a(&acc.desiredState.currentLayout,
-                      sizeof(acc.desiredState.currentLayout), h);
+            h = fnv1a(&acc.desiredState.currentLayout, sizeof(acc.desiredState.currentLayout), h);
             h = fnv1a(&acc.subresourceRange, sizeof(acc.subresourceRange), h);
         }
         // Layer 1: color target count + indices + loadOps.
@@ -1160,7 +1134,8 @@ static std::uint64_t hashGraphStructure(
 
     // Hash each transient resource desc (dimensions determine alloc).
     for (const auto& res : resources) {
-        if (res.tag != ResourceTag::Transient) continue;
+        if (res.tag != ResourceTag::Transient)
+            continue;
         if (res.kind == ResourceKind::Image) {
             h = fnv1a(&res.imageDesc, sizeof(res.imageDesc), h);
         } else {
@@ -1175,8 +1150,7 @@ Result<void> RenderGraph::compile() {
     using Clock = std::chrono::steady_clock;
     auto tStart = Clock::now();
 
-    auto tResolve = tStart, tUsage = tStart, tAdj = tStart,
-         tSort = tStart, tLifetime = tStart;
+    auto tResolve = tStart, tUsage = tStart, tAdj = tStart, tSort = tStart, tLifetime = tStart;
     const std::vector<std::uint32_t>* order = nullptr;
 
     // Resolve VK_REMAINING_* sentinels before hashing so identical
@@ -1231,11 +1205,18 @@ Result<void> RenderGraph::compile() {
         handlesStable = true;
         for (std::uint32_t ri = 0; ri < static_cast<std::uint32_t>(resources_.size()); ++ri) {
             const auto& res = resources_[ri];
-            if (res.tag != ResourceTag::Transient) continue;
+            if (res.tag != ResourceTag::Transient)
+                continue;
             if (res.kind == ResourceKind::Image) {
-                if (res.vkImage != cachedImageHandles_[ri]) { handlesStable = false; break; }
+                if (res.vkImage != cachedImageHandles_[ri]) {
+                    handlesStable = false;
+                    break;
+                }
             } else {
-                if (res.vkBuffer != cachedBufferHandles_[ri]) { handlesStable = false; break; }
+                if (res.vkBuffer != cachedBufferHandles_[ri]) {
+                    handlesStable = false;
+                    break;
+                }
             }
         }
     }
@@ -1252,23 +1233,26 @@ Result<void> RenderGraph::compile() {
         // image changes each frame but barrier structure is identical).
         // Build old->new handle maps for external resources (typically 1-2).
         struct HandlePatch {
-            VkImage     oldImg;
-            VkImage     newImg;
+            VkImage oldImg;
+            VkImage newImg;
             VkImageView oldView;
             VkImageView newView;
         };
-        struct BufPatch    { VkBuffer oldBuf; VkBuffer newBuf; };
+        struct BufPatch {
+            VkBuffer oldBuf;
+            VkBuffer newBuf;
+        };
         std::vector<HandlePatch> imgPatches;
-        std::vector<BufPatch>    bufPatches;
+        std::vector<BufPatch> bufPatches;
         for (std::uint32_t ri = 0; ri < static_cast<std::uint32_t>(resources_.size()); ++ri) {
             const auto& res = resources_[ri];
-            if (res.tag != ResourceTag::External) continue;
-            if (res.kind == ResourceKind::Image &&
-                res.vkImage != cachedImageHandles_[ri]) {
-                imgPatches.push_back({cachedImageHandles_[ri], res.vkImage,
-                                      cachedViewHandles_[ri], res.vkImageView});
+            if (res.tag != ResourceTag::External)
+                continue;
+            if (res.kind == ResourceKind::Image && res.vkImage != cachedImageHandles_[ri]) {
+                imgPatches.push_back({cachedImageHandles_[ri], res.vkImage, cachedViewHandles_[ri],
+                                      res.vkImageView});
                 cachedImageHandles_[ri] = res.vkImage;
-                cachedViewHandles_[ri]  = res.vkImageView;
+                cachedViewHandles_[ri] = res.vkImageView;
             } else if (res.kind == ResourceKind::Buffer &&
                        res.vkBuffer != cachedBufferHandles_[ri]) {
                 bufPatches.push_back({cachedBufferHandles_[ri], res.vkBuffer});
@@ -1279,19 +1263,26 @@ Result<void> RenderGraph::compile() {
             for (auto& cp : compiledPasses_) {
                 for (auto& ib : cp.barriers.imageBarriers) {
                     for (const auto& p : imgPatches) {
-                        if (ib.image == p.oldImg) { ib.image = p.newImg; break; }
+                        if (ib.image == p.oldImg) {
+                            ib.image = p.newImg;
+                            break;
+                        }
                     }
                 }
                 for (auto& bb : cp.barriers.bufferBarriers) {
                     for (const auto& p : bufPatches) {
-                        if (bb.buffer == p.oldBuf) { bb.buffer = p.newBuf; break; }
+                        if (bb.buffer == p.oldBuf) {
+                            bb.buffer = p.newBuf;
+                            break;
+                        }
                     }
                 }
                 // Patch Layer 1 resolved rendering views.
                 for (auto& att : cp.rendering.colorAttachments) {
                     for (const auto& p : imgPatches) {
                         if (att.imageView == p.oldView) {
-                            att.imageView = p.newView; break;
+                            att.imageView = p.newView;
+                            break;
                         }
                     }
                 }
@@ -1323,20 +1314,21 @@ Result<void> RenderGraph::compile() {
 
         // Descriptors are ephemeral -- must re-resolve every frame.
         auto descResult = resolveDescriptors();
-        if (!descResult) return descResult;
+        if (!descResult)
+            return descResult;
 
         stats_ = cachedStats_;
-        stats_.resolveUs      = us(tStart, tResolve);
-        stats_.usageUs        = us(tResolve, tUsage);
-        stats_.adjacencyUs    = 0.0;
-        stats_.sortUs         = 0.0;
-        stats_.lifetimeUs     = 0.0;
-        stats_.allocUs        = us(tLifetime, tAlloc);
-        stats_.stateInitUs    = 0.0;
-        stats_.barriersUs     = 0.0;
+        stats_.resolveUs = us(tStart, tResolve);
+        stats_.usageUs = us(tResolve, tUsage);
+        stats_.adjacencyUs = 0.0;
+        stats_.sortUs = 0.0;
+        stats_.lifetimeUs = 0.0;
+        stats_.allocUs = us(tLifetime, tAlloc);
+        stats_.stateInitUs = 0.0;
+        stats_.barriersUs = 0.0;
         stats_.renderTargetUs = 0.0;
-        stats_.descriptorUs   = 0.0;
-        stats_.statsUs        = 0.0;
+        stats_.descriptorUs = 0.0;
+        stats_.statsUs = 0.0;
         auto tEnd = Clock::now();
         stats_.compileTimeUs = us(tStart, tEnd);
         isCompiled_ = true;
@@ -1349,9 +1341,8 @@ Result<void> RenderGraph::compile() {
         for (std::uint32_t ri = 0; ri < static_cast<std::uint32_t>(resources_.size()); ++ri) {
             const auto& res = resources_[ri];
             if (res.kind == ResourceKind::Image) {
-                imageMaps_[ri].resetState(res.imageDesc.mipLevels,
-                                           res.imageDesc.arrayLayers,
-                                           res.initialState);
+                imageMaps_[ri].resetState(res.imageDesc.mipLevels, res.imageDesc.arrayLayers,
+                                          res.initialState);
             } else {
                 bufferStates_[ri] = res.initialState;
             }
@@ -1383,35 +1374,37 @@ Result<void> RenderGraph::compile() {
 
     // Resolve descriptors.
     auto descResult = resolveDescriptors();
-    if (!descResult) return descResult;
+    if (!descResult)
+        return descResult;
     auto tDescriptors = Clock::now();
 
     // Populate stats (lightweight: counts only, no barrier copies).
     stats_ = {};
     stats_.passCount = static_cast<std::uint32_t>(compiledPasses_.size());
 
-    stats_.resolveUs      = us(tStart, tResolve);
-    stats_.usageUs        = us(tResolve, tUsage);
-    stats_.adjacencyUs    = us(tUsage, tAdj);
-    stats_.sortUs         = us(tAdj, tSort);
-    stats_.lifetimeUs     = us(tSort, tLifetime);
-    stats_.allocUs        = us(tLifetime, tAlloc);
-    stats_.stateInitUs    = us(tAlloc, tStateInit);
-    stats_.barriersUs     = us(tStateInit, tBarriers);
+    stats_.resolveUs = us(tStart, tResolve);
+    stats_.usageUs = us(tResolve, tUsage);
+    stats_.adjacencyUs = us(tUsage, tAdj);
+    stats_.sortUs = us(tAdj, tSort);
+    stats_.lifetimeUs = us(tSort, tLifetime);
+    stats_.allocUs = us(tLifetime, tAlloc);
+    stats_.stateInitUs = us(tAlloc, tStateInit);
+    stats_.barriersUs = us(tStateInit, tBarriers);
     stats_.renderTargetUs = us(tBarriers, tRenderTargets);
-    stats_.descriptorUs   = us(tRenderTargets, tDescriptors);
+    stats_.descriptorUs = us(tRenderTargets, tDescriptors);
 
     for (const auto& cp : compiledPasses_) {
-        stats_.imageBarrierCount  += static_cast<std::uint32_t>(cp.barriers.imageBarriers.size());
+        stats_.imageBarrierCount += static_cast<std::uint32_t>(cp.barriers.imageBarriers.size());
         stats_.bufferBarrierCount += static_cast<std::uint32_t>(cp.barriers.bufferBarriers.size());
     }
 
     stats_.transientCount = 0;
     for (const auto& res : resources_)
-        if (res.tag == ResourceTag::Transient) stats_.transientCount++;
+        if (res.tag == ResourceTag::Transient)
+            stats_.transientCount++;
 
     auto tStatsEnd = Clock::now();
-    stats_.statsUs       = us(tDescriptors, tStatsEnd);
+    stats_.statsUs = us(tDescriptors, tStatsEnd);
     stats_.compileTimeUs = us(tStart, tStatsEnd);
 
     // Cache handles and stats for next frame's stability check.
@@ -1420,8 +1413,8 @@ Result<void> RenderGraph::compile() {
     cachedBufferHandles_.resize(resources_.size());
     for (std::uint32_t ri = 0; ri < static_cast<std::uint32_t>(resources_.size()); ++ri) {
         const auto& res = resources_[ri];
-        cachedImageHandles_[ri]  = res.vkImage;
-        cachedViewHandles_[ri]   = res.vkImageView;
+        cachedImageHandles_[ri] = res.vkImage;
+        cachedViewHandles_[ri] = res.vkImageView;
         cachedBufferHandles_[ri] = res.vkBuffer;
     }
     cachedStats_ = stats_;
@@ -1429,7 +1422,6 @@ Result<void> RenderGraph::compile() {
     isCompiled_ = true;
     return {};
 }
-
 
 void RenderGraph::execute(VkCommandBuffer cmd) {
     assert(isCompiled_ && "must call compile() before execute()");
@@ -1445,7 +1437,8 @@ void RenderGraph::execute(VkCommandBuffer cmd) {
         std::vector<PassResourceLayout> layouts;
         const auto& passDecl = passes_[cp.passIndex];
         for (const auto& acc : passDecl.accesses) {
-            if (!acc.handle.valid()) continue;
+            if (!acc.handle.valid())
+                continue;
             if (resources_[acc.handle.index].kind == ResourceKind::Image) {
                 layouts.push_back({acc.handle, acc.desiredState.currentLayout});
             }
@@ -1465,24 +1458,22 @@ void RenderGraph::execute(VkCommandBuffer cmd) {
 
 #ifndef NDEBUG
         if (ctx.renderingActive())
-            std::fprintf(stderr,
-                "[vksdl::graph] pass '%s' did not call endRendering()\n",
-                passDecl.name.c_str());
+            std::fprintf(stderr, "[vksdl::graph] pass '%s' did not call endRendering()\n",
+                         passDecl.name.c_str());
 #endif
 
         // Apply any state overrides from the callback.
         for (const auto& ov : ctx.overrides()) {
-            if (!ov.handle.valid()) continue;
+            if (!ov.handle.valid())
+                continue;
             std::uint32_t ri = ov.handle.index;
             const auto& res = resources_[ri];
 
             if (res.kind == ResourceKind::Image) {
                 if (ov.fullResource) {
                     // Reset the entire map to the override state.
-                    imageMaps_[ri] = ImageSubresourceMap(
-                        res.imageDesc.mipLevels,
-                        res.imageDesc.arrayLayers,
-                        ov.state);
+                    imageMaps_[ri] = ImageSubresourceMap(res.imageDesc.mipLevels,
+                                                         res.imageDesc.arrayLayers, ov.state);
                 } else {
                     imageMaps_[ri].setState(ov.range, ov.state);
                 }
@@ -1493,18 +1484,18 @@ void RenderGraph::execute(VkCommandBuffer cmd) {
     }
 }
 
-
 Result<void> RenderGraph::compileAndExecute(VkCommandBuffer cmd) {
     auto result = compile();
-    if (!result) return result;
+    if (!result)
+        return result;
     execute(cmd);
     return {};
 }
 
-
 Result<void> RenderGraph::prewarm() {
     auto result = compile();
-    if (!result) return result;
+    if (!result)
+        return result;
     reset();
     return {};
 }
@@ -1529,28 +1520,40 @@ void RenderGraph::reset() {
     isCompiled_ = false;
 }
 
-
 static const char* passTypeName(PassType t) {
     switch (t) {
-    case PassType::Graphics: return "Graphics";
-    case PassType::Compute:  return "Compute";
-    case PassType::Transfer: return "Transfer";
+    case PassType::Graphics:
+        return "Graphics";
+    case PassType::Compute:
+        return "Compute";
+    case PassType::Transfer:
+        return "Transfer";
     }
     return "Unknown";
 }
 
 static const char* layoutName(VkImageLayout layout) {
     switch (layout) {
-    case VK_IMAGE_LAYOUT_UNDEFINED:                        return "UNDEFINED";
-    case VK_IMAGE_LAYOUT_GENERAL:                          return "GENERAL";
-    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:         return "COLOR_ATTACHMENT_OPTIMAL";
-    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL: return "DEPTH_STENCIL_ATTACHMENT_OPTIMAL";
-    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:  return "DEPTH_STENCIL_READ_ONLY_OPTIMAL";
-    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:         return "SHADER_READ_ONLY_OPTIMAL";
-    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:             return "TRANSFER_SRC_OPTIMAL";
-    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:             return "TRANSFER_DST_OPTIMAL";
-    case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:                  return "PRESENT_SRC_KHR";
-    default:                                               return "(other)";
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+        return "UNDEFINED";
+    case VK_IMAGE_LAYOUT_GENERAL:
+        return "GENERAL";
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+        return "COLOR_ATTACHMENT_OPTIMAL";
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+        return "DEPTH_STENCIL_ATTACHMENT_OPTIMAL";
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+        return "DEPTH_STENCIL_READ_ONLY_OPTIMAL";
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+        return "SHADER_READ_ONLY_OPTIMAL";
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+        return "TRANSFER_SRC_OPTIMAL";
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+        return "TRANSFER_DST_OPTIMAL";
+    case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+        return "PRESENT_SRC_KHR";
+    default:
+        return "(other)";
     }
 }
 
@@ -1563,26 +1566,27 @@ static void appendStageBits(std::string& out, VkPipelineStageFlags2 flags) {
     bool first = true;
     auto add = [&](VkPipelineStageFlags2 bit, const char* name) {
         if (flags & bit) {
-            if (!first) out += "|";
+            if (!first)
+                out += "|";
             out += name;
             first = false;
         }
     };
 
-    add(VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,               "TOP_OF_PIPE");
-    add(VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,             "DRAW_INDIRECT");
-    add(VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT,              "VERTEX_INPUT");
-    add(VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,             "VERTEX_SHADER");
-    add(VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,           "FRAGMENT_SHADER");
-    add(VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,      "EARLY_FRAG");
-    add(VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,       "LATE_FRAG");
-    add(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,    "COLOR_ATTACHMENT_OUTPUT");
-    add(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,            "COMPUTE_SHADER");
-    add(VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,              "ALL_TRANSFER");
-    add(VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,            "BOTTOM_OF_PIPE");
-    add(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,              "ALL_GRAPHICS");
-    add(VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,              "ALL_COMMANDS");
-    add(VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,    "RT_SHADER");
+    add(VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, "TOP_OF_PIPE");
+    add(VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, "DRAW_INDIRECT");
+    add(VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT, "VERTEX_INPUT");
+    add(VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, "VERTEX_SHADER");
+    add(VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, "FRAGMENT_SHADER");
+    add(VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, "EARLY_FRAG");
+    add(VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, "LATE_FRAG");
+    add(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, "COLOR_ATTACHMENT_OUTPUT");
+    add(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, "COMPUTE_SHADER");
+    add(VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, "ALL_TRANSFER");
+    add(VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, "BOTTOM_OF_PIPE");
+    add(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, "ALL_GRAPHICS");
+    add(VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, "ALL_COMMANDS");
+    add(VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR, "RT_SHADER");
     add(VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, "AS_BUILD");
 
     if (first) {
@@ -1602,28 +1606,29 @@ static void appendAccessBits(std::string& out, VkAccessFlags2 flags) {
     bool first = true;
     auto add = [&](VkAccessFlags2 bit, const char* name) {
         if (flags & bit) {
-            if (!first) out += "|";
+            if (!first)
+                out += "|";
             out += name;
             first = false;
         }
     };
 
-    add(VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,          "INDIRECT_READ");
-    add(VK_ACCESS_2_INDEX_READ_BIT,                     "INDEX_READ");
-    add(VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT,          "VERTEX_READ");
-    add(VK_ACCESS_2_UNIFORM_READ_BIT,                   "UNIFORM_READ");
-    add(VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT,          "INPUT_ATTACHMENT_READ");
-    add(VK_ACCESS_2_SHADER_READ_BIT,                    "SHADER_READ");
-    add(VK_ACCESS_2_SHADER_WRITE_BIT,                   "SHADER_WRITE");
-    add(VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,          "COLOR_ATTACHMENT_READ");
-    add(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,         "COLOR_ATTACHMENT_WRITE");
-    add(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,  "DEPTH_STENCIL_READ");
+    add(VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT, "INDIRECT_READ");
+    add(VK_ACCESS_2_INDEX_READ_BIT, "INDEX_READ");
+    add(VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT, "VERTEX_READ");
+    add(VK_ACCESS_2_UNIFORM_READ_BIT, "UNIFORM_READ");
+    add(VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT, "INPUT_ATTACHMENT_READ");
+    add(VK_ACCESS_2_SHADER_READ_BIT, "SHADER_READ");
+    add(VK_ACCESS_2_SHADER_WRITE_BIT, "SHADER_WRITE");
+    add(VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT, "COLOR_ATTACHMENT_READ");
+    add(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, "COLOR_ATTACHMENT_WRITE");
+    add(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, "DEPTH_STENCIL_READ");
     add(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, "DEPTH_STENCIL_WRITE");
-    add(VK_ACCESS_2_TRANSFER_READ_BIT,                  "TRANSFER_READ");
-    add(VK_ACCESS_2_TRANSFER_WRITE_BIT,                 "TRANSFER_WRITE");
-    add(VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,            "SHADER_SAMPLED_READ");
-    add(VK_ACCESS_2_SHADER_STORAGE_READ_BIT,            "SHADER_STORAGE_READ");
-    add(VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,           "SHADER_STORAGE_WRITE");
+    add(VK_ACCESS_2_TRANSFER_READ_BIT, "TRANSFER_READ");
+    add(VK_ACCESS_2_TRANSFER_WRITE_BIT, "TRANSFER_WRITE");
+    add(VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, "SHADER_SAMPLED_READ");
+    add(VK_ACCESS_2_SHADER_STORAGE_READ_BIT, "SHADER_STORAGE_READ");
+    add(VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT, "SHADER_STORAGE_WRITE");
 
     if (first) {
         char buf[32];
@@ -1634,36 +1639,43 @@ static void appendAccessBits(std::string& out, VkAccessFlags2 flags) {
 
 static const char* formatName(VkFormat format) {
     switch (format) {
-    case VK_FORMAT_R8G8B8A8_UNORM:         return "R8G8B8A8_UNORM";
-    case VK_FORMAT_R8G8B8A8_SRGB:          return "R8G8B8A8_SRGB";
-    case VK_FORMAT_B8G8R8A8_UNORM:         return "B8G8R8A8_UNORM";
-    case VK_FORMAT_B8G8R8A8_SRGB:          return "B8G8R8A8_SRGB";
-    case VK_FORMAT_R16G16B16A16_SFLOAT:    return "R16G16B16A16_SFLOAT";
-    case VK_FORMAT_R32G32B32A32_SFLOAT:    return "R32G32B32A32_SFLOAT";
-    case VK_FORMAT_D32_SFLOAT:             return "D32_SFLOAT";
-    case VK_FORMAT_D24_UNORM_S8_UINT:      return "D24_UNORM_S8_UINT";
-    case VK_FORMAT_D32_SFLOAT_S8_UINT:     return "D32_SFLOAT_S8_UINT";
-    case VK_FORMAT_D16_UNORM:              return "D16_UNORM";
-    default:                               return "(other format)";
+    case VK_FORMAT_R8G8B8A8_UNORM:
+        return "R8G8B8A8_UNORM";
+    case VK_FORMAT_R8G8B8A8_SRGB:
+        return "R8G8B8A8_SRGB";
+    case VK_FORMAT_B8G8R8A8_UNORM:
+        return "B8G8R8A8_UNORM";
+    case VK_FORMAT_B8G8R8A8_SRGB:
+        return "B8G8R8A8_SRGB";
+    case VK_FORMAT_R16G16B16A16_SFLOAT:
+        return "R16G16B16A16_SFLOAT";
+    case VK_FORMAT_R32G32B32A32_SFLOAT:
+        return "R32G32B32A32_SFLOAT";
+    case VK_FORMAT_D32_SFLOAT:
+        return "D32_SFLOAT";
+    case VK_FORMAT_D24_UNORM_S8_UINT:
+        return "D24_UNORM_S8_UINT";
+    case VK_FORMAT_D32_SFLOAT_S8_UINT:
+        return "D32_SFLOAT_S8_UINT";
+    case VK_FORMAT_D16_UNORM:
+        return "D16_UNORM";
+    default:
+        return "(other format)";
     }
 }
 
 // Look up resource name by VkImage handle.
-static const char* findResourceName(
-    const std::vector<ResourceEntry>& resources, VkImage image) {
+static const char* findResourceName(const std::vector<ResourceEntry>& resources, VkImage image) {
     for (const auto& r : resources) {
-        if (r.kind == ResourceKind::Image && r.vkImage == image
-            && !r.name.empty())
+        if (r.kind == ResourceKind::Image && r.vkImage == image && !r.name.empty())
             return r.name.c_str();
     }
     return nullptr;
 }
 
-static const char* findBufferName(
-    const std::vector<ResourceEntry>& resources, VkBuffer buffer) {
+static const char* findBufferName(const std::vector<ResourceEntry>& resources, VkBuffer buffer) {
     for (const auto& r : resources) {
-        if (r.kind == ResourceKind::Buffer && r.vkBuffer == buffer
-            && !r.name.empty())
+        if (r.kind == ResourceKind::Buffer && r.vkBuffer == buffer && !r.name.empty())
             return r.name.c_str();
     }
     return nullptr;
@@ -1678,17 +1690,16 @@ void RenderGraph::dumpLog() const {
     std::fprintf(stderr, "[vksdl::graph] Compiled %u passes:\n", stats_.passCount);
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(compiledPasses_.size()); ++i) {
         const auto& decl = passes_[compiledPasses_[i].passIndex];
-        std::fprintf(stderr, "  [%u] %-20s (%s)\n",
-                     i, decl.name.c_str(), passTypeName(decl.type));
+        std::fprintf(stderr, "  [%u] %-20s (%s)\n", i, decl.name.c_str(), passTypeName(decl.type));
     }
 
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(compiledPasses_.size()); ++i) {
         const auto& cp = compiledPasses_[i];
         const auto& barriers = cp.barriers;
-        if (barriers.empty()) continue;
+        if (barriers.empty())
+            continue;
 
-        std::fprintf(stderr, "[vksdl::graph] pass '%s':\n",
-                     passes_[cp.passIndex].name.c_str());
+        std::fprintf(stderr, "[vksdl::graph] pass '%s':\n", passes_[cp.passIndex].name.c_str());
 
         for (const auto& b : barriers.imageBarriers) {
             const char* rname = findResourceName(resources_, b.image);
@@ -1702,20 +1713,17 @@ void RenderGraph::dumpLog() const {
             // Show "(already visible)" when srcAccess==0 but srcStage!=0.
             // This is the multi-reader fan-out signal: the write was already
             // made visible by a prior reader's barrier, only execution dep needed.
-            if (b.srcAccessMask == VK_ACCESS_2_NONE
-                && b.srcStageMask != VK_PIPELINE_STAGE_2_NONE)
+            if (b.srcAccessMask == VK_ACCESS_2_NONE && b.srcStageMask != VK_PIPELINE_STAGE_2_NONE)
                 srcAccess = "(already visible)";
             else
                 appendAccessBits(srcAccess, b.srcAccessMask);
 
             std::fprintf(stderr,
-                "  IMG barrier: %-18s %s -> %s\n"
-                "               src: %s / %s\n"
-                "               dst: %s / %s\n",
-                nameStr.c_str(),
-                layoutName(b.oldLayout), layoutName(b.newLayout),
-                srcStage.c_str(), srcAccess.c_str(),
-                dstStage.c_str(), dstAccess.c_str());
+                         "  IMG barrier: %-18s %s -> %s\n"
+                         "               src: %s / %s\n"
+                         "               dst: %s / %s\n",
+                         nameStr.c_str(), layoutName(b.oldLayout), layoutName(b.newLayout),
+                         srcStage.c_str(), srcAccess.c_str(), dstStage.c_str(), dstAccess.c_str());
         }
 
         for (const auto& b : barriers.bufferBarriers) {
@@ -1727,65 +1735,55 @@ void RenderGraph::dumpLog() const {
             appendStageBits(dstStage, b.dstStageMask);
             appendAccessBits(dstAccess, b.dstAccessMask);
 
-            if (b.srcAccessMask == VK_ACCESS_2_NONE
-                && b.srcStageMask != VK_PIPELINE_STAGE_2_NONE)
+            if (b.srcAccessMask == VK_ACCESS_2_NONE && b.srcStageMask != VK_PIPELINE_STAGE_2_NONE)
                 srcAccess = "(already visible)";
             else
                 appendAccessBits(srcAccess, b.srcAccessMask);
 
             std::fprintf(stderr,
-                "  BUF barrier: %-18s\n"
-                "               src: %s / %s\n"
-                "               dst: %s / %s\n",
-                nameStr.c_str(),
-                srcStage.c_str(), srcAccess.c_str(),
-                dstStage.c_str(), dstAccess.c_str());
+                         "  BUF barrier: %-18s\n"
+                         "               src: %s / %s\n"
+                         "               dst: %s / %s\n",
+                         nameStr.c_str(), srcStage.c_str(), srcAccess.c_str(), dstStage.c_str(),
+                         dstAccess.c_str());
         }
     }
 
     if (stats_.transientCount > 0) {
         std::fprintf(stderr, "[vksdl::graph] Transient allocations:\n");
         for (const auto& res : resources_) {
-            if (res.tag != ResourceTag::Transient) continue;
+            if (res.tag != ResourceTag::Transient)
+                continue;
             const char* name = res.name.empty() ? "(unnamed)" : res.name.c_str();
             if (res.kind == ResourceKind::Image) {
                 std::uint64_t handle{};
                 std::memcpy(&handle, &res.vkImage, sizeof(handle));
-                std::fprintf(stderr,
-                    "  %-18s %ux%u  %-24s (VkImage 0x%" PRIx64 ")\n",
-                    name, res.imageDesc.width, res.imageDesc.height,
-                    formatName(res.imageDesc.format), handle);
+                std::fprintf(stderr, "  %-18s %ux%u  %-24s (VkImage 0x%" PRIx64 ")\n", name,
+                             res.imageDesc.width, res.imageDesc.height,
+                             formatName(res.imageDesc.format), handle);
             } else {
                 std::uint64_t handle{};
                 std::memcpy(&handle, &res.vkBuffer, sizeof(handle));
-                std::fprintf(stderr,
-                    "  %-18s %llu bytes (VkBuffer 0x%" PRIx64 ")\n",
-                    name,
-                    static_cast<unsigned long long>(res.bufferDesc.size),
-                    handle);
+                std::fprintf(stderr, "  %-18s %llu bytes (VkBuffer 0x%" PRIx64 ")\n", name,
+                             static_cast<unsigned long long>(res.bufferDesc.size), handle);
             }
         }
     }
 
     std::fprintf(stderr,
-        "[vksdl::graph] compile %.0fus: resolve %.0fus, usage %.0fus, "
-        "adjacency %.0fus, sort %.0fus,\n"
-        "               lifetime %.0fus, alloc %.0fus, stateInit %.0fus, "
-        "barriers %.0fus, renderTargets %.0fus, descriptors %.0fus, stats %.0fus\n",
-        stats_.compileTimeUs,
-        stats_.resolveUs, stats_.usageUs,
-        stats_.adjacencyUs, stats_.sortUs,
-        stats_.lifetimeUs, stats_.allocUs,
-        stats_.stateInitUs, stats_.barriersUs,
-        stats_.renderTargetUs, stats_.descriptorUs,
-        stats_.statsUs);
+                 "[vksdl::graph] compile %.0fus: resolve %.0fus, usage %.0fus, "
+                 "adjacency %.0fus, sort %.0fus,\n"
+                 "               lifetime %.0fus, alloc %.0fus, stateInit %.0fus, "
+                 "barriers %.0fus, renderTargets %.0fus, descriptors %.0fus, stats %.0fus\n",
+                 stats_.compileTimeUs, stats_.resolveUs, stats_.usageUs, stats_.adjacencyUs,
+                 stats_.sortUs, stats_.lifetimeUs, stats_.allocUs, stats_.stateInitUs,
+                 stats_.barriersUs, stats_.renderTargetUs, stats_.descriptorUs, stats_.statsUs);
 
     std::fprintf(stderr,
-        "[vksdl::graph] %u barriers (%u image, %u buffer), "
-        "%u passes, %u transients\n",
-        stats_.imageBarrierCount + stats_.bufferBarrierCount,
-        stats_.imageBarrierCount, stats_.bufferBarrierCount,
-        stats_.passCount, stats_.transientCount);
+                 "[vksdl::graph] %u barriers (%u image, %u buffer), "
+                 "%u passes, %u transients\n",
+                 stats_.imageBarrierCount + stats_.bufferBarrierCount, stats_.imageBarrierCount,
+                 stats_.bufferBarrierCount, stats_.passCount, stats_.transientCount);
 }
 
 } // namespace vksdl::graph

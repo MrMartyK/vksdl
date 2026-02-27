@@ -11,14 +11,17 @@ namespace vksdl {
 
 // Result<T> holds either a value or an Error.
 // Intentionally simple -- no monadic chaining, just check and unwrap.
-template <typename T>
-class Result {
-public:
-    Result(T value) : data_(std::move(value)) {}             // NOLINT implicit
-    Result(Error error) : data_(std::move(error)) {}         // NOLINT implicit
+template <typename T> class Result {
+  public:
+    Result(T value) : data_(std::move(value)) {}     // NOLINT implicit
+    Result(Error error) : data_(std::move(error)) {} // NOLINT implicit
 
-    [[nodiscard]] bool ok() const { return std::holds_alternative<T>(data_); }
-    explicit operator bool() const { return ok(); }
+    [[nodiscard]] bool ok() const {
+        return std::holds_alternative<T>(data_);
+    }
+    explicit operator bool() const {
+        return ok();
+    }
 
     [[nodiscard]] T& value() & {
         assert(ok() && "called value() on error Result");
@@ -32,6 +35,7 @@ public:
 
     [[nodiscard]] T value() && {
         assert(ok() && "called value() on error Result");
+        // cppcheck-suppress returnStdMoveLocal ; std::get returns lvalue ref, move is intentional
         return std::move(std::get<T>(data_));
     }
 
@@ -47,28 +51,34 @@ public:
 
     [[nodiscard]] Error error() && {
         assert(!ok() && "called error() on ok Result");
+        // cppcheck-suppress returnStdMoveLocal ; std::get returns lvalue ref, move is intentional
         return std::move(std::get<Error>(data_));
     }
 
     // Unwrap helper. Throws when enabled, fail-fast when disabled.
     [[nodiscard]] T orThrow() && {
-        if (!ok()) throwError(error());
+        if (!ok())
+            throwError(error());
+        // cppcheck-suppress returnStdMoveLocal ; std::get returns lvalue ref, move is intentional
         return std::move(std::get<T>(data_));
     }
 
-private:
+  private:
     std::variant<T, Error> data_;
 };
 
 // Specialization for Result<void> -- success carries no value.
-template <>
-class Result<void> {
-public:
-    Result() : error_{} {}                                      // success
-    Result(Error error) : error_(std::move(error)) {}           // NOLINT implicit
+template <> class Result<void> {
+  public:
+    Result() : error_{} {}                            // success
+    Result(Error error) : error_(std::move(error)) {} // NOLINT implicit
 
-    [[nodiscard]] bool ok() const { return !error_.has_value(); }
-    explicit operator bool() const { return ok(); }
+    [[nodiscard]] bool ok() const {
+        return !error_.has_value();
+    }
+    explicit operator bool() const {
+        return ok();
+    }
 
     [[nodiscard]] Error& error() & {
         assert(!ok() && "called error() on ok Result<void>");
@@ -81,10 +91,11 @@ public:
     }
 
     void orThrow() && {
-        if (!ok()) throwError(error());
+        if (!ok())
+            throwError(error());
     }
 
-private:
+  private:
     std::optional<Error> error_;
 };
 

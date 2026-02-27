@@ -167,7 +167,7 @@ jobs:
         run: >-
           cmake -B build -S .
           -G "Visual Studio 17 2022" -A x64
-          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
           -DVKSDL_BUILD_EXAMPLES=OFF
 
       - name: Build
@@ -176,7 +176,7 @@ jobs:
       - name: Unit tests
         run: >-
           ctest --test-dir build --output-on-failure -C Release
-          -R "test_error|test_result|test_projection|test_transform|test_native_accessors|test_wsi_extensions|test_resource_state|test_barrier_compiler"
+          -R "^(test_error|test_result|test_projection|test_transform|test_native_accessors|test_wsi_extensions|test_resource_state|test_barrier_compiler)$"
 
   # ── Windows (MSYS2 UCRT64) ────────────────────────────────────────
   windows-ucrt:
@@ -236,7 +236,7 @@ jobs:
       - name: Unit tests
         run: >-
           ctest --test-dir build --output-on-failure
-          -R "test_error|test_result|test_projection|test_transform"
+          -R "^(test_error|test_result|test_projection|test_transform)$"
 
       - name: ccache stats
         if: always()
@@ -313,13 +313,13 @@ jobs:
       - name: Unit tests
         run: >-
           ctest --test-dir build --output-on-failure
-          -R "test_error|test_result|test_projection|test_transform"
+          -R "^(test_error|test_result|test_projection|test_transform)$"
 
       - name: Integration tests (Lavapipe)
         timeout-minutes: 10
         run: >-
           xvfb-run ctest --test-dir build --output-on-failure
-          -E "test_error|test_result|test_projection|test_transform"
+          -E "^(test_error|test_result|test_projection|test_transform)$"
 
   # ── Install + external consumer smoke (find_package(vksdl)) ──────
   install-consumer-smoke:
@@ -410,7 +410,7 @@ jobs:
 
           cmake -B consumer-build -S tests/consumer_smoke \
             -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_MANIFEST_DIR="$PWD" \
             -Dvksdl_DIR="$VKSDL_CONFIG_DIR" \
             -DCMAKE_PREFIX_PATH="$PWD/install" \
@@ -476,7 +476,7 @@ jobs:
       - name: Non-window test subset
         run: >-
           ctest --test-dir build --output-on-failure
-          -R "test_error|test_result|test_projection|test_transform|test_resource_state|test_barrier_compiler"
+          -R "^(test_error|test_result|test_projection|test_transform|test_resource_state|test_barrier_compiler)$"
 
   # ── Strict warning lane (Linux, C++20, -Werror) ────────────────────
   strict-warnings:
@@ -535,7 +535,7 @@ jobs:
       - name: Unit tests
         run: >-
           ctest --test-dir build --output-on-failure
-          -R "test_error|test_result|test_projection|test_transform"
+          -R "^(test_error|test_result|test_projection|test_transform)$"
 
   # ── No-exceptions build + link probe ──────────────────────────────
   no-exceptions:
@@ -705,14 +705,14 @@ jobs:
       - name: Unit tests
         run: >-
           ctest --test-dir build --output-on-failure
-          -R "test_error|test_result|test_projection|test_transform"
+          -R "^(test_error|test_result|test_projection|test_transform)$"
 
       - name: Integration tests (Lavapipe + ASan)
         continue-on-error: true
         timeout-minutes: 10
         run: >-
           xvfb-run ctest --test-dir build --output-on-failure
-          -E "test_error|test_result|test_projection|test_transform"
+          -E "^(test_error|test_result|test_projection|test_transform)$"
 
   # ── Thread Sanitizer (separate from ASan -- cannot combine) ───────
   thread-sanitizer:
@@ -779,14 +779,14 @@ jobs:
       - name: Unit tests
         run: >-
           ctest --test-dir build --output-on-failure
-          -R "test_error|test_result|test_projection|test_transform"
+          -R "^(test_error|test_result|test_projection|test_transform)$"
 
       - name: Integration tests (Lavapipe + TSan)
         continue-on-error: true
         timeout-minutes: 15
         run: >-
           xvfb-run ctest --test-dir build --output-on-failure
-          -E "test_error|test_result|test_projection|test_transform"
+          -E "^(test_error|test_result|test_projection|test_transform)$"
 
   # ── Code Coverage (GCC + gcov + lcov) ─────────────────────────────
   coverage:

@@ -29,7 +29,9 @@ foreach(SHADER ${SHADERS})
     list(APPEND SPV_FILES ${SPV})
 endforeach()
 
-add_custom_target(triangle_shaders ALL DEPENDS ${SPV_FILES})
+if(NOT TARGET triangle_shaders)
+    add_custom_target(triangle_shaders ALL DEPENDS ${SPV_FILES})
+endif()
 add_dependencies(triangle triangle_shaders)
 
 # Copy compiled shaders next to the executable so SDL_GetBasePath() finds them.

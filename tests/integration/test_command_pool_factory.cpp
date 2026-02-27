@@ -14,22 +14,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_command_pool_factory")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_command_pool_factory")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     std::uint32_t graphics = device.value().queueFamilies().graphics;
@@ -82,15 +82,13 @@ int main() {
         vksdl::CommandPool* mainPool = &factory.value().getForCurrentThread();
         vksdl::CommandPool* threadPool = nullptr;
 
-        std::thread worker([&]() {
-            threadPool = &factory.value().getForCurrentThread();
-        });
+        std::thread worker([&]() { threadPool = &factory.value().getForCurrentThread(); });
         worker.join();
 
-        assert(mainPool   != nullptr);
+        assert(mainPool != nullptr);
         assert(threadPool != nullptr);
-        assert(mainPool   != threadPool);
-        assert(mainPool->native()   != VK_NULL_HANDLE);
+        assert(mainPool != threadPool);
+        assert(mainPool->native() != VK_NULL_HANDLE);
         assert(threadPool->native() != VK_NULL_HANDLE);
         std::printf("  4. separate pools per thread: ok\n");
     }
@@ -100,8 +98,8 @@ int main() {
         assert(factory.ok());
 
         // Populate the factory from both the main thread and a worker.
-        (void)factory.value().getForCurrentThread();
-        std::thread([&]() { (void)factory.value().getForCurrentThread(); }).join();
+        (void) factory.value().getForCurrentThread();
+        std::thread([&]() { (void) factory.value().getForCurrentThread(); }).join();
 
         // Move-construct.
         vksdl::CommandPoolFactory moved = std::move(factory.value());

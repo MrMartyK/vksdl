@@ -19,7 +19,7 @@ namespace vksdl {
 // (atomic acquire on the optimized pipeline pointer). Destruction is not
 // concurrent with bind().
 class PipelineHandle {
-public:
+  public:
     ~PipelineHandle();
     PipelineHandle(PipelineHandle&&) noexcept;
     PipelineHandle& operator=(PipelineHandle&&) noexcept;
@@ -37,10 +37,10 @@ public:
     [[nodiscard]] bool isReady() const;
 
     // Best available pipeline handle (optimized if ready, baseline otherwise).
-    [[nodiscard]] VkPipeline       vkPipeline()      const;
+    [[nodiscard]] VkPipeline vkPipeline() const;
     [[nodiscard]] VkPipelineLayout vkPipelineLayout() const;
 
-private:
+  private:
     friend class PipelineCompiler;
     PipelineHandle() = default;
 

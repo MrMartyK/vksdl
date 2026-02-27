@@ -12,23 +12,23 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_async_compute")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_async_compute")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .needAsyncCompute()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .needAsyncCompute()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
@@ -38,8 +38,7 @@ int main() {
 
     std::printf("  dedicated compute: %s (family %u, graphics %u)\n",
                 dev.hasDedicatedCompute() ? "yes" : "no (using graphics)",
-                dev.queueFamilies().compute,
-                dev.queueFamilies().graphics);
+                dev.queueFamilies().compute, dev.queueFamilies().graphics);
 
     // hasAsyncCompute() and hasDedicatedCompute() must agree.
     assert(dev.hasAsyncCompute() == dev.hasDedicatedCompute());
@@ -59,8 +58,8 @@ int main() {
         auto cq = vksdl::ComputeQueue::create(dev);
         assert(cq.ok() && "ComputeQueue creation failed");
         assert(cq.value().vkTimelineSemaphore() != VK_NULL_HANDLE);
-        assert(cq.value().vkCommandPool()       != VK_NULL_HANDLE);
-        assert(cq.value().currentValue()        == 0);
+        assert(cq.value().vkCommandPool() != VK_NULL_HANDLE);
+        assert(cq.value().currentValue() == 0);
         std::printf("  create ComputeQueue: ok\n");
     }
 
@@ -74,7 +73,7 @@ int main() {
         });
         assert(pending.ok() && "submit(lambda) failed");
         assert(pending.value().timelineValue == 1);
-        assert(cq.value().currentValue()    == 1);
+        assert(cq.value().currentValue() == 1);
         std::printf("  submit(lambda) non-blocking: ok\n");
 
         // Wait and verify completion.
@@ -89,9 +88,9 @@ int main() {
         assert(cq.ok());
 
         VkCommandBufferAllocateInfo cmdAI{};
-        cmdAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmdAI.commandPool        = cq.value().vkCommandPool();
-        cmdAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdAI.commandPool = cq.value().vkCommandPool();
+        cmdAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdAI.commandBufferCount = 1;
 
         VkCommandBuffer cmd = VK_NULL_HANDLE;
@@ -118,10 +117,7 @@ int main() {
         auto cq = vksdl::ComputeQueue::create(dev);
         assert(cq.ok());
 
-        auto buf = vksdl::BufferBuilder(allocator.value())
-            .storageBuffer()
-            .size(256)
-            .build();
+        auto buf = vksdl::BufferBuilder(allocator.value()).storageBuffer().size(256).build();
         assert(buf.ok());
 
         // Submit a no-op compute workload.
@@ -131,8 +127,8 @@ int main() {
 
         // Create a command buffer on the graphics queue to receive the barrier.
         VkCommandPoolCreateInfo poolCI{};
-        poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         poolCI.queueFamilyIndex = dev.queueFamilies().graphics;
 
         VkCommandPool graphicsPool = VK_NULL_HANDLE;
@@ -140,9 +136,9 @@ int main() {
         assert(vr == VK_SUCCESS);
 
         VkCommandBufferAllocateInfo cmdAI{};
-        cmdAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmdAI.commandPool        = graphicsPool;
-        cmdAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdAI.commandPool = graphicsPool;
+        cmdAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdAI.commandBufferCount = 1;
 
         VkCommandBuffer gfxCmd = VK_NULL_HANDLE;
@@ -157,12 +153,9 @@ int main() {
         // No-op when needsOwnershipTransfer is false (same-family fallback).
         vksdl::PendingCompute noop;
         noop.needsOwnershipTransfer = false;
-        vksdl::ComputeQueue::insertBufferAcquireBarrier(
-            gfxCmd,
-            buf.value().vkBuffer(),
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
-            noop);
+        vksdl::ComputeQueue::insertBufferAcquireBarrier(gfxCmd, buf.value().vkBuffer(),
+                                                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                        VK_ACCESS_2_SHADER_STORAGE_READ_BIT, noop);
 
         vkEndCommandBuffer(gfxCmd);
         vkDestroyCommandPool(dev.vkDevice(), graphicsPool, nullptr);

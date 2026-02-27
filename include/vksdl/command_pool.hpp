@@ -17,9 +17,9 @@ class Device;
 //
 // Thread safety: thread-confined. Each thread needs its own pool.
 class CommandPool {
-public:
-    [[nodiscard]] static Result<CommandPool> create(
-        const Device& device, std::uint32_t queueFamily);
+  public:
+    [[nodiscard]] static Result<CommandPool> create(const Device& device,
+                                                    std::uint32_t queueFamily);
 
     ~CommandPool();
     CommandPool(CommandPool&&) noexcept;
@@ -27,8 +27,12 @@ public:
     CommandPool(const CommandPool&) = delete;
     CommandPool& operator=(const CommandPool&) = delete;
 
-    [[nodiscard]] VkCommandPool native()        const { return pool_; }
-    [[nodiscard]] VkCommandPool vkCommandPool() const { return native(); }
+    [[nodiscard]] VkCommandPool native() const {
+        return pool_;
+    }
+    [[nodiscard]] VkCommandPool vkCommandPool() const {
+        return native();
+    }
 
     // Allocate a single primary command buffer.
     [[nodiscard]] Result<VkCommandBuffer> allocate();
@@ -39,14 +43,14 @@ public:
     // Reset the pool, recycling all command buffers.
     void reset();
 
-private:
+  private:
     friend class CommandPoolFactory;
 
     CommandPool() = default;
     void destroy();
 
-    VkDevice      device_ = VK_NULL_HANDLE;
-    VkCommandPool pool_   = VK_NULL_HANDLE;
+    VkDevice device_ = VK_NULL_HANDLE;
+    VkCommandPool pool_ = VK_NULL_HANDLE;
 };
 
 } // namespace vksdl

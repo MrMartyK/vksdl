@@ -12,8 +12,7 @@ namespace vksdl {
 // not enabled on the device.
 
 // Core -- any object type.
-void debugName(VkDevice device, VkObjectType type, std::uint64_t handle,
-               std::string_view name);
+void debugName(VkDevice device, VkObjectType type, std::uint64_t handle, std::string_view name);
 
 // Convenience overloads for common handle types.
 void debugName(VkDevice device, VkImage image, std::string_view name);

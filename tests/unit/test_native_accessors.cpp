@@ -18,15 +18,13 @@
 
 namespace {
 
-template<typename T, typename Handle, typename = void>
-struct NativeIs : std::false_type {};
+template <typename T, typename Handle, typename = void> struct NativeIs : std::false_type {};
 
-template<typename T, typename Handle>
+template <typename T, typename Handle>
 struct NativeIs<T, Handle, std::void_t<decltype(std::declval<const T&>().native())>>
-    : std::bool_constant<
-          std::is_same_v<
-              std::remove_cv_t<std::remove_reference_t<decltype(std::declval<const T&>().native())>>,
-              Handle>> {};
+    : std::bool_constant<std::is_same_v<
+          std::remove_cv_t<std::remove_reference_t<decltype(std::declval<const T&>().native())>>,
+          Handle>> {};
 
 } // namespace
 

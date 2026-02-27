@@ -18,7 +18,7 @@ class Device;
 // Thread safety: thread-confined. VkPipelineCache requires external
 // synchronization for concurrent pipeline creation or merge.
 class PipelineCache {
-public:
+  public:
     ~PipelineCache();
     PipelineCache(PipelineCache&&) noexcept;
     PipelineCache& operator=(PipelineCache&&) noexcept;
@@ -29,7 +29,7 @@ public:
 
     // Falls back to empty cache if the file does not exist or is unreadable.
     [[nodiscard]] static Result<PipelineCache> load(const Device& device,
-                                                     const std::filesystem::path& path);
+                                                    const std::filesystem::path& path);
 
     [[nodiscard]] Result<void> save(const std::filesystem::path& path) const;
     [[nodiscard]] Result<void> merge(const PipelineCache& src);
@@ -37,14 +37,18 @@ public:
 
     [[nodiscard]] std::size_t dataSize() const;
 
-    [[nodiscard]] VkPipelineCache native()          const { return cache_; }
-    [[nodiscard]] VkPipelineCache vkPipelineCache() const { return native(); }
+    [[nodiscard]] VkPipelineCache native() const {
+        return cache_;
+    }
+    [[nodiscard]] VkPipelineCache vkPipelineCache() const {
+        return native();
+    }
 
-private:
+  private:
     PipelineCache() = default;
 
-    VkDevice         device_ = VK_NULL_HANDLE;
-    VkPipelineCache  cache_  = VK_NULL_HANDLE;
+    VkDevice device_ = VK_NULL_HANDLE;
+    VkPipelineCache cache_ = VK_NULL_HANDLE;
 };
 
 } // namespace vksdl

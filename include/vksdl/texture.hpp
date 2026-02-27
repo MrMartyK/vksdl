@@ -27,16 +27,16 @@ struct ImageData {
     ImageData(const ImageData&) = delete;
     ImageData& operator=(const ImageData&) = delete;
 
-    unsigned char* pixels   = nullptr;
-    std::uint32_t  width    = 0;
-    std::uint32_t  height   = 0;
-    std::uint32_t  channels = 0;
+    unsigned char* pixels = nullptr;
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    std::uint32_t channels = 0;
 
     [[nodiscard]] VkDeviceSize sizeBytes() const {
         return static_cast<VkDeviceSize>(width) * height * channels;
     }
 
-private:
+  private:
     friend Result<ImageData> loadImage(const std::filesystem::path&);
     ImageData() = default;
 };
@@ -53,12 +53,8 @@ private:
 // When dst.mipLevels() == 1: transitions to SHADER_READ_ONLY_OPTIMAL (ready to sample).
 // When dst.mipLevels() > 1:  leaves level 0 in TRANSFER_DST_OPTIMAL -- call
 //   generateMipmaps() next to fill remaining levels and transition to SHADER_READ_ONLY.
-[[nodiscard]] Result<void> uploadToImage(
-    const Allocator& allocator,
-    const Device& device,
-    const Image& dst,
-    const void* pixels,
-    VkDeviceSize size);
+[[nodiscard]] Result<void> uploadToImage(const Allocator& allocator, const Device& device,
+                                         const Image& dst, const void* pixels, VkDeviceSize size);
 
 // Compute full mip chain count for given dimensions.
 // Returns floor(log2(max(width, height))) + 1.
@@ -74,8 +70,7 @@ private:
 void generateMipmaps(VkCommandBuffer cmd, const Image& image);
 
 // Raw-handle overload (escape hatch). Same preconditions and postconditions.
-void generateMipmaps(VkCommandBuffer cmd, VkImage image, VkFormat format,
-                     std::uint32_t width, std::uint32_t height,
-                     std::uint32_t mipLevels);
+void generateMipmaps(VkCommandBuffer cmd, VkImage image, VkFormat format, std::uint32_t width,
+                     std::uint32_t height, std::uint32_t mipLevels);
 
 } // namespace vksdl

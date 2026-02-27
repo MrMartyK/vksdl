@@ -27,17 +27,17 @@ class Device;
 // When hasMemoryBudget() is false, usage equals blockBytes and budget equals
 // heapSize (both derived from VkPhysicalDeviceMemoryProperties, no OS query).
 struct HeapBudget {
-    std::uint64_t      usage    = 0;
-    std::uint64_t      budget   = 0;
-    std::uint64_t      heapSize = 0;
-    VkMemoryHeapFlags  flags    = 0;
+    std::uint64_t usage = 0;
+    std::uint64_t budget = 0;
+    std::uint64_t heapSize = 0;
+    VkMemoryHeapFlags flags = 0;
 };
 
 // Thread safety: thread-confined. VMA allocations require external
 // synchronization unless VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT
 // is NOT set (vksdl does not set it).
 class Allocator {
-public:
+  public:
     [[nodiscard]] static Result<Allocator> create(const Instance& instance, const Device& device);
 
     ~Allocator();
@@ -46,12 +46,20 @@ public:
     Allocator(const Allocator&) = delete;
     Allocator& operator=(const Allocator&) = delete;
 
-    [[nodiscard]] VmaAllocator native()       const { return allocator_; }
-    [[nodiscard]] VmaAllocator vmaAllocator() const { return native(); }
-    [[nodiscard]] VkDevice     vkDevice()     const { return device_; }
+    [[nodiscard]] VmaAllocator native() const {
+        return allocator_;
+    }
+    [[nodiscard]] VmaAllocator vmaAllocator() const {
+        return native();
+    }
+    [[nodiscard]] VkDevice vkDevice() const {
+        return device_;
+    }
 
     // Returns true when VK_EXT_memory_budget was enabled at allocator creation.
-    [[nodiscard]] bool hasMemoryBudget() const { return hasMemoryBudget_; }
+    [[nodiscard]] bool hasMemoryBudget() const {
+        return hasMemoryBudget_;
+    }
 
     // Returns per-heap budget snapshots. Element count equals the physical
     // device heap count. When hasMemoryBudget() is false, values fall back
@@ -65,12 +73,12 @@ public:
     // systems where VRAM and host-visible BAR are separate device-local heaps).
     [[nodiscard]] float gpuMemoryUsagePercent() const;
 
-private:
+  private:
     Allocator() = default;
 
-    VmaAllocator allocator_       = nullptr;
-    VkDevice     device_          = VK_NULL_HANDLE;
-    bool         hasMemoryBudget_ = false;
+    VmaAllocator allocator_ = nullptr;
+    VkDevice device_ = VK_NULL_HANDLE;
+    bool hasMemoryBudget_ = false;
 };
 
 } // namespace vksdl

@@ -10,10 +10,10 @@ class Image;
 
 // Full-control image layout transition using VkImageMemoryBarrier2.
 // Inserts a pipeline barrier with the exact stages and access masks you specify.
-void transitionImage(VkCommandBuffer cmd, VkImage image,
-                     VkImageLayout oldLayout, VkImageLayout newLayout,
-                     VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
-                     VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess);
+void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout,
+                     VkImageLayout newLayout, VkPipelineStageFlags2 srcStage,
+                     VkAccessFlags2 srcAccess, VkPipelineStageFlags2 dstStage,
+                     VkAccessFlags2 dstAccess);
 
 // Convenience: UNDEFINED -> COLOR_ATTACHMENT_OPTIMAL.
 // Use before rendering to a swapchain image.
@@ -60,29 +60,24 @@ void barrierAsBuildToTlasBuild(VkCommandBuffer cmd);
 // Blit an offscreen image to a swapchain image, with barriers.
 // Transitions src from srcCurrentLayout -> TRANSFER_SRC, dst from UNDEFINED -> TRANSFER_DST,
 // performs the blit (LINEAR filter), then transitions dst -> PRESENT_SRC.
-void blitToSwapchain(VkCommandBuffer cmd,
-                     VkImage src, VkExtent2D srcExtent,
-                     VkImageLayout srcCurrentLayout,
-                     VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
-                     VkImage dst, VkExtent2D dstExtent);
+void blitToSwapchain(VkCommandBuffer cmd, VkImage src, VkExtent2D srcExtent,
+                     VkImageLayout srcCurrentLayout, VkPipelineStageFlags2 srcStage,
+                     VkAccessFlags2 srcAccess, VkImage dst, VkExtent2D dstExtent);
 
-void blitToSwapchain(VkCommandBuffer cmd,
-                     const Image& src,
-                     VkImageLayout srcCurrentLayout,
-                     VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
-                     VkImage dst, VkExtent2D dstExtent);
+void blitToSwapchain(VkCommandBuffer cmd, const Image& src, VkImageLayout srcCurrentLayout,
+                     VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess, VkImage dst,
+                     VkExtent2D dstExtent);
 
 // Clear a color image: transitions to TRANSFER_DST, clears, transitions to targetLayout.
-void clearImage(VkCommandBuffer cmd, VkImage image,
-                VkClearColorValue clearValue, VkImageLayout targetLayout);
+void clearImage(VkCommandBuffer cmd, VkImage image, VkClearColorValue clearValue,
+                VkImageLayout targetLayout);
 
-void clearImage(VkCommandBuffer cmd, const Image& image,
-                VkClearColorValue clearValue, VkImageLayout targetLayout);
+void clearImage(VkCommandBuffer cmd, const Image& image, VkClearColorValue clearValue,
+                VkImageLayout targetLayout);
 
 // Convenience: GENERAL -> targetLayout after RT shader writes to a storage image.
 // srcStage = RAY_TRACING_SHADER, srcAccess = SHADER_STORAGE_WRITE.
-void transitionFromRTWrite(VkCommandBuffer cmd, VkImage image,
-                           VkImageLayout targetLayout,
+void transitionFromRTWrite(VkCommandBuffer cmd, VkImage image, VkImageLayout targetLayout,
                            VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess);
 
 // Queue ownership transfer barriers (Vulkan 7.7.5).
@@ -95,29 +90,27 @@ void transitionFromRTWrite(VkCommandBuffer cmd, VkImage image,
 // For images, pass the current layout; oldLayout==newLayout preserves content.
 
 // Release a buffer from srcFamily. Submit on the source queue.
-void barrierQueueRelease(VkCommandBuffer cmd,
-                         VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size,
-                         VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
-                         std::uint32_t srcFamily, std::uint32_t dstFamily);
+void barrierQueueRelease(VkCommandBuffer cmd, VkBuffer buffer, VkDeviceSize offset,
+                         VkDeviceSize size, VkPipelineStageFlags2 srcStage,
+                         VkAccessFlags2 srcAccess, std::uint32_t srcFamily,
+                         std::uint32_t dstFamily);
 
 // Acquire a buffer on dstFamily. Submit on the destination queue.
-void barrierQueueAcquire(VkCommandBuffer cmd,
-                         VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size,
-                         VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
-                         std::uint32_t srcFamily, std::uint32_t dstFamily);
+void barrierQueueAcquire(VkCommandBuffer cmd, VkBuffer buffer, VkDeviceSize offset,
+                         VkDeviceSize size, VkPipelineStageFlags2 dstStage,
+                         VkAccessFlags2 dstAccess, std::uint32_t srcFamily,
+                         std::uint32_t dstFamily);
 
 // Release an image from srcFamily. Submit on the source queue.
 // aspect defaults to COLOR_BIT; pass DEPTH_BIT for depth images.
-void barrierQueueRelease(VkCommandBuffer cmd,
-                         VkImage image, VkImageLayout layout,
+void barrierQueueRelease(VkCommandBuffer cmd, VkImage image, VkImageLayout layout,
                          VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
                          std::uint32_t srcFamily, std::uint32_t dstFamily,
                          VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT);
 
 // Acquire an image on dstFamily. Submit on the destination queue.
 // aspect defaults to COLOR_BIT; pass DEPTH_BIT for depth images.
-void barrierQueueAcquire(VkCommandBuffer cmd,
-                         VkImage image, VkImageLayout layout,
+void barrierQueueAcquire(VkCommandBuffer cmd, VkImage image, VkImageLayout layout,
                          VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
                          std::uint32_t srcFamily, std::uint32_t dstFamily,
                          VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT);

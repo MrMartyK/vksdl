@@ -7,9 +7,9 @@
 // Helper: allocate a one-shot command buffer from a pool.
 static VkCommandBuffer allocCmd(VkDevice dev, VkCommandPool pool) {
     VkCommandBufferAllocateInfo ai{};
-    ai.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    ai.commandPool        = pool;
-    ai.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    ai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    ai.commandPool = pool;
+    ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     ai.commandBufferCount = 1;
 
     VkCommandBuffer cmd = VK_NULL_HANDLE;
@@ -31,9 +31,9 @@ static void submitAndWait(VkCommandBuffer cmd, VkQueue queue, VkDevice dev) {
     vkEndCommandBuffer(cmd);
 
     VkSubmitInfo si{};
-    si.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     si.commandBufferCount = 1;
-    si.pCommandBuffers    = &cmd;
+    si.pCommandBuffers = &cmd;
 
     VkResult vr = vkQueueSubmit(queue, 1, &si, VK_NULL_HANDLE);
     assert(vr == VK_SUCCESS);
@@ -48,32 +48,32 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_event")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_event")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
-    VkDevice dev   = device.value().vkDevice();
-    VkQueue  queue = device.value().graphicsQueue();
+    VkDevice dev = device.value().vkDevice();
+    VkQueue queue = device.value().graphicsQueue();
 
     // Command pool shared by all sub-tests.
     VkCommandPoolCreateInfo poolCI{};
-    poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-                              VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolCI.flags =
+        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolCI.queueFamilyIndex = device.value().queueFamilies().graphics;
 
     VkCommandPool pool = VK_NULL_HANDLE;
@@ -84,7 +84,7 @@ int main() {
     {
         auto ev = vksdl::GpuEvent::create(device.value());
         assert(ev.ok() && "GpuEvent creation failed");
-        assert(ev.value().native()  != VK_NULL_HANDLE);
+        assert(ev.value().native() != VK_NULL_HANDLE);
         assert(ev.value().vkEvent() != VK_NULL_HANDLE);
         assert(ev.value().native() == ev.value().vkEvent());
         std::printf("  create GpuEvent: ok\n");
@@ -100,18 +100,12 @@ int main() {
         VkCommandBuffer cmd = allocCmd(dev, pool);
         beginCmd(cmd);
 
-        ev.value().set(cmd,
-                       VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                       VK_ACCESS_2_MEMORY_WRITE_BIT);
+        ev.value().set(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT);
 
-        ev.value().wait(cmd,
-                        VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                        VK_ACCESS_2_MEMORY_WRITE_BIT,
-                        VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                        VK_ACCESS_2_MEMORY_READ_BIT);
+        ev.value().wait(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT,
+                        VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
 
-        ev.value().reset(cmd,
-                         VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
+        ev.value().reset(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
 
         submitAndWait(cmd, queue, dev);
         std::printf("  set/wait/reset on command buffer: ok\n");
@@ -123,23 +117,21 @@ int main() {
         assert(ev.ok());
 
         VkMemoryBarrier2 mb{};
-        mb.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-        mb.srcStageMask  = VK_PIPELINE_STAGE_2_NONE;
+        mb.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+        mb.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
         mb.srcAccessMask = VK_ACCESS_2_NONE;
-        mb.dstStageMask  = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+        mb.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
         mb.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
 
         VkDependencyInfo dep{};
-        dep.sType              = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dep.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
         dep.memoryBarrierCount = 1;
-        dep.pMemoryBarriers    = &mb;
+        dep.pMemoryBarriers = &mb;
 
         VkCommandBuffer cmd = allocCmd(dev, pool);
         beginCmd(cmd);
 
-        ev.value().set(cmd,
-                       VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                       VK_ACCESS_2_MEMORY_WRITE_BIT);
+        ev.value().set(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT);
 
         // Use the full-control overload.
         ev.value().wait(cmd, dep);

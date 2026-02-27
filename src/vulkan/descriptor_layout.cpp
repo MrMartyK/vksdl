@@ -14,9 +14,7 @@ DescriptorLayout::~DescriptorLayout() {
 }
 
 DescriptorLayout::DescriptorLayout(DescriptorLayout&& o) noexcept
-    : device_(o.device_)
-    , layout_(o.layout_)
-    , bindings_(std::move(o.bindings_)) {
+    : device_(o.device_), layout_(o.layout_), bindings_(std::move(o.bindings_)) {
     o.device_ = VK_NULL_HANDLE;
     o.layout_ = VK_NULL_HANDLE;
 }
@@ -35,10 +33,10 @@ DescriptorLayout& DescriptorLayout::operator=(DescriptorLayout&& o) noexcept {
     return *this;
 }
 
-std::optional<DescriptorLayout::BindingInfo> DescriptorLayout::bindingInfo(
-    std::uint32_t binding) const {
+std::optional<DescriptorLayout::BindingInfo>
+DescriptorLayout::bindingInfo(std::uint32_t binding) const {
     auto it = std::find_if(bindings_.begin(), bindings_.end(),
-        [binding](const BindingInfo& b) { return b.binding == binding; });
+                           [binding](const BindingInfo& b) { return b.binding == binding; });
     if (it == bindings_.end()) {
         return std::nullopt;
     }
@@ -48,39 +46,43 @@ std::optional<DescriptorLayout::BindingInfo> DescriptorLayout::bindingInfo(
 DescriptorLayoutBuilder::DescriptorLayoutBuilder(const Device& device)
     : device_(device.vkDevice()) {}
 
-DescriptorLayoutBuilder& DescriptorLayoutBuilder::addUniformBuffer(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorLayoutBuilder& DescriptorLayoutBuilder::addUniformBuffer(std::uint32_t binding,
+                                                                   VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags);
 }
 
-DescriptorLayoutBuilder& DescriptorLayoutBuilder::addDynamicUniformBuffer(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorLayoutBuilder&
+DescriptorLayoutBuilder::addDynamicUniformBuffer(std::uint32_t binding,
+                                                 VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, stageFlags);
 }
 
-DescriptorLayoutBuilder& DescriptorLayoutBuilder::addStorageBuffer(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorLayoutBuilder& DescriptorLayoutBuilder::addStorageBuffer(std::uint32_t binding,
+                                                                   VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, stageFlags);
 }
 
-DescriptorLayoutBuilder& DescriptorLayoutBuilder::addStorageImage(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorLayoutBuilder& DescriptorLayoutBuilder::addStorageImage(std::uint32_t binding,
+                                                                  VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, stageFlags);
 }
 
-DescriptorLayoutBuilder& DescriptorLayoutBuilder::addCombinedImageSampler(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorLayoutBuilder&
+DescriptorLayoutBuilder::addCombinedImageSampler(std::uint32_t binding,
+                                                 VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags);
 }
 
-DescriptorLayoutBuilder& DescriptorLayoutBuilder::addAccelerationStructure(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorLayoutBuilder&
+DescriptorLayoutBuilder::addAccelerationStructure(std::uint32_t binding,
+                                                  VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, stageFlags);
 }
 
-DescriptorLayoutBuilder& DescriptorLayoutBuilder::addBinding(
-    std::uint32_t binding, VkDescriptorType type,
-    VkShaderStageFlags stageFlags, std::uint32_t count) {
+DescriptorLayoutBuilder& DescriptorLayoutBuilder::addBinding(std::uint32_t binding,
+                                                             VkDescriptorType type,
+                                                             VkShaderStageFlags stageFlags,
+                                                             std::uint32_t count) {
     DescriptorLayout::BindingInfo info{};
     info.binding = binding;
     info.type = type;

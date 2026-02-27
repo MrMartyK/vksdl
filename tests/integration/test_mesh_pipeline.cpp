@@ -8,14 +8,13 @@
 #include <cassert>
 #include <cstdio>
 
-static bool gpuSupportsMeshShaders(const vksdl::Instance& instance,
-                                   const vksdl::Surface& surface) {
+static bool gpuSupportsMeshShaders(const vksdl::Instance& instance, const vksdl::Surface& surface) {
     auto result = vksdl::DeviceBuilder(instance, surface)
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .needMeshShaders()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .needMeshShaders()
+                      .build();
     return result.ok();
 }
 
@@ -27,11 +26,11 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_mesh_pipeline")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_mesh_pipeline")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
@@ -44,9 +43,9 @@ int main() {
 
     // Build a device with mesh shader support.
     auto devResult = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .graphicsDefaults()
-        .needMeshShaders()
-        .build();
+                         .graphicsDefaults()
+                         .needMeshShaders()
+                         .build();
     assert(devResult.ok() && "device with mesh shaders failed after support check passed");
     auto device = std::move(devResult.value());
 
@@ -71,7 +70,7 @@ int main() {
     // Verify builder rejects missing fragment shader.
     {
         vksdl::MeshPipelineBuilder builder(device);
-        builder.meshModule(VK_NULL_HANDLE);   // invalid but bypasses path check
+        builder.meshModule(VK_NULL_HANDLE); // invalid but bypasses path check
         auto result = builder.colorFormat(VK_FORMAT_B8G8R8A8_SRGB).build();
         // meshModule is VK_NULL_HANDLE and meshPath_ is empty, so still missing mesh.
         assert(!result.ok());

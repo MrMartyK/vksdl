@@ -14,22 +14,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_memory_budget")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_memory_budget")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
@@ -47,14 +47,13 @@ int main() {
         assert(!budgets.empty());
         std::printf("  queryBudget: %zu heap(s)\n", budgets.size());
 
-        std::uint64_t totalDeviceLocalUsage  = 0;
+        std::uint64_t totalDeviceLocalUsage = 0;
         std::uint64_t totalDeviceLocalBudget = 0;
 
         for (std::size_t i = 0; i < budgets.size(); ++i) {
             std::printf("    heap[%zu]: usage=%" PRIu64 " B  budget=%" PRIu64 " B"
                         "  heapSize=%" PRIu64 " B  flags=0x%x\n",
-                        i,
-                        static_cast<unsigned long long>(budgets[i].usage),
+                        i, static_cast<unsigned long long>(budgets[i].usage),
                         static_cast<unsigned long long>(budgets[i].budget),
                         static_cast<unsigned long long>(budgets[i].heapSize),
                         static_cast<unsigned>(budgets[i].flags));
@@ -64,7 +63,7 @@ int main() {
             assert(budgets[i].heapSize > 0);
 
             if (budgets[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
-                totalDeviceLocalUsage  += budgets[i].usage;
+                totalDeviceLocalUsage += budgets[i].usage;
                 totalDeviceLocalBudget += budgets[i].budget;
             }
         }
@@ -79,7 +78,8 @@ int main() {
             float expected = static_cast<float>(totalDeviceLocalUsage) /
                              static_cast<float>(totalDeviceLocalBudget) * 100.0f;
             float diff = pct - expected;
-            if (diff < 0.0f) diff = -diff;
+            if (diff < 0.0f)
+                diff = -diff;
             // Allow 0.1% tolerance for floating-point and timing between queries.
             std::printf("  expected (summed): %.1f%%  diff: %.4f%%\n",
                         static_cast<double>(expected), static_cast<double>(diff));

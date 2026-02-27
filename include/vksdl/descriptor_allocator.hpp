@@ -26,9 +26,9 @@ class Device;
 //
 // Thread safety: thread-confined. resetPools() after fence, allocate() during recording.
 class DescriptorAllocator {
-public:
-    [[nodiscard]] static Result<DescriptorAllocator> create(
-        const Device& device, std::uint32_t maxSetsPerPool = 256);
+  public:
+    [[nodiscard]] static Result<DescriptorAllocator> create(const Device& device,
+                                                            std::uint32_t maxSetsPerPool = 256);
 
     ~DescriptorAllocator();
     DescriptorAllocator(DescriptorAllocator&&) noexcept;
@@ -42,21 +42,23 @@ public:
     // Moves all pools to the free list for reuse. Call once per frame after fence wait.
     void resetPools();
 
-    [[nodiscard]] std::uint32_t allocatedSetCount() const { return allocatedSets_; }
+    [[nodiscard]] std::uint32_t allocatedSetCount() const {
+        return allocatedSets_;
+    }
     [[nodiscard]] std::uint32_t poolCount() const;
 
-private:
+  private:
     DescriptorAllocator() = default;
     void destroy();
     [[nodiscard]] Result<VkDescriptorPool> grabPool();
     [[nodiscard]] Result<VkDescriptorPool> createPool();
 
-    VkDevice                        device_          = VK_NULL_HANDLE;
-    std::uint32_t                   maxSetsPerPool_  = 256;
-    std::uint32_t                   allocatedSets_   = 0;
-    VkDescriptorPool                currentPool_     = VK_NULL_HANDLE;
-    std::vector<VkDescriptorPool>   usedPools_;
-    std::vector<VkDescriptorPool>   freePools_;
+    VkDevice device_ = VK_NULL_HANDLE;
+    std::uint32_t maxSetsPerPool_ = 256;
+    std::uint32_t allocatedSets_ = 0;
+    VkDescriptorPool currentPool_ = VK_NULL_HANDLE;
+    std::vector<VkDescriptorPool> usedPools_;
+    std::vector<VkDescriptorPool> freePools_;
 };
 
 } // namespace vksdl

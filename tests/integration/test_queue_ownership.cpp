@@ -1,5 +1,5 @@
-#include <vksdl/vksdl.hpp>
 #include <vksdl/barriers.hpp>
+#include <vksdl/vksdl.hpp>
 #include <vulkan/vulkan.h>
 
 #include <cassert>
@@ -8,9 +8,9 @@
 // Helper: allocate a one-time command buffer from the given pool.
 static VkCommandBuffer allocCmd(VkDevice device, VkCommandPool pool) {
     VkCommandBufferAllocateInfo ai{};
-    ai.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    ai.commandPool        = pool;
-    ai.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    ai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    ai.commandPool = pool;
+    ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     ai.commandBufferCount = 1;
 
     VkCommandBuffer cmd = VK_NULL_HANDLE;
@@ -34,22 +34,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_queue_ownership")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_queue_ownership")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
@@ -63,9 +63,8 @@ int main() {
     auto& alloc = allocator.value();
 
     uint32_t graphicsFamily = dev.queueFamilies().graphics;
-    uint32_t transferFamily = dev.hasDedicatedTransfer()
-                              ? dev.queueFamilies().transfer
-                              : dev.queueFamilies().graphics;
+    uint32_t transferFamily =
+        dev.hasDedicatedTransfer() ? dev.queueFamilies().transfer : dev.queueFamilies().graphics;
 
     // Create command pools on both queue families.
     VkCommandPoolCreateInfo poolCI{};
@@ -87,28 +86,24 @@ int main() {
         // With a single queue family (no dedicated transfer), the barriers are
         // effectively no-ops (srcFamily == dstFamily), but the API must still
         // accept them without error.
-        auto buf = vksdl::BufferBuilder(alloc)
-            .storageBuffer()
-            .size(1024)
-            .build();
+        auto buf = vksdl::BufferBuilder(alloc).storageBuffer().size(1024).build();
         assert(buf.ok());
 
         // Record release on transfer side.
         VkCommandBuffer releaseCmd = allocCmd(dev.vkDevice(), transferPool);
         beginOneTime(releaseCmd);
-        vksdl::barrierQueueRelease(releaseCmd,
-            buf.value().vkBuffer(), 0, VK_WHOLE_SIZE,
-            VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
-            transferFamily, graphicsFamily);
+        vksdl::barrierQueueRelease(releaseCmd, buf.value().vkBuffer(), 0, VK_WHOLE_SIZE,
+                                   VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                   transferFamily, graphicsFamily);
         vkEndCommandBuffer(releaseCmd);
 
         // Record acquire on graphics side.
         VkCommandBuffer acquireCmd = allocCmd(dev.vkDevice(), graphicsPool);
         beginOneTime(acquireCmd);
-        vksdl::barrierQueueAcquire(acquireCmd,
-            buf.value().vkBuffer(), 0, VK_WHOLE_SIZE,
-            VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
-            transferFamily, graphicsFamily);
+        vksdl::barrierQueueAcquire(acquireCmd, buf.value().vkBuffer(), 0, VK_WHOLE_SIZE,
+                                   VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+                                   VK_ACCESS_2_SHADER_STORAGE_READ_BIT, transferFamily,
+                                   graphicsFamily);
         vkEndCommandBuffer(acquireCmd);
 
         // Submit release signaling a semaphore, acquire waiting on it.
@@ -119,22 +114,22 @@ int main() {
         assert(vr == VK_SUCCESS);
 
         VkSubmitInfo relSI{};
-        relSI.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        relSI.commandBufferCount   = 1;
-        relSI.pCommandBuffers      = &releaseCmd;
+        relSI.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        relSI.commandBufferCount = 1;
+        relSI.pCommandBuffers = &releaseCmd;
         relSI.signalSemaphoreCount = 1;
-        relSI.pSignalSemaphores    = &xferDone;
+        relSI.pSignalSemaphores = &xferDone;
         vr = vkQueueSubmit(dev.transferQueue(), 1, &relSI, VK_NULL_HANDLE);
         assert(vr == VK_SUCCESS);
 
         VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         VkSubmitInfo acqSI{};
-        acqSI.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        acqSI.waitSemaphoreCount   = 1;
-        acqSI.pWaitSemaphores      = &xferDone;
-        acqSI.pWaitDstStageMask    = &waitStage;
-        acqSI.commandBufferCount   = 1;
-        acqSI.pCommandBuffers      = &acquireCmd;
+        acqSI.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        acqSI.waitSemaphoreCount = 1;
+        acqSI.pWaitSemaphores = &xferDone;
+        acqSI.pWaitDstStageMask = &waitStage;
+        acqSI.commandBufferCount = 1;
+        acqSI.pCommandBuffers = &acquireCmd;
         vr = vkQueueSubmit(dev.graphicsQueue(), 1, &acqSI, VK_NULL_HANDLE);
         assert(vr == VK_SUCCESS);
         vkQueueWaitIdle(dev.graphicsQueue());
@@ -147,10 +142,10 @@ int main() {
     {
         // Image ownership transfer: record release and acquire with layout preserved.
         auto img = vksdl::ImageBuilder(alloc)
-            .size(64, 64)
-            .format(VK_FORMAT_R8G8B8A8_UNORM)
-            .colorAttachment()
-            .build();
+                       .size(64, 64)
+                       .format(VK_FORMAT_R8G8B8A8_UNORM)
+                       .colorAttachment()
+                       .build();
         assert(img.ok());
 
         VkImageLayout layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -159,20 +154,17 @@ int main() {
         beginOneTime(releaseCmd);
         // Transition to the layout first (UNDEFINED -> COLOR_ATTACHMENT_OPTIMAL).
         vksdl::transitionToColorAttachment(releaseCmd, img.value().vkImage());
-        vksdl::barrierQueueRelease(releaseCmd,
-            img.value().vkImage(), layout,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            transferFamily, graphicsFamily);
+        vksdl::barrierQueueRelease(releaseCmd, img.value().vkImage(), layout,
+                                   VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                   VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, transferFamily,
+                                   graphicsFamily);
         vkEndCommandBuffer(releaseCmd);
 
         VkCommandBuffer acquireCmd = allocCmd(dev.vkDevice(), graphicsPool);
         beginOneTime(acquireCmd);
-        vksdl::barrierQueueAcquire(acquireCmd,
-            img.value().vkImage(), layout,
-            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-            transferFamily, graphicsFamily);
+        vksdl::barrierQueueAcquire(
+            acquireCmd, img.value().vkImage(), layout, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, transferFamily, graphicsFamily);
         vkEndCommandBuffer(acquireCmd);
 
         VkSemaphoreCreateInfo semCI{};
@@ -182,22 +174,22 @@ int main() {
         assert(vr == VK_SUCCESS);
 
         VkSubmitInfo relSI{};
-        relSI.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        relSI.commandBufferCount   = 1;
-        relSI.pCommandBuffers      = &releaseCmd;
+        relSI.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        relSI.commandBufferCount = 1;
+        relSI.pCommandBuffers = &releaseCmd;
         relSI.signalSemaphoreCount = 1;
-        relSI.pSignalSemaphores    = &imgXferDone;
+        relSI.pSignalSemaphores = &imgXferDone;
         vr = vkQueueSubmit(dev.transferQueue(), 1, &relSI, VK_NULL_HANDLE);
         assert(vr == VK_SUCCESS);
 
         VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         VkSubmitInfo acqSI{};
-        acqSI.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        acqSI.waitSemaphoreCount   = 1;
-        acqSI.pWaitSemaphores      = &imgXferDone;
-        acqSI.pWaitDstStageMask    = &waitStage;
-        acqSI.commandBufferCount   = 1;
-        acqSI.pCommandBuffers      = &acquireCmd;
+        acqSI.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        acqSI.waitSemaphoreCount = 1;
+        acqSI.pWaitSemaphores = &imgXferDone;
+        acqSI.pWaitDstStageMask = &waitStage;
+        acqSI.commandBufferCount = 1;
+        acqSI.pCommandBuffers = &acquireCmd;
         vr = vkQueueSubmit(dev.graphicsQueue(), 1, &acqSI, VK_NULL_HANDLE);
         assert(vr == VK_SUCCESS);
         vkQueueWaitIdle(dev.graphicsQueue());

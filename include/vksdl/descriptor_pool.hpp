@@ -23,9 +23,9 @@ class DescriptorLayout;
 //
 // Thread safety: thread-confined.
 class DescriptorPool {
-public:
-    [[nodiscard]] static Result<DescriptorPool> create(
-        const Device& device, std::uint32_t maxSetsPerPool = 64);
+  public:
+    [[nodiscard]] static Result<DescriptorPool> create(const Device& device,
+                                                       std::uint32_t maxSetsPerPool = 64);
 
     ~DescriptorPool();
     DescriptorPool(DescriptorPool&&) noexcept;
@@ -36,29 +36,31 @@ public:
     // Grows automatically on exhaustion (2x capacity per new pool).
     [[nodiscard]] Result<VkDescriptorSet> allocate(VkDescriptorSetLayout layout);
     [[nodiscard]] Result<VkDescriptorSet> allocate(const DescriptorLayout& layout);
-    [[nodiscard]] Result<std::vector<VkDescriptorSet>> allocateMany(
-        VkDescriptorSetLayout layout, std::uint32_t count);
-    [[nodiscard]] Result<std::vector<VkDescriptorSet>> allocateMany(
-        const DescriptorLayout& layout, std::uint32_t count);
+    [[nodiscard]] Result<std::vector<VkDescriptorSet>> allocateMany(VkDescriptorSetLayout layout,
+                                                                    std::uint32_t count);
+    [[nodiscard]] Result<std::vector<VkDescriptorSet>> allocateMany(const DescriptorLayout& layout,
+                                                                    std::uint32_t count);
 
     // Reclaims all descriptor sets for reuse. Does not free VkDescriptorPools.
     void reset();
 
-    [[nodiscard]] std::uint32_t allocatedSetCount() const { return allocatedSets_; }
+    [[nodiscard]] std::uint32_t allocatedSetCount() const {
+        return allocatedSets_;
+    }
 
     [[nodiscard]] std::uint32_t poolCount() const {
         return static_cast<std::uint32_t>(pools_.size());
     }
 
-private:
+  private:
     DescriptorPool() = default;
     void destroy();
     Result<void> addPool();
 
-    VkDevice                    device_         = VK_NULL_HANDLE;
-    std::uint32_t               maxSetsPerPool_ = 64;
-    std::uint32_t               nextPoolScale_  = 1; // doubles each time
-    std::uint32_t               allocatedSets_  = 0;
+    VkDevice device_ = VK_NULL_HANDLE;
+    std::uint32_t maxSetsPerPool_ = 64;
+    std::uint32_t nextPoolScale_ = 1; // doubles each time
+    std::uint32_t allocatedSets_ = 0;
     std::vector<VkDescriptorPool> pools_;
 };
 

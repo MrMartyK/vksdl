@@ -66,11 +66,11 @@ Result<std::vector<MeshData>> loadObj(const std::filesystem::path& path) {
     std::string err;
 
     std::string pathStr = path.string();
-    std::string mtlDir  = path.parent_path().string();
+    std::string mtlDir = path.parent_path().string();
 
-    bool ok = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
-                               pathStr.c_str(), mtlDir.c_str(),
-                               /*triangulate=*/true);
+    bool ok =
+        tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, pathStr.c_str(), mtlDir.c_str(),
+                         /*triangulate=*/true);
     if (!ok) {
         std::string msg = "failed to load OBJ: " + pathStr;
         if (!err.empty()) {
@@ -80,7 +80,7 @@ Result<std::vector<MeshData>> loadObj(const std::filesystem::path& path) {
     }
 
     bool hasNormals = !attrib.normals.empty();
-    bool hasUVs     = !attrib.texcoords.empty();
+    bool hasUVs = !attrib.texcoords.empty();
 
     std::filesystem::path parentDir = path.parent_path();
 
@@ -109,21 +109,24 @@ Result<std::vector<MeshData>> loadObj(const std::filesystem::path& path) {
 
                     Vertex vert{};
                     if (idx.vertex_index < 0 ||
-                        static_cast<std::size_t>(3 * idx.vertex_index + 2) >= attrib.vertices.size())
+                        static_cast<std::size_t>(3 * idx.vertex_index + 2) >=
+                            attrib.vertices.size())
                         continue;
                     vert.position[0] = attrib.vertices[3 * idx.vertex_index + 0];
                     vert.position[1] = attrib.vertices[3 * idx.vertex_index + 1];
                     vert.position[2] = attrib.vertices[3 * idx.vertex_index + 2];
 
                     if (hasNormals && idx.normal_index >= 0 &&
-                        static_cast<std::size_t>(3 * idx.normal_index + 2) < attrib.normals.size()) {
+                        static_cast<std::size_t>(3 * idx.normal_index + 2) <
+                            attrib.normals.size()) {
                         vert.normal[0] = attrib.normals[3 * idx.normal_index + 0];
                         vert.normal[1] = attrib.normals[3 * idx.normal_index + 1];
                         vert.normal[2] = attrib.normals[3 * idx.normal_index + 2];
                     }
 
                     if (hasUVs && idx.texcoord_index >= 0 &&
-                        static_cast<std::size_t>(2 * idx.texcoord_index + 1) < attrib.texcoords.size()) {
+                        static_cast<std::size_t>(2 * idx.texcoord_index + 1) <
+                            attrib.texcoords.size()) {
                         vert.texCoord[0] = attrib.texcoords[2 * idx.texcoord_index + 0];
                         vert.texCoord[1] = attrib.texcoords[2 * idx.texcoord_index + 1];
                     }
@@ -149,8 +152,8 @@ Result<std::vector<MeshData>> loadObj(const std::filesystem::path& path) {
 
             MeshData meshData;
             meshData.vertices = std::move(vertices);
-            meshData.indices  = std::move(indices);
-            meshData.name     = shape.name;
+            meshData.indices = std::move(indices);
+            meshData.name = shape.name;
 
             // Material
             if (matId >= 0 && matId < static_cast<int>(materials.size())) {
@@ -160,7 +163,7 @@ Result<std::vector<MeshData>> loadObj(const std::filesystem::path& path) {
                 meshData.material.baseColor[1] = mat.diffuse[1];
                 meshData.material.baseColor[2] = mat.diffuse[2];
                 meshData.material.baseColor[3] = 1.0f - (1.0f - mat.dissolve);
-                meshData.material.metallic  = mat.specular[0]; // rough approximation
+                meshData.material.metallic = mat.specular[0]; // rough approximation
                 meshData.material.roughness = 1.0f - (mat.shininess / 1000.0f);
                 if (meshData.material.roughness < 0.0f) {
                     meshData.material.roughness = 0.0f;
@@ -176,8 +179,7 @@ Result<std::vector<MeshData>> loadObj(const std::filesystem::path& path) {
     }
 
     if (meshes.empty()) {
-        return Error{"load model", 0,
-                     "no meshes found in OBJ: " + pathStr};
+        return Error{"load model", 0, "no meshes found in OBJ: " + pathStr};
     }
 
     return meshes;

@@ -32,65 +32,65 @@ namespace vksdl::graph {
 // Consumed by PassContext::beginRendering() during execute().
 struct ResolvedRendering {
     std::vector<VkRenderingAttachmentInfo> colorAttachments;
-    VkRenderingAttachmentInfo              depthAttachment{};
-    bool                                   hasDepth = false;
-    VkExtent2D                             renderArea{};
+    VkRenderingAttachmentInfo depthAttachment{};
+    bool hasDepth = false;
+    VkExtent2D renderArea{};
 };
 
 // Pre-resolved descriptor state for one pass (Layer 2).
 // Assembled during compile() from ReflectedLayout + bind map.
 // Consumed by PassContext::bindPipeline() / bindDescriptors() during execute().
 struct ResolvedDescriptors {
-    VkPipeline                   pipeline       = VK_NULL_HANDLE;
-    VkPipelineLayout             pipelineLayout = VK_NULL_HANDLE;
-    VkPipelineBindPoint          bindPoint      = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    std::vector<VkDescriptorSet> sets;           // per set index; VK_NULL_HANDLE = unmanaged
+    VkPipeline pipeline = VK_NULL_HANDLE;
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    std::vector<VkDescriptorSet> sets; // per set index; VK_NULL_HANDLE = unmanaged
 };
 
 // Compiled pass: sorted index + pre-computed barriers + optional rendering/descriptor state.
 struct CompiledPass {
-    std::uint32_t    passIndex;    // index into passes_
-    BarrierBatch     barriers;     // barriers to emit before this pass
-    ResolvedRendering rendering;   // Layer 1: pre-resolved VkRenderingInfo (empty if Layer 0)
+    std::uint32_t passIndex;         // index into passes_
+    BarrierBatch barriers;           // barriers to emit before this pass
+    ResolvedRendering rendering;     // Layer 1: pre-resolved VkRenderingInfo (empty if Layer 0)
     ResolvedDescriptors descriptors; // Layer 2: auto-resolved descriptors (empty if Layer 0/1)
 };
 
 // Transient VMA-backed image created during compile().
 // Stores desc for pool matching across frames.
 struct TransientImage {
-    ImageDesc   desc;
-    VkImage     image      = VK_NULL_HANDLE;
-    VkImageView view       = VK_NULL_HANDLE;
-    void*       allocation = nullptr; // VmaAllocation stored as void*
+    ImageDesc desc;
+    VkImage image = VK_NULL_HANDLE;
+    VkImageView view = VK_NULL_HANDLE;
+    void* allocation = nullptr; // VmaAllocation stored as void*
 };
 
 // Transient VMA-backed buffer created during compile().
 struct TransientBuffer {
-    BufferDesc  desc;
-    VkBuffer    buffer     = VK_NULL_HANDLE;
-    void*       allocation = nullptr; // VmaAllocation stored as void*
+    BufferDesc desc;
+    VkBuffer buffer = VK_NULL_HANDLE;
+    void* allocation = nullptr; // VmaAllocation stored as void*
 };
 
 // Aggregate compile/execute statistics.
 struct GraphStats {
-    std::uint32_t passCount          = 0;
-    std::uint32_t imageBarrierCount  = 0;
+    std::uint32_t passCount = 0;
+    std::uint32_t imageBarrierCount = 0;
     std::uint32_t bufferBarrierCount = 0;
-    std::uint32_t transientCount     = 0;
-    double        compileTimeUs      = 0.0;
+    std::uint32_t transientCount = 0;
+    double compileTimeUs = 0.0;
 
     // Timing breakdown (microseconds).
-    double resolveUs      = 0.0;
-    double usageUs        = 0.0;
-    double adjacencyUs    = 0.0;
-    double sortUs         = 0.0;
-    double lifetimeUs     = 0.0;
-    double allocUs        = 0.0;
-    double stateInitUs    = 0.0;
-    double barriersUs     = 0.0;
+    double resolveUs = 0.0;
+    double usageUs = 0.0;
+    double adjacencyUs = 0.0;
+    double sortUs = 0.0;
+    double lifetimeUs = 0.0;
+    double allocUs = 0.0;
+    double stateInitUs = 0.0;
+    double barriersUs = 0.0;
     double renderTargetUs = 0.0;
-    double descriptorUs   = 0.0;
-    double statsUs        = 0.0;
+    double descriptorUs = 0.0;
+    double statsUs = 0.0;
 };
 
 // Render graph: declare passes with resource dependencies, compile to
@@ -107,7 +107,7 @@ struct GraphStats {
 // Thread safety: thread-confined. All methods (addPass/compile/execute/reset)
 // must be called from the same thread.
 class RenderGraph {
-public:
+  public:
     RenderGraph(const Device& device, const Allocator& allocator);
     ~RenderGraph();
 
@@ -117,48 +117,42 @@ public:
     RenderGraph& operator=(const RenderGraph&) = delete;
 
     // Import an external image. Aspect auto-derived from format.
-    [[nodiscard]] ResourceHandle importImage(
-        VkImage image, VkImageView view, VkFormat format,
-        std::uint32_t width, std::uint32_t height,
-        const ResourceState& initialState,
-        std::uint32_t mipLevels = 1, std::uint32_t arrayLayers = 1,
-        std::string_view name = "");
-
-    // Import from a vksdl::Image.
-    [[nodiscard]] ResourceHandle importImage(
-        const Image& image, const ResourceState& initialState,
-        std::string_view name = "");
-
-    // Import an external buffer.
-    [[nodiscard]] ResourceHandle importBuffer(
-        VkBuffer buffer, VkDeviceSize size,
-        const ResourceState& initialState,
-        std::string_view name = "");
-
-    // Import from a vksdl::Buffer.
-    [[nodiscard]] ResourceHandle importBuffer(
-        const Buffer& buffer, const ResourceState& initialState,
-        std::string_view name = "");
-
-    // Declare a transient image (allocated at compile time).
-    [[nodiscard]] ResourceHandle createImage(const ImageDesc& desc,
+    [[nodiscard]] ResourceHandle importImage(VkImage image, VkImageView view, VkFormat format,
+                                             std::uint32_t width, std::uint32_t height,
+                                             const ResourceState& initialState,
+                                             std::uint32_t mipLevels = 1,
+                                             std::uint32_t arrayLayers = 1,
                                              std::string_view name = "");
 
-    // Declare a transient buffer (allocated at compile time).
-    [[nodiscard]] ResourceHandle createBuffer(const BufferDesc& desc,
+    // Import from a vksdl::Image.
+    [[nodiscard]] ResourceHandle importImage(const Image& image, const ResourceState& initialState,
+                                             std::string_view name = "");
+
+    // Import an external buffer.
+    [[nodiscard]] ResourceHandle importBuffer(VkBuffer buffer, VkDeviceSize size,
+                                              const ResourceState& initialState,
                                               std::string_view name = "");
 
+    // Import from a vksdl::Buffer.
+    [[nodiscard]] ResourceHandle importBuffer(const Buffer& buffer,
+                                              const ResourceState& initialState,
+                                              std::string_view name = "");
+
+    // Declare a transient image (allocated at compile time).
+    [[nodiscard]] ResourceHandle createImage(const ImageDesc& desc, std::string_view name = "");
+
+    // Declare a transient buffer (allocated at compile time).
+    [[nodiscard]] ResourceHandle createBuffer(const BufferDesc& desc, std::string_view name = "");
+
     // Layer 0/1: declare a pass with explicit resource access declarations.
-    void addPass(std::string_view name, PassType type,
-                 SetupFn setup, RecordFn record);
+    void addPass(std::string_view name, PassType type, SetupFn setup, RecordFn record);
 
     // Layer 2: pipeline-aware pass with auto-bind. SPIR-V reflection infers
     // resource accesses from bind() entries; descriptors auto-allocated/written.
     // `reflection` must outlive the graph frame (typically init-time static).
-    void addPass(std::string_view name, PassType type,
-                 VkPipeline pipeline, VkPipelineLayout pipelineLayout,
-                 const ReflectedLayout& reflection,
-                 SetupFn setup, RecordFn record);
+    void addPass(std::string_view name, PassType type, VkPipeline pipeline,
+                 VkPipelineLayout pipelineLayout, const ReflectedLayout& reflection, SetupFn setup,
+                 RecordFn record);
 
     // Compile the graph: topo sort, allocate transients, compute barriers.
     [[nodiscard]] Result<void> compile();
@@ -180,19 +174,27 @@ public:
     // re-importing resources and declaring passes.
     void reset();
 
-    [[nodiscard]] std::uint32_t passCount()     const { return static_cast<std::uint32_t>(passes_.size()); }
-    [[nodiscard]] std::uint32_t resourceCount() const { return static_cast<std::uint32_t>(resources_.size()); }
-    [[nodiscard]] bool          isCompiled()    const { return isCompiled_; }
+    [[nodiscard]] std::uint32_t passCount() const {
+        return static_cast<std::uint32_t>(passes_.size());
+    }
+    [[nodiscard]] std::uint32_t resourceCount() const {
+        return static_cast<std::uint32_t>(resources_.size());
+    }
+    [[nodiscard]] bool isCompiled() const {
+        return isCompiled_;
+    }
 
     // Graph statistics populated by compile(). Valid until reset().
-    [[nodiscard]] const GraphStats& stats() const { return stats_; }
+    [[nodiscard]] const GraphStats& stats() const {
+        return stats_;
+    }
 
     // Print a detailed debug log to stderr. Call after compile().
     // Shows pass execution order, barriers per pass, transient allocations,
     // and a one-line summary. Use for debugging synchronization issues.
     void dumpLog() const;
 
-private:
+  private:
     void destroy();
     void destroyTransients();
     void recycleTransients(); // move active transients to pool (no VMA calls)
@@ -211,29 +213,29 @@ private:
     [[nodiscard]] Result<void> resolveDescriptors();
 
     VkDevice device_ = VK_NULL_HANDLE;
-    void*    allocator_ = nullptr; // VmaAllocator, stored as void*
-    bool     hasUnifiedLayouts_ = false;
+    void* allocator_ = nullptr; // VmaAllocator, stored as void*
+    bool hasUnifiedLayouts_ = false;
 
-    std::vector<PassDecl>        passes_;
-    std::vector<ResourceEntry>   resources_;
-    std::vector<ImageSubresourceMap> imageMaps_;     // parallel to resources_ (image entries only)
-    std::vector<ResourceState>       bufferStates_;  // parallel to resources_ (buffer entries only)
+    std::vector<PassDecl> passes_;
+    std::vector<ResourceEntry> resources_;
+    std::vector<ImageSubresourceMap> imageMaps_; // parallel to resources_ (image entries only)
+    std::vector<ResourceState> bufferStates_;    // parallel to resources_ (buffer entries only)
 
     // Adjacency (populated by buildAdjacency, consumed by topologicalSort).
     std::vector<std::vector<std::uint32_t>> adj_;
-    std::vector<std::uint32_t>              inDegree_;
+    std::vector<std::uint32_t> inDegree_;
 
     // Compiled output.
-    std::vector<CompiledPass>    compiledPasses_;
-    bool                         isCompiled_ = false;
-    GraphStats                   stats_;
+    std::vector<CompiledPass> compiledPasses_;
+    bool isCompiled_ = false;
+    GraphStats stats_;
 
     // Transient allocations (destroyed in destructor, recycled on reset).
-    std::vector<TransientImage>  transientImages_;
+    std::vector<TransientImage> transientImages_;
     std::vector<TransientBuffer> transientBuffers_;
 
     // Transient pool (reused across frames when desc matches).
-    std::vector<TransientImage>  imagePool_;
+    std::vector<TransientImage> imagePool_;
     std::vector<TransientBuffer> bufferPool_;
 
     // Graph structure cache: skip re-sorting on identical frames.
@@ -242,14 +244,14 @@ private:
 
     // Handle stability cache: when all transient VkImage/VkBuffer handles
     // match last frame, compiled barriers are byte-identical -- skip P7+P8.
-    std::vector<VkImage>     cachedImageHandles_;
-    std::vector<VkImageView> cachedViewHandles_;   // parallel, for Layer 1 patching
-    std::vector<VkBuffer>    cachedBufferHandles_;
-    GraphStats            cachedStats_;
+    std::vector<VkImage> cachedImageHandles_;
+    std::vector<VkImageView> cachedViewHandles_; // parallel, for Layer 1 patching
+    std::vector<VkBuffer> cachedBufferHandles_;
+    GraphStats cachedStats_;
 
     // Layer 2: descriptor auto-bind state.
     std::unique_ptr<DescriptorAllocator> descAllocator_;
-    std::vector<VkDescriptorSetLayout> dslCache_;  // created per compile, destroyed on reset/destroy
+    std::vector<VkDescriptorSetLayout> dslCache_; // created per compile, destroyed on reset/destroy
 };
 
 } // namespace vksdl::graph

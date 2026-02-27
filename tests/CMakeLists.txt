@@ -1,3 +1,67 @@
+# --- Fallback shader targets (when examples are not built) ---
+# Several integration tests depend on triangle_shaders / rt_triangle_shaders
+# defined in examples/. When VKSDL_BUILD_EXAMPLES=OFF we compile the same
+# shaders here so the test targets can still link.
+
+if(NOT TARGET triangle_shaders)
+    set(_TRI_SHADER_DIR ${CMAKE_SOURCE_DIR}/examples/triangle/shaders)
+    set(_TRI_SHADER_OUT ${CMAKE_BINARY_DIR}/examples/triangle/shaders)
+    file(MAKE_DIRECTORY ${_TRI_SHADER_OUT})
+
+    set(_TRI_SHADERS ${_TRI_SHADER_DIR}/triangle.vert ${_TRI_SHADER_DIR}/triangle.frag)
+    set(_TRI_SPV_FILES "")
+    foreach(SHADER ${_TRI_SHADERS})
+        get_filename_component(_NAME ${SHADER} NAME)
+        set(_SPV ${_TRI_SHADER_OUT}/${_NAME}.spv)
+        set(_VALIDATE_CMD "")
+        if(SPIRV_VAL)
+            set(_VALIDATE_CMD COMMAND ${SPIRV_VAL} ${_SPV})
+        endif()
+        add_custom_command(
+            OUTPUT ${_SPV}
+            COMMAND ${GLSLC} ${SHADER} -o ${_SPV}
+            ${_VALIDATE_CMD}
+            DEPENDS ${SHADER}
+            COMMENT "Compiling ${_NAME} -> ${_NAME}.spv (test fallback)"
+        )
+        list(APPEND _TRI_SPV_FILES ${_SPV})
+    endforeach()
+    add_custom_target(triangle_shaders ALL DEPENDS ${_TRI_SPV_FILES})
+endif()
+
+if(NOT TARGET rt_triangle_shaders)
+    set(_RT_SHADER_DIR ${CMAKE_SOURCE_DIR}/examples/rt_triangle/shaders)
+    set(_RT_SHADER_OUT ${CMAKE_BINARY_DIR}/examples/rt_triangle/shaders)
+    file(MAKE_DIRECTORY ${_RT_SHADER_OUT})
+
+    set(_RT_SHADERS
+        ${_RT_SHADER_DIR}/raygen.rgen
+        ${_RT_SHADER_DIR}/miss.rmiss
+        ${_RT_SHADER_DIR}/shadow_miss.rmiss
+        ${_RT_SHADER_DIR}/closesthit.rchit
+    )
+    set(_RT_SPV_FILES "")
+    foreach(SHADER ${_RT_SHADERS})
+        get_filename_component(_NAME ${SHADER} NAME)
+        set(_SPV ${_RT_SHADER_OUT}/${_NAME}.spv)
+        set(_VALIDATE_CMD "")
+        if(SPIRV_VAL)
+            set(_VALIDATE_CMD COMMAND ${SPIRV_VAL} ${_SPV})
+        endif()
+        add_custom_command(
+            OUTPUT ${_SPV}
+            COMMAND ${GLSLC} --target-env=vulkan1.3 ${SHADER} -o ${_SPV}
+            ${_VALIDATE_CMD}
+            DEPENDS ${SHADER}
+            COMMENT "Compiling ${_NAME} -> ${_NAME}.spv (test fallback)"
+        )
+        list(APPEND _RT_SPV_FILES ${_SPV})
+    endforeach()
+    add_custom_target(rt_triangle_shaders ALL DEPENDS ${_RT_SPV_FILES})
+endif()
+
+# --- Unit tests (CPU-only, no GPU required) ---
+
 add_executable(test_error unit/test_error.cpp)
 target_link_libraries(test_error PRIVATE vksdl)
 add_test(NAME test_error COMMAND test_error)

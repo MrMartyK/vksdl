@@ -20,15 +20,13 @@ int main() {
     const int sdl_micro = SDL_VERSIONNUM_MICRO(sdl_ver);
 
     std::uint32_t api_version = 0;
-    const auto enumerate_instance_version =
-        reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
-            vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion"));
+    const auto enumerate_instance_version = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
+        vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion"));
     if (enumerate_instance_version != nullptr) {
-        (void)enumerate_instance_version(&api_version);
+        (void) enumerate_instance_version(&api_version);
     }
 
-    std::printf(
-        "vksdl consumer smoke ok | SDL %d.%d.%d | Vulkan 0x%08x\n",
-        sdl_major, sdl_minor, sdl_micro, api_version);
+    std::printf("vksdl consumer smoke ok | SDL %d.%d.%d | Vulkan 0x%08x\n", sdl_major, sdl_minor,
+                sdl_micro, api_version);
     return 0;
 }

@@ -12,22 +12,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_error_recovery")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_error_recovery")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto deviceRes = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                         .needSwapchain()
+                         .needDynamicRendering()
+                         .needSync2()
+                         .preferDiscreteGpu()
+                         .build();
     assert(deviceRes.ok());
 
     vksdl::Device& device = deviceRes.value();
@@ -42,8 +42,8 @@ int main() {
     const vksdl::Device* callbackDevicePtr = nullptr;
 
     device.onDeviceLost([&callbackInvoked, &callbackDevicePtr](const vksdl::Device& d) {
-        callbackInvoked    = true;
-        callbackDevicePtr  = &d;
+        callbackInvoked = true;
+        callbackDevicePtr = &d;
         // Do not abort -- test needs to verify state after the call.
     });
 
@@ -66,20 +66,19 @@ int main() {
     // Test 6: move semantics transfer deviceLost_ and callback correctly.
     // Create a second device to test move with fresh state.
     auto deviceRes2 = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                          .needSwapchain()
+                          .needDynamicRendering()
+                          .needSync2()
+                          .preferDiscreteGpu()
+                          .build();
     assert(deviceRes2.ok());
 
     vksdl::Device& device2 = deviceRes2.value();
     assert(!device2.isDeviceLost() && "second device must start clean");
 
     bool moved_callback_invoked = false;
-    device2.onDeviceLost([&moved_callback_invoked](const vksdl::Device&) {
-        moved_callback_invoked = true;
-    });
+    device2.onDeviceLost(
+        [&moved_callback_invoked](const vksdl::Device&) { moved_callback_invoked = true; });
 
     vksdl::Device device2_moved = std::move(device2);
     assert(!device2_moved.isDeviceLost() && "moved device must carry over lost state (false)");

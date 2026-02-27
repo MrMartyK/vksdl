@@ -70,22 +70,19 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
 
     cgltf_result res = cgltf_parse_file(&options, pathStr.c_str(), &data);
     if (res != cgltf_result_success) {
-        return Error{"load model", 0,
-                     "failed to parse glTF file: " + pathStr};
+        return Error{"load model", 0, "failed to parse glTF file: " + pathStr};
     }
 
     res = cgltf_load_buffers(&options, data, pathStr.c_str());
     if (res != cgltf_result_success) {
         cgltf_free(data);
-        return Error{"load model", 0,
-                     "failed to load glTF buffers: " + pathStr};
+        return Error{"load model", 0, "failed to load glTF buffers: " + pathStr};
     }
 
     res = cgltf_validate(data);
     if (res != cgltf_result_success) {
         cgltf_free(data);
-        return Error{"load model", 0,
-                     "glTF validation failed: " + pathStr};
+        return Error{"load model", 0, "glTF validation failed: " + pathStr};
     }
 
     std::filesystem::path parentDir = path.parent_path();
@@ -99,13 +96,13 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
             const cgltf_primitive& prim = gltfMesh.primitives[pi];
 
             if (prim.type != cgltf_primitive_type_triangles) {
-                continue;  // skip non-triangle primitives
+                continue; // skip non-triangle primitives
             }
 
             // Find accessors by iterating attributes
-            const cgltf_accessor* posAccessor  = nullptr;
+            const cgltf_accessor* posAccessor = nullptr;
             const cgltf_accessor* normAccessor = nullptr;
-            const cgltf_accessor* uvAccessor   = nullptr;
+            const cgltf_accessor* uvAccessor = nullptr;
 
             for (cgltf_size ai = 0; ai < prim.attributes_count; ++ai) {
                 const cgltf_attribute& attr = prim.attributes[ai];
@@ -119,19 +116,18 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
             }
 
             if (!posAccessor) {
-                continue;  // no positions, skip
+                continue; // no positions, skip
             }
 
             bool hasNormals = normAccessor != nullptr;
-            bool hasUVs     = uvAccessor != nullptr;
+            bool hasUVs = uvAccessor != nullptr;
 
             // Read indices
             std::vector<std::uint32_t> indices;
             if (prim.indices) {
                 indices.resize(prim.indices->count);
-                cgltf_accessor_unpack_indices(
-                    prim.indices, indices.data(),
-                    sizeof(std::uint32_t), prim.indices->count);
+                cgltf_accessor_unpack_indices(prim.indices, indices.data(), sizeof(std::uint32_t),
+                                              prim.indices->count);
             } else {
                 // Non-indexed: generate sequential indices
                 indices.resize(posAccessor->count);
@@ -143,21 +139,18 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
             // Read vertex data
             std::size_t vertexCount = posAccessor->count;
             std::vector<float> positions(vertexCount * 3);
-            cgltf_accessor_unpack_floats(posAccessor, positions.data(),
-                                         vertexCount * 3);
+            cgltf_accessor_unpack_floats(posAccessor, positions.data(), vertexCount * 3);
 
             std::vector<float> normals;
             if (hasNormals) {
                 normals.resize(vertexCount * 3);
-                cgltf_accessor_unpack_floats(normAccessor, normals.data(),
-                                             vertexCount * 3);
+                cgltf_accessor_unpack_floats(normAccessor, normals.data(), vertexCount * 3);
             }
 
             std::vector<float> uvs;
             if (hasUVs) {
                 uvs.resize(vertexCount * 2);
-                cgltf_accessor_unpack_floats(uvAccessor, uvs.data(),
-                                             vertexCount * 2);
+                cgltf_accessor_unpack_floats(uvAccessor, uvs.data(), vertexCount * 2);
             }
 
             // Build interleaved vertices
@@ -168,7 +161,8 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
                 unrolled.reserve(indices.size());
 
                 for (std::uint32_t idx : indices) {
-                    if (static_cast<std::size_t>(idx) >= vertexCount) continue;
+                    if (static_cast<std::size_t>(idx) >= vertexCount)
+                        continue;
                     Vertex v{};
                     v.position[0] = positions[idx * 3 + 0];
                     v.position[1] = positions[idx * 3 + 1];
@@ -190,7 +184,7 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
 
                 MeshData meshData;
                 meshData.vertices = std::move(unrolled);
-                meshData.indices  = std::move(newIndices);
+                meshData.indices = std::move(newIndices);
 
                 if (gltfMesh.name) {
                     meshData.name = gltfMesh.name;
@@ -203,9 +197,9 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
                     }
                     if (prim.material->has_pbr_metallic_roughness) {
                         const auto& pbr = prim.material->pbr_metallic_roughness;
-                        std::memcpy(meshData.material.baseColor,
-                                    pbr.base_color_factor, sizeof(float) * 4);
-                        meshData.material.metallic  = pbr.metallic_factor;
+                        std::memcpy(meshData.material.baseColor, pbr.base_color_factor,
+                                    sizeof(float) * 4);
+                        meshData.material.metallic = pbr.metallic_factor;
                         meshData.material.roughness = pbr.roughness_factor;
 
                         if (pbr.base_color_texture.texture &&
@@ -226,9 +220,9 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
                     verts[i].position[0] = positions[i * 3 + 0];
                     verts[i].position[1] = positions[i * 3 + 1];
                     verts[i].position[2] = positions[i * 3 + 2];
-                    verts[i].normal[0]   = normals[i * 3 + 0];
-                    verts[i].normal[1]   = normals[i * 3 + 1];
-                    verts[i].normal[2]   = normals[i * 3 + 2];
+                    verts[i].normal[0] = normals[i * 3 + 0];
+                    verts[i].normal[1] = normals[i * 3 + 1];
+                    verts[i].normal[2] = normals[i * 3 + 2];
                     if (hasUVs) {
                         verts[i].texCoord[0] = uvs[i * 2 + 0];
                         verts[i].texCoord[1] = uvs[i * 2 + 1];
@@ -237,7 +231,7 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
 
                 MeshData meshData;
                 meshData.vertices = std::move(verts);
-                meshData.indices  = std::move(indices);
+                meshData.indices = std::move(indices);
 
                 if (gltfMesh.name) {
                     meshData.name = gltfMesh.name;
@@ -250,9 +244,9 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
                     }
                     if (prim.material->has_pbr_metallic_roughness) {
                         const auto& pbr = prim.material->pbr_metallic_roughness;
-                        std::memcpy(meshData.material.baseColor,
-                                    pbr.base_color_factor, sizeof(float) * 4);
-                        meshData.material.metallic  = pbr.metallic_factor;
+                        std::memcpy(meshData.material.baseColor, pbr.base_color_factor,
+                                    sizeof(float) * 4);
+                        meshData.material.metallic = pbr.metallic_factor;
                         meshData.material.roughness = pbr.roughness_factor;
 
                         if (pbr.base_color_texture.texture &&
@@ -272,8 +266,7 @@ Result<std::vector<MeshData>> loadGltf(const std::filesystem::path& path) {
     cgltf_free(data);
 
     if (meshes.empty()) {
-        return Error{"load model", 0,
-                     "no triangle meshes found in: " + pathStr};
+        return Error{"load model", 0, "no triangle meshes found in: " + pathStr};
     }
 
     return meshes;

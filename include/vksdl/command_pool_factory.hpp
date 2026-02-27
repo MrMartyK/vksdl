@@ -21,9 +21,9 @@ class Device;
 // resetAll() is synchronized and must not race with getForCurrentThread() on
 // new threads.
 class CommandPoolFactory {
-public:
-    [[nodiscard]] static Result<CommandPoolFactory> create(
-        const Device& device, std::uint32_t queueFamily);
+  public:
+    [[nodiscard]] static Result<CommandPoolFactory> create(const Device& device,
+                                                           std::uint32_t queueFamily);
 
     ~CommandPoolFactory();
     CommandPoolFactory(CommandPoolFactory&&) noexcept;
@@ -42,7 +42,7 @@ public:
     // Implementation detail: exposed for thread_local cache in .cpp only.
     struct Impl;
 
-private:
+  private:
     CommandPoolFactory() = default;
 
     std::unique_ptr<Impl> impl_;

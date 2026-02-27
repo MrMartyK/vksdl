@@ -1,9 +1,6 @@
 #pragma once
+#include <vksdl/device.hpp>
 #include <vulkan/vulkan.h>
-
-namespace vksdl {
-class Device;
-} // namespace vksdl
 
 namespace vksdl::detail {
 

@@ -31,7 +31,9 @@ foreach(SHADER ${SHADERS})
     list(APPEND SPV_FILES ${SPV})
 endforeach()
 
-add_custom_target(rt_triangle_shaders ALL DEPENDS ${SPV_FILES})
+if(NOT TARGET rt_triangle_shaders)
+    add_custom_target(rt_triangle_shaders ALL DEPENDS ${SPV_FILES})
+endif()
 add_dependencies(rt_triangle rt_triangle_shaders)
 
 add_custom_command(TARGET rt_triangle POST_BUILD

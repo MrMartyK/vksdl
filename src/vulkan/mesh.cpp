@@ -1,6 +1,6 @@
-#include <vksdl/mesh.hpp>
 #include <vksdl/allocator.hpp>
 #include <vksdl/device.hpp>
+#include <vksdl/mesh.hpp>
 
 #if VKSDL_HAS_LOADERS
 #include "mesh_loaders.hpp"
@@ -44,8 +44,7 @@ Result<ModelData> loadModel(const std::filesystem::path& path) {
         meshes = detail::loadObj(path);
     } else {
         return Error{"load model", 0,
-                     "unsupported model format '" + ext +
-                     "' -- supported: .gltf, .glb, .obj"};
+                     "unsupported model format '" + ext + "' -- supported: .gltf, .glb, .obj"};
     }
 
     if (!meshes.ok()) {
@@ -71,17 +70,16 @@ Mesh::~Mesh() {
 }
 
 Mesh::Mesh(Mesh&& o) noexcept
-    : allocator_(o.allocator_), vertexBuffer_(o.vertexBuffer_),
-      vertexAlloc_(o.vertexAlloc_), indexBuffer_(o.indexBuffer_),
-      indexAlloc_(o.indexAlloc_), vertexCount_(o.vertexCount_),
+    : allocator_(o.allocator_), vertexBuffer_(o.vertexBuffer_), vertexAlloc_(o.vertexAlloc_),
+      indexBuffer_(o.indexBuffer_), indexAlloc_(o.indexAlloc_), vertexCount_(o.vertexCount_),
       indexCount_(o.indexCount_) {
-    o.allocator_    = nullptr;
+    o.allocator_ = nullptr;
     o.vertexBuffer_ = VK_NULL_HANDLE;
-    o.vertexAlloc_  = nullptr;
-    o.indexBuffer_  = VK_NULL_HANDLE;
-    o.indexAlloc_   = nullptr;
-    o.vertexCount_  = 0;
-    o.indexCount_   = 0;
+    o.vertexAlloc_ = nullptr;
+    o.indexBuffer_ = VK_NULL_HANDLE;
+    o.indexAlloc_ = nullptr;
+    o.vertexCount_ = 0;
+    o.indexCount_ = 0;
 }
 
 Mesh& Mesh::operator=(Mesh&& o) noexcept {
@@ -94,28 +92,26 @@ Mesh& Mesh::operator=(Mesh&& o) noexcept {
                 vmaDestroyBuffer(allocator_, vertexBuffer_, vertexAlloc_);
             }
         }
-        allocator_    = o.allocator_;
+        allocator_ = o.allocator_;
         vertexBuffer_ = o.vertexBuffer_;
-        vertexAlloc_  = o.vertexAlloc_;
-        indexBuffer_  = o.indexBuffer_;
-        indexAlloc_   = o.indexAlloc_;
-        vertexCount_  = o.vertexCount_;
-        indexCount_   = o.indexCount_;
-        o.allocator_    = nullptr;
+        vertexAlloc_ = o.vertexAlloc_;
+        indexBuffer_ = o.indexBuffer_;
+        indexAlloc_ = o.indexAlloc_;
+        vertexCount_ = o.vertexCount_;
+        indexCount_ = o.indexCount_;
+        o.allocator_ = nullptr;
         o.vertexBuffer_ = VK_NULL_HANDLE;
-        o.vertexAlloc_  = nullptr;
-        o.indexBuffer_  = VK_NULL_HANDLE;
-        o.indexAlloc_   = nullptr;
-        o.vertexCount_  = 0;
-        o.indexCount_   = 0;
+        o.vertexAlloc_ = nullptr;
+        o.indexBuffer_ = VK_NULL_HANDLE;
+        o.indexAlloc_ = nullptr;
+        o.vertexCount_ = 0;
+        o.indexCount_ = 0;
     }
     return *this;
 }
 
-Result<Mesh> uploadMesh(
-    const Allocator& allocator,
-    const Device& device,
-    const MeshData& meshData) {
+Result<Mesh> uploadMesh(const Allocator& allocator, const Device& device,
+                        const MeshData& meshData) {
 
     if (meshData.vertices.empty()) {
         return Error{"upload mesh", 0, "MeshData has no vertices"};
@@ -125,8 +121,8 @@ Result<Mesh> uploadMesh(
     }
 
     VkDeviceSize vertexSize = meshData.vertexSizeBytes();
-    VkDeviceSize indexSize  = meshData.indexSizeBytes();
-    VkDeviceSize totalSize  = vertexSize + indexSize;
+    VkDeviceSize indexSize = meshData.indexSizeBytes();
+    VkDeviceSize totalSize = vertexSize + indexSize;
 
     VmaAllocator vma = allocator.vmaAllocator();
 
@@ -134,22 +130,20 @@ Result<Mesh> uploadMesh(
     // so Mesh objects work directly with BlasBuilder::addMesh() for RT.
     VkBufferCreateInfo vertexCI{};
     vertexCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    vertexCI.size  = vertexSize;
-    vertexCI.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                     VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+    vertexCI.size = vertexSize;
+    vertexCI.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                      VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     VmaAllocationCreateInfo deviceAllocCI{};
     deviceAllocCI.usage = VMA_MEMORY_USAGE_AUTO;
 
     Mesh mesh;
-    mesh.allocator_   = vma;
+    mesh.allocator_ = vma;
     mesh.vertexCount_ = static_cast<std::uint32_t>(meshData.vertices.size());
-    mesh.indexCount_  = static_cast<std::uint32_t>(meshData.indices.size());
+    mesh.indexCount_ = static_cast<std::uint32_t>(meshData.indices.size());
 
-    VkResult vr = vmaCreateBuffer(vma, &vertexCI, &deviceAllocCI,
-                                   &mesh.vertexBuffer_, &mesh.vertexAlloc_,
-                                   nullptr);
+    VkResult vr = vmaCreateBuffer(vma, &vertexCI, &deviceAllocCI, &mesh.vertexBuffer_,
+                                  &mesh.vertexAlloc_, nullptr);
     if (vr != VK_SUCCESS) {
         return Error{"upload mesh", static_cast<std::int32_t>(vr),
                      "failed to create vertex buffer"};
@@ -157,48 +151,44 @@ Result<Mesh> uploadMesh(
 
     VkBufferCreateInfo indexCI{};
     indexCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    indexCI.size  = indexSize;
-    indexCI.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                    VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+    indexCI.size = indexSize;
+    indexCI.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-    vr = vmaCreateBuffer(vma, &indexCI, &deviceAllocCI,
-                          &mesh.indexBuffer_, &mesh.indexAlloc_, nullptr);
+    vr = vmaCreateBuffer(vma, &indexCI, &deviceAllocCI, &mesh.indexBuffer_, &mesh.indexAlloc_,
+                         nullptr);
     if (vr != VK_SUCCESS) {
-        return Error{"upload mesh", static_cast<std::int32_t>(vr),
-                     "failed to create index buffer"};
+        return Error{"upload mesh", static_cast<std::int32_t>(vr), "failed to create index buffer"};
     }
 
     VkBufferCreateInfo stagingCI{};
     stagingCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    stagingCI.size  = totalSize;
+    stagingCI.size = totalSize;
     stagingCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     VmaAllocationCreateInfo stagingAllocCI{};
     stagingAllocCI.usage = VMA_MEMORY_USAGE_AUTO;
-    stagingAllocCI.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-                           VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    stagingAllocCI.flags =
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    VkBuffer      stagingBuf   = VK_NULL_HANDLE;
+    VkBuffer stagingBuf = VK_NULL_HANDLE;
     VmaAllocation stagingAlloc = nullptr;
     VmaAllocationInfo stagingInfo{};
 
-    vr = vmaCreateBuffer(vma, &stagingCI, &stagingAllocCI,
-                          &stagingBuf, &stagingAlloc, &stagingInfo);
+    vr =
+        vmaCreateBuffer(vma, &stagingCI, &stagingAllocCI, &stagingBuf, &stagingAlloc, &stagingInfo);
     if (vr != VK_SUCCESS) {
         return Error{"upload mesh", static_cast<std::int32_t>(vr),
                      "failed to create staging buffer"};
     }
 
     auto* dst = static_cast<unsigned char*>(stagingInfo.pMappedData);
-    std::memcpy(dst, meshData.vertices.data(),
-                static_cast<std::size_t>(vertexSize));
-    std::memcpy(dst + vertexSize, meshData.indices.data(),
-                static_cast<std::size_t>(indexSize));
+    std::memcpy(dst, meshData.vertices.data(), static_cast<std::size_t>(vertexSize));
+    std::memcpy(dst + vertexSize, meshData.indices.data(), static_cast<std::size_t>(indexSize));
 
     VkCommandPoolCreateInfo poolCI{};
-    poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     poolCI.queueFamilyIndex = device.queueFamilies().graphics;
 
     VkCommandPool cmdPool = VK_NULL_HANDLE;
@@ -210,9 +200,9 @@ Result<Mesh> uploadMesh(
     }
 
     VkCommandBufferAllocateInfo cmdAI{};
-    cmdAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmdAI.commandPool        = cmdPool;
-    cmdAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdAI.commandPool = cmdPool;
+    cmdAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cmdAI.commandBufferCount = 1;
 
     VkCommandBuffer cmd = VK_NULL_HANDLE;
@@ -232,21 +222,21 @@ Result<Mesh> uploadMesh(
     VkBufferCopy vertexRegion{};
     vertexRegion.srcOffset = 0;
     vertexRegion.dstOffset = 0;
-    vertexRegion.size      = vertexSize;
+    vertexRegion.size = vertexSize;
     vkCmdCopyBuffer(cmd, stagingBuf, mesh.vertexBuffer_, 1, &vertexRegion);
 
     VkBufferCopy indexRegion{};
     indexRegion.srcOffset = vertexSize;
     indexRegion.dstOffset = 0;
-    indexRegion.size      = indexSize;
+    indexRegion.size = indexSize;
     vkCmdCopyBuffer(cmd, stagingBuf, mesh.indexBuffer_, 1, &indexRegion);
 
     vkEndCommandBuffer(cmd);
 
     VkSubmitInfo submitInfo{};
-    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers    = &cmd;
+    submitInfo.pCommandBuffers = &cmd;
 
     vr = vkQueueSubmit(device.graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
     if (vr != VK_SUCCESS) {

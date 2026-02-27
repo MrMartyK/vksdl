@@ -15,22 +15,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_framesync")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_framesync")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     // Create FrameSync with 2 frames in flight
@@ -50,10 +50,8 @@ int main() {
     std::printf("  frame 0: ok\n");
 
     vksdl::beginOneTimeCommands(f0.value().cmd);
-    auto submit0 = vksdl::endSubmitOneShotBlocking(
-        device.value().graphicsQueue(),
-        f0.value().cmd,
-        f0.value().fence);
+    auto submit0 = vksdl::endSubmitOneShotBlocking(device.value().graphicsQueue(), f0.value().cmd,
+                                                   f0.value().fence);
     assert(submit0.ok());
     std::printf("  frame 0 submit one-shot blocking: ok\n");
 
@@ -67,10 +65,8 @@ int main() {
     std::printf("  frame 1: ok (different handles from frame 0)\n");
 
     vksdl::beginOneTimeCommands(f1.value().cmd);
-    auto submit1 = vksdl::endSubmitOneShotBlocking(
-        device.value().graphicsQueue(),
-        f1.value().cmd,
-        f1.value().fence);
+    auto submit1 = vksdl::endSubmitOneShotBlocking(device.value().graphicsQueue(), f1.value().cmd,
+                                                   f1.value().fence);
     assert(submit1.ok());
     std::printf("  frame 1 submit one-shot blocking: ok\n");
 

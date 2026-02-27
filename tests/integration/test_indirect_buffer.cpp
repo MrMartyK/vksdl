@@ -12,21 +12,21 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_indirect_buffer")
-        .requireVulkan(1, 3)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_indirect_buffer")
+                        .requireVulkan(1, 3)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
@@ -35,9 +35,9 @@ int main() {
     // Create indirect buffer via builder
     {
         auto buf = vksdl::BufferBuilder(allocator.value())
-            .indirectBuffer()
-            .size(sizeof(VkDrawIndirectCommand))
-            .build();
+                       .indirectBuffer()
+                       .size(sizeof(VkDrawIndirectCommand))
+                       .build();
         assert(buf.ok());
         assert(buf.value().vkBuffer() != VK_NULL_HANDLE);
         assert(buf.value().size() == sizeof(VkDrawIndirectCommand));
@@ -48,14 +48,13 @@ int main() {
     // Upload VkDrawIndirectCommand via uploadIndirectBuffer
     {
         VkDrawIndirectCommand cmd{};
-        cmd.vertexCount   = 3;
+        cmd.vertexCount = 3;
         cmd.instanceCount = 1;
-        cmd.firstVertex   = 0;
+        cmd.firstVertex = 0;
         cmd.firstInstance = 0;
 
-        auto buf = vksdl::uploadIndirectBuffer(
-            allocator.value(), device.value(),
-            &cmd, sizeof(cmd));
+        auto buf =
+            vksdl::uploadIndirectBuffer(allocator.value(), device.value(), &cmd, sizeof(cmd));
         assert(buf.ok());
         assert(buf.value().vkBuffer() != VK_NULL_HANDLE);
         assert(buf.value().deviceAddress() != 0);
@@ -65,19 +64,18 @@ int main() {
     // Record barriers (validate no errors)
     {
         VkCommandPoolCreateInfo poolCI{};
-        poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         poolCI.queueFamilyIndex = device.value().queueFamilies().graphics;
 
         VkCommandPool cmdPool = VK_NULL_HANDLE;
-        VkResult vr = vkCreateCommandPool(device.value().vkDevice(), &poolCI,
-                                          nullptr, &cmdPool);
+        VkResult vr = vkCreateCommandPool(device.value().vkDevice(), &poolCI, nullptr, &cmdPool);
         assert(vr == VK_SUCCESS);
 
         VkCommandBufferAllocateInfo cmdAI{};
-        cmdAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmdAI.commandPool        = cmdPool;
-        cmdAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdAI.commandPool = cmdPool;
+        cmdAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdAI.commandBufferCount = 1;
 
         VkCommandBuffer cmd = VK_NULL_HANDLE;
@@ -95,9 +93,9 @@ int main() {
         vkEndCommandBuffer(cmd);
 
         VkSubmitInfo submitInfo{};
-        submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers    = &cmd;
+        submitInfo.pCommandBuffers = &cmd;
 
         vr = vkQueueSubmit(device.value().graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
         assert(vr == VK_SUCCESS);

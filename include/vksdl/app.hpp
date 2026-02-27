@@ -17,7 +17,7 @@ class AppImpl;
 //
 // Thread safety: thread-confined (main/UI thread).
 class App {
-public:
+  public:
     [[nodiscard]] static Result<App> create();
 
     ~App();
@@ -26,13 +26,12 @@ public:
     App(const App&) = delete;
     App& operator=(const App&) = delete;
 
-    [[nodiscard]] Result<Window> createWindow(std::string_view title,
-                                               std::uint32_t width,
-                                               std::uint32_t height);
+    [[nodiscard]] Result<Window> createWindow(std::string_view title, std::uint32_t width,
+                                              std::uint32_t height);
 
     void pumpEvents();
 
-private:
+  private:
     friend class Window;
     App() = default;
     void registerWindow(Window* w);

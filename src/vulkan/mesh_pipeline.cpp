@@ -1,5 +1,5 @@
-#include <vksdl/mesh_pipeline.hpp>
 #include <vksdl/device.hpp>
+#include <vksdl/mesh_pipeline.hpp>
 #include <vksdl/pipeline_cache.hpp>
 #include <vksdl/swapchain.hpp>
 
@@ -12,23 +12,19 @@
 
 namespace vksdl {
 
-MeshPipelineBuilder::MeshPipelineBuilder(const Device& device)
-    : device_(device.vkDevice()) {}
+MeshPipelineBuilder::MeshPipelineBuilder(const Device& device) : device_(device.vkDevice()) {}
 
-MeshPipelineBuilder& MeshPipelineBuilder::taskShader(
-    const std::filesystem::path& spvPath) {
+MeshPipelineBuilder& MeshPipelineBuilder::taskShader(const std::filesystem::path& spvPath) {
     taskPath_ = spvPath;
     return *this;
 }
 
-MeshPipelineBuilder& MeshPipelineBuilder::meshShader(
-    const std::filesystem::path& spvPath) {
+MeshPipelineBuilder& MeshPipelineBuilder::meshShader(const std::filesystem::path& spvPath) {
     meshPath_ = spvPath;
     return *this;
 }
 
-MeshPipelineBuilder& MeshPipelineBuilder::fragmentShader(
-    const std::filesystem::path& spvPath) {
+MeshPipelineBuilder& MeshPipelineBuilder::fragmentShader(const std::filesystem::path& spvPath) {
     fragPath_ = spvPath;
     return *this;
 }
@@ -151,18 +147,17 @@ MeshPipelineBuilder& MeshPipelineBuilder::pushConstantRange(VkPushConstantRange 
 #ifndef NDEBUG
     if (range.offset + range.size > 128) {
         std::fprintf(stderr,
-            "[vksdl perf] push constant range exceeds 128 bytes (%u bytes). "
-            "The Vulkan spec only guarantees 128 bytes. "
-            "Consider using a uniform buffer instead.\n",
-            range.offset + range.size);
+                     "[vksdl perf] push constant range exceeds 128 bytes (%u bytes). "
+                     "The Vulkan spec only guarantees 128 bytes. "
+                     "Consider using a uniform buffer instead.\n",
+                     range.offset + range.size);
     }
 #endif
     pushConstantRanges_.push_back(range);
     return *this;
 }
 
-MeshPipelineBuilder& MeshPipelineBuilder::descriptorSetLayout(
-    VkDescriptorSetLayout layout) {
+MeshPipelineBuilder& MeshPipelineBuilder::descriptorSetLayout(VkDescriptorSetLayout layout) {
     descriptorSetLayouts_.push_back(layout);
     return *this;
 }
@@ -172,18 +167,18 @@ MeshPipelineBuilder& MeshPipelineBuilder::pipelineLayout(VkPipelineLayout layout
     return *this;
 }
 
-Result<VkShaderModule> MeshPipelineBuilder::createModule(
-    const std::vector<std::uint32_t>& code) const {
+Result<VkShaderModule>
+MeshPipelineBuilder::createModule(const std::vector<std::uint32_t>& code) const {
     VkShaderModuleCreateInfo ci{};
-    ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     ci.codeSize = code.size() * sizeof(std::uint32_t);
-    ci.pCode    = code.data();
+    ci.pCode = code.data();
 
     VkShaderModule module = VK_NULL_HANDLE;
     VkResult vr = vkCreateShaderModule(device_, &ci, nullptr, &module);
     if (vr != VK_SUCCESS) {
         return Error{"create mesh shader module", static_cast<std::int32_t>(vr),
-            "vkCreateShaderModule failed"};
+                     "vkCreateShaderModule failed"};
     }
     return module;
 }
@@ -195,15 +190,16 @@ Result<Pipeline> MeshPipelineBuilder::build() {
 
     if (!hasMeshShader) {
         return Error{"create mesh pipeline", 0,
-            "no mesh shader set -- call meshShader(path) or meshModule(module)"};
+                     "no mesh shader set -- call meshShader(path) or meshModule(module)"};
     }
     if (!hasFragShader) {
-        return Error{"create mesh pipeline", 0,
+        return Error{
+            "create mesh pipeline", 0,
             "no fragment shader set -- call fragmentShader(path) or fragmentModule(module)"};
     }
     if (colorFormat_ == VK_FORMAT_UNDEFINED) {
         return Error{"create mesh pipeline", 0,
-            "no color format set -- call colorFormat(swapchain) or colorFormat(VkFormat)"};
+                     "no color format set -- call colorFormat(swapchain) or colorFormat(VkFormat)"};
     }
 
     VkShaderModule taskMod = taskModule_;
@@ -227,9 +223,13 @@ Result<Pipeline> MeshPipelineBuilder::build() {
 
     if (hasTaskShader && taskMod == VK_NULL_HANDLE) {
         auto code = readSpv(taskPath_);
-        if (!code.ok()) { return std::move(code).error(); }
+        if (!code.ok()) {
+            return std::move(code).error();
+        }
         auto mod = createModule(code.value());
-        if (!mod.ok()) { return std::move(mod).error(); }
+        if (!mod.ok()) {
+            return std::move(mod).error();
+        }
         taskMod = mod.value();
         createdTask = true;
     }
@@ -272,13 +272,11 @@ Result<Pipeline> MeshPipelineBuilder::build() {
         p.ownsLayout_ = false;
     } else {
         VkPipelineLayoutCreateInfo layoutCI{};
-        layoutCI.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        layoutCI.setLayoutCount =
-            static_cast<std::uint32_t>(descriptorSetLayouts_.size());
-        layoutCI.pSetLayouts    =
+        layoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        layoutCI.setLayoutCount = static_cast<std::uint32_t>(descriptorSetLayouts_.size());
+        layoutCI.pSetLayouts =
             descriptorSetLayouts_.empty() ? nullptr : descriptorSetLayouts_.data();
-        layoutCI.pushConstantRangeCount =
-            static_cast<std::uint32_t>(pushConstantRanges_.size());
+        layoutCI.pushConstantRangeCount = static_cast<std::uint32_t>(pushConstantRanges_.size());
         layoutCI.pPushConstantRanges =
             pushConstantRanges_.empty() ? nullptr : pushConstantRanges_.data();
 
@@ -286,7 +284,7 @@ Result<Pipeline> MeshPipelineBuilder::build() {
         if (vr != VK_SUCCESS) {
             destroyModules();
             return Error{"create mesh pipeline layout", static_cast<std::int32_t>(vr),
-                "vkCreatePipelineLayout failed"};
+                         "vkCreatePipelineLayout failed"};
         }
         p.ownsLayout_ = true;
     }
@@ -298,9 +296,9 @@ Result<Pipeline> MeshPipelineBuilder::build() {
         pSpecInfo = &*externalSpecInfo_;
     } else if (!specEntries_.empty()) {
         builtSpecInfo.mapEntryCount = static_cast<std::uint32_t>(specEntries_.size());
-        builtSpecInfo.pMapEntries   = specEntries_.data();
-        builtSpecInfo.dataSize      = specData_.size();
-        builtSpecInfo.pData         = specData_.data();
+        builtSpecInfo.pMapEntries = specEntries_.data();
+        builtSpecInfo.dataSize = specData_.size();
+        builtSpecInfo.pData = specData_.data();
         pSpecInfo = &builtSpecInfo;
     }
 
@@ -310,75 +308,74 @@ Result<Pipeline> MeshPipelineBuilder::build() {
 
     if (hasTaskShader) {
         VkPipelineShaderStageCreateInfo stage{};
-        stage.sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        stage.stage               = VK_SHADER_STAGE_TASK_BIT_EXT;
-        stage.module              = taskMod;
-        stage.pName               = "main";
+        stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stage.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
+        stage.module = taskMod;
+        stage.pName = "main";
         stage.pSpecializationInfo = pSpecInfo;
         stages.push_back(stage);
     }
 
     {
         VkPipelineShaderStageCreateInfo stage{};
-        stage.sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        stage.stage               = VK_SHADER_STAGE_MESH_BIT_EXT;
-        stage.module              = meshMod;
-        stage.pName               = "main";
+        stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stage.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
+        stage.module = meshMod;
+        stage.pName = "main";
         stage.pSpecializationInfo = pSpecInfo;
         stages.push_back(stage);
     }
 
     {
         VkPipelineShaderStageCreateInfo stage{};
-        stage.sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        stage.stage               = VK_SHADER_STAGE_FRAGMENT_BIT;
-        stage.module              = fragMod;
-        stage.pName               = "main";
+        stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        stage.module = fragMod;
+        stage.pName = "main";
         stage.pSpecializationInfo = pSpecInfo;
         stages.push_back(stage);
     }
 
     VkPipelineViewportStateCreateInfo viewportState{};
-    viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
-    viewportState.scissorCount  = 1;
+    viewportState.scissorCount = 1;
 
     VkPipelineRasterizationStateCreateInfo rasterizer{};
-    rasterizer.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.polygonMode = polygonMode_;
-    rasterizer.lineWidth   = 1.0f;
-    rasterizer.cullMode    = cullMode_;
-    rasterizer.frontFace   = frontFace_;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = cullMode_;
+    rasterizer.frontFace = frontFace_;
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
-    multisampling.sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.rasterizationSamples = samples_;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask =
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     if (enableBlending_) {
-        colorBlendAttachment.blendEnable         = VK_TRUE;
+        colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        colorBlendAttachment.colorBlendOp        = VK_BLEND_OP_ADD;
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
         colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
         colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        colorBlendAttachment.alphaBlendOp        = VK_BLEND_OP_ADD;
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
     }
 
     VkPipelineColorBlendStateCreateInfo colorBlend{};
-    colorBlend.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlend.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlend.attachmentCount = 1;
-    colorBlend.pAttachments    = &colorBlendAttachment;
+    colorBlend.pAttachments = &colorBlendAttachment;
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     if (depthFormat_ != VK_FORMAT_UNDEFINED) {
-        depthStencil.depthTestEnable  = VK_TRUE;
+        depthStencil.depthTestEnable = VK_TRUE;
         depthStencil.depthWriteEnable = VK_TRUE;
-        depthStencil.depthCompareOp   = depthCompareOp_;
+        depthStencil.depthCompareOp = depthCompareOp_;
     }
 
     std::vector<VkDynamicState> dynamicStates = {
@@ -392,14 +389,14 @@ Result<Pipeline> MeshPipelineBuilder::build() {
     }
 
     VkPipelineDynamicStateCreateInfo dynamicStateCI{};
-    dynamicStateCI.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicStateCI.dynamicStateCount = static_cast<std::uint32_t>(dynamicStates.size());
-    dynamicStateCI.pDynamicStates    = dynamicStates.data();
+    dynamicStateCI.pDynamicStates = dynamicStates.data();
 
     // Dynamic rendering (Vulkan 1.3 core): no VkRenderPass.
     VkPipelineRenderingCreateInfo renderingInfo{};
-    renderingInfo.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-    renderingInfo.colorAttachmentCount    = 1;
+    renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachmentFormats = &colorFormat_;
     if (depthFormat_ != VK_FORMAT_UNDEFINED) {
         renderingInfo.depthAttachmentFormat = depthFormat_;
@@ -413,29 +410,28 @@ Result<Pipeline> MeshPipelineBuilder::build() {
     VkPipelineCreationFeedbackCreateInfo feedbackCI{};
     feedbackCI.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO;
     feedbackCI.pNext = &renderingInfo;
-    feedbackCI.pPipelineCreationFeedback          = &pipelineFeedback;
+    feedbackCI.pPipelineCreationFeedback = &pipelineFeedback;
     feedbackCI.pipelineStageCreationFeedbackCount = stageCount;
-    feedbackCI.pPipelineStageCreationFeedbacks    = stageFeedbacks.data();
+    feedbackCI.pPipelineStageCreationFeedbacks = stageFeedbacks.data();
 
     VkGraphicsPipelineCreateInfo pipelineCI{};
-    pipelineCI.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineCI.pNext               = &feedbackCI;
-    pipelineCI.stageCount          = stageCount;
-    pipelineCI.pStages             = stages.data();
+    pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineCI.pNext = &feedbackCI;
+    pipelineCI.stageCount = stageCount;
+    pipelineCI.pStages = stages.data();
     // Mesh shaders have no vertex input or input assembly state.
-    pipelineCI.pVertexInputState   = nullptr;
+    pipelineCI.pVertexInputState = nullptr;
     pipelineCI.pInputAssemblyState = nullptr;
-    pipelineCI.pViewportState      = &viewportState;
+    pipelineCI.pViewportState = &viewportState;
     pipelineCI.pRasterizationState = &rasterizer;
-    pipelineCI.pMultisampleState   = &multisampling;
-    pipelineCI.pDepthStencilState  = &depthStencil;
-    pipelineCI.pColorBlendState    = &colorBlend;
-    pipelineCI.pDynamicState       = &dynamicStateCI;
-    pipelineCI.layout              = p.layout_;
-    pipelineCI.renderPass          = VK_NULL_HANDLE;
+    pipelineCI.pMultisampleState = &multisampling;
+    pipelineCI.pDepthStencilState = &depthStencil;
+    pipelineCI.pColorBlendState = &colorBlend;
+    pipelineCI.pDynamicState = &dynamicStateCI;
+    pipelineCI.layout = p.layout_;
+    pipelineCI.renderPass = VK_NULL_HANDLE;
 
-    VkResult vr = vkCreateGraphicsPipelines(
-        device_, cache_, 1, &pipelineCI, nullptr, &p.pipeline_);
+    VkResult vr = vkCreateGraphicsPipelines(device_, cache_, 1, &pipelineCI, nullptr, &p.pipeline_);
 
     destroyModules();
 
@@ -445,31 +441,30 @@ Result<Pipeline> MeshPipelineBuilder::build() {
             p.layout_ = VK_NULL_HANDLE;
         }
         return Error{"create mesh pipeline", static_cast<std::int32_t>(vr),
-            "vkCreateGraphicsPipelines failed for mesh pipeline"};
+                     "vkCreateGraphicsPipelines failed for mesh pipeline"};
     }
 
     p.bindPoint_ = VK_PIPELINE_BIND_POINT_GRAPHICS;
     for (const auto& r : pushConstantRanges_) {
         p.pcStages_ |= r.stageFlags;
         auto end = r.offset + r.size;
-        if (end > p.pcSize_) p.pcSize_ = end;
+        if (end > p.pcSize_)
+            p.pcSize_ = end;
     }
 
     PipelineStats stats;
-    stats.valid      = (pipelineFeedback.flags &
-                        VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT) != 0;
-    stats.cacheHit   = (pipelineFeedback.flags &
-                        VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;
+    stats.valid = (pipelineFeedback.flags & VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT) != 0;
+    stats.cacheHit = (pipelineFeedback.flags &
+                      VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;
     stats.durationMs = static_cast<double>(pipelineFeedback.duration) / 1'000'000.0;
 
     // Populate per-stage feedback in the order stages were added.
     if (hasTaskShader) {
         StageFeedback sf;
-        sf.stage      = VK_SHADER_STAGE_TASK_BIT_EXT;
-        sf.valid      = (stageFeedbacks[0].flags &
-                         VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT) != 0;
-        sf.cacheHit   = (stageFeedbacks[0].flags &
-                         VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;
+        sf.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
+        sf.valid = (stageFeedbacks[0].flags & VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT) != 0;
+        sf.cacheHit = (stageFeedbacks[0].flags &
+                       VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;
         sf.durationMs = static_cast<double>(stageFeedbacks[0].duration) / 1'000'000.0;
         stats.stages.push_back(sf);
     }
@@ -479,22 +474,20 @@ Result<Pipeline> MeshPipelineBuilder::build() {
 
     {
         StageFeedback sf;
-        sf.stage      = VK_SHADER_STAGE_MESH_BIT_EXT;
-        sf.valid      = (stageFeedbacks[meshIdx].flags &
-                         VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT) != 0;
-        sf.cacheHit   = (stageFeedbacks[meshIdx].flags &
-                         VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;
+        sf.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
+        sf.valid = (stageFeedbacks[meshIdx].flags & VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT) != 0;
+        sf.cacheHit = (stageFeedbacks[meshIdx].flags &
+                       VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;
         sf.durationMs = static_cast<double>(stageFeedbacks[meshIdx].duration) / 1'000'000.0;
         stats.stages.push_back(sf);
     }
 
     {
         StageFeedback sf;
-        sf.stage      = VK_SHADER_STAGE_FRAGMENT_BIT;
-        sf.valid      = (stageFeedbacks[fragIdx].flags &
-                         VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT) != 0;
-        sf.cacheHit   = (stageFeedbacks[fragIdx].flags &
-                         VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;
+        sf.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        sf.valid = (stageFeedbacks[fragIdx].flags & VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT) != 0;
+        sf.cacheHit = (stageFeedbacks[fragIdx].flags &
+                       VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT) != 0;
         sf.durationMs = static_cast<double>(stageFeedbacks[fragIdx].duration) / 1'000'000.0;
         stats.stages.push_back(sf);
     }

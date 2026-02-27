@@ -29,10 +29,9 @@ class Device;
 //
 // Thread safety: thread-confined (render loop thread).
 class FrameDescriptorAllocator {
-public:
-    [[nodiscard]] static Result<FrameDescriptorAllocator> create(
-        const Device& device, std::uint32_t framesInFlight,
-        std::uint32_t maxSetsPerPool = 256);
+  public:
+    [[nodiscard]] static Result<FrameDescriptorAllocator>
+    create(const Device& device, std::uint32_t framesInFlight, std::uint32_t maxSetsPerPool = 256);
 
     ~FrameDescriptorAllocator() = default;
     FrameDescriptorAllocator(FrameDescriptorAllocator&&) noexcept = default;
@@ -40,8 +39,8 @@ public:
     FrameDescriptorAllocator(const FrameDescriptorAllocator&) = delete;
     FrameDescriptorAllocator& operator=(const FrameDescriptorAllocator&) = delete;
 
-    [[nodiscard]] Result<VkDescriptorSet> allocate(
-        std::uint32_t frameIndex, VkDescriptorSetLayout layout);
+    [[nodiscard]] Result<VkDescriptorSet> allocate(std::uint32_t frameIndex,
+                                                   VkDescriptorSetLayout layout);
 
     // Call after fence wait for the given frame index.
     void resetFrame(std::uint32_t frameIndex);
@@ -52,7 +51,7 @@ public:
 
     [[nodiscard]] std::uint32_t allocatedSetCount(std::uint32_t frameIndex) const;
 
-private:
+  private:
     FrameDescriptorAllocator() = default;
 
     std::vector<DescriptorAllocator> allocators_;

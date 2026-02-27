@@ -66,9 +66,11 @@ bool FlyCamera::update(float dt) {
     }
 
     // Flat forward/right (XZ plane, no pitch component).
+    // forward = (sin(yaw), cos(yaw)), right = (cos(yaw), -sin(yaw))
     float sy = std::sin(yaw_), cy = std::cos(yaw_);
     float flatFwdLen = std::sqrt(sy * sy + cy * cy);
     float ffx = sy / flatFwdLen, ffz = cy / flatFwdLen;
+    // cppcheck-suppress duplicateAssignExpression ; frx == ffz is correct (2D perpendicular)
     float frx = cy / flatFwdLen, frz = -sy / flatFwdLen;
 
     float moveX = 0.0f, moveY = 0.0f, moveZ = 0.0f;

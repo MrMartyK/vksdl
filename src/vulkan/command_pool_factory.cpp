@@ -1,5 +1,5 @@
-#include <vksdl/command_pool_factory.hpp>
 #include <vksdl/command_pool.hpp>
+#include <vksdl/command_pool_factory.hpp>
 #include <vksdl/device.hpp>
 
 #include <atomic>
@@ -17,13 +17,13 @@ namespace vksdl {
 static std::atomic<std::uint64_t> g_factoryGen{0};
 
 struct CommandPoolFactory::Impl {
-    VkDevice        device = VK_NULL_HANDLE;
-    std::uint32_t   family = 0;
-    std::uint64_t   generation = 0;
+    VkDevice device = VK_NULL_HANDLE;
+    std::uint32_t family = 0;
+    std::uint64_t generation = 0;
 
-    std::mutex                                         mutex;
-    std::vector<std::unique_ptr<CommandPool>>          pools;
-    std::unordered_map<std::thread::id, CommandPool*>  threadMap;
+    std::mutex mutex;
+    std::vector<std::unique_ptr<CommandPool>> pools;
+    std::unordered_map<std::thread::id, CommandPool*> threadMap;
 };
 
 // Thread-local map keyed by generation (not address) to the per-thread
@@ -34,17 +34,18 @@ thread_local std::unordered_map<std::uint64_t, CommandPool*> tl_poolMap;
 } // namespace
 
 Result<CommandPoolFactory> CommandPoolFactory::create(const Device& device,
-                                                       std::uint32_t queueFamily) {
+                                                      std::uint32_t queueFamily) {
     CommandPoolFactory f;
     f.impl_ = std::make_unique<Impl>();
-    f.impl_->device     = device.vkDevice();
-    f.impl_->family     = queueFamily;
+    f.impl_->device = device.vkDevice();
+    f.impl_->family = queueFamily;
     f.impl_->generation = g_factoryGen.fetch_add(1, std::memory_order_relaxed);
     return f;
 }
 
 CommandPoolFactory::~CommandPoolFactory() {
-    if (!impl_) return;
+    if (!impl_)
+        return;
     // Erase this thread's cache entry. Worker threads with stale entries
     // are safe: their keys use a unique generation that will never match
     // any future factory.
@@ -82,9 +83,9 @@ CommandPool& CommandPoolFactory::getForCurrentThread() {
     raw->device_ = impl_->device;
 
     VkCommandPoolCreateInfo poolCI{};
-    poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-                              VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolCI.flags =
+        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolCI.queueFamilyIndex = impl_->family;
 
     VkResult vr = vkCreateCommandPool(impl_->device, &poolCI, nullptr, &raw->pool_);

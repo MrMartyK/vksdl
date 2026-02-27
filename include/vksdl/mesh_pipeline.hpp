@@ -29,7 +29,7 @@ class Swapchain;
 // Thread safety: builder is not thread-safe during construction. The resulting
 // Pipeline is immutable after construction.
 class MeshPipelineBuilder {
-public:
+  public:
     explicit MeshPipelineBuilder(const Device& device);
 
     // Path-based: builder loads SPIR-V, creates module, destroys after build.
@@ -67,14 +67,14 @@ public:
     MeshPipelineBuilder& dynamicFrontFace();
 
     // Specialization constants: applied to all active stages.
-    template<typename T>
+    template <typename T>
     MeshPipelineBuilder& specConstant(std::uint32_t constantId, const T& value) {
         static_assert(std::is_trivially_copyable_v<T>,
                       "specConstant requires a trivially copyable type");
         VkSpecializationMapEntry entry{};
         entry.constantID = constantId;
-        entry.offset     = static_cast<std::uint32_t>(specData_.size());
-        entry.size       = sizeof(T);
+        entry.offset = static_cast<std::uint32_t>(specData_.size());
+        entry.size = sizeof(T);
         specEntries_.push_back(entry);
         const auto* bytes = reinterpret_cast<const std::uint8_t*>(&value);
         specData_.insert(specData_.end(), bytes, bytes + sizeof(T));
@@ -92,8 +92,7 @@ public:
     MeshPipelineBuilder& pipelineLayout(VkPipelineLayout layout);
 
     // Convenience: deduces size from struct type, single range at offset 0.
-    template<typename T>
-    MeshPipelineBuilder& pushConstants(VkShaderStageFlags stages) {
+    template <typename T> MeshPipelineBuilder& pushConstants(VkShaderStageFlags stages) {
         return pushConstantRange({stages, 0, static_cast<std::uint32_t>(sizeof(T))});
     }
     MeshPipelineBuilder& pushConstants(VkShaderStageFlags stages, std::uint32_t size) {
@@ -102,9 +101,8 @@ public:
 
     [[nodiscard]] Result<Pipeline> build();
 
-private:
-    [[nodiscard]] Result<VkShaderModule> createModule(
-        const std::vector<std::uint32_t>& code) const;
+  private:
+    [[nodiscard]] Result<VkShaderModule> createModule(const std::vector<std::uint32_t>& code) const;
 
     VkDevice device_ = VK_NULL_HANDLE;
 
@@ -113,18 +111,18 @@ private:
     std::filesystem::path taskPath_;
     std::filesystem::path meshPath_;
     std::filesystem::path fragPath_;
-    VkShaderModule        taskModule_ = VK_NULL_HANDLE;
-    VkShaderModule        meshModule_ = VK_NULL_HANDLE;
-    VkShaderModule        fragModule_ = VK_NULL_HANDLE;
+    VkShaderModule taskModule_ = VK_NULL_HANDLE;
+    VkShaderModule meshModule_ = VK_NULL_HANDLE;
+    VkShaderModule fragModule_ = VK_NULL_HANDLE;
 
     // Dynamic rendering
     VkFormat colorFormat_ = VK_FORMAT_UNDEFINED;
-    VkFormat depthFormat_  = VK_FORMAT_UNDEFINED;
+    VkFormat depthFormat_ = VK_FORMAT_UNDEFINED;
 
     // Rasterization
-    VkPolygonMode   polygonMode_ = VK_POLYGON_MODE_FILL;
-    VkCullModeFlags cullMode_    = VK_CULL_MODE_NONE;
-    VkFrontFace     frontFace_   = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    VkPolygonMode polygonMode_ = VK_POLYGON_MODE_FILL;
+    VkCullModeFlags cullMode_ = VK_CULL_MODE_NONE;
+    VkFrontFace frontFace_ = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     // Multisampling
     VkSampleCountFlagBits samples_ = VK_SAMPLE_COUNT_1_BIT;
@@ -139,15 +137,15 @@ private:
     std::vector<VkDynamicState> extraDynamicStates_;
 
     // Pipeline layout config
-    std::vector<VkPushConstantRange>   pushConstantRanges_;
+    std::vector<VkPushConstantRange> pushConstantRanges_;
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts_;
-    VkPipelineLayout                   externalLayout_ = VK_NULL_HANDLE;
-    VkPipelineCache                    cache_ = VK_NULL_HANDLE;
+    VkPipelineLayout externalLayout_ = VK_NULL_HANDLE;
+    VkPipelineCache cache_ = VK_NULL_HANDLE;
 
     // Specialization constants
     std::vector<VkSpecializationMapEntry> specEntries_;
-    std::vector<std::uint8_t>             specData_;
-    std::optional<VkSpecializationInfo>   externalSpecInfo_;
+    std::vector<std::uint8_t> specData_;
+    std::optional<VkSpecializationInfo> externalSpecInfo_;
 };
 
 } // namespace vksdl
