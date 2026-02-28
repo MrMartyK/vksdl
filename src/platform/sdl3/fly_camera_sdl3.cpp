@@ -78,8 +78,8 @@ bool FlyCamera::update(float dt) {
     float sy = std::sin(yaw_);
     float cy = std::cos(yaw_);
     float flatFwdLen = std::sqrt(sy * sy + cy * cy);
-    // cppcheck-suppress duplicateAssignExpression ; frx == ffz is correct (2D perpendicular)
     float ffx = sy / flatFwdLen;
+    // cppcheck-suppress duplicateAssignExpression ; frx == ffz is correct (2D perpendicular)
     float ffz = cy / flatFwdLen;
     float frx = cy / flatFwdLen;
     float frz = -sy / flatFwdLen;

@@ -20,7 +20,9 @@ OrbitCamera::OrbitCamera(float targetX, float targetY, float targetZ,
 }
 
 void OrbitCamera::setTarget(float x, float y, float z) {
-    tgt_[0] = x; tgt_[1] = y; tgt_[2] = z;
+    tgt_[0] = x;
+    tgt_[1] = y;
+    tgt_[2] = z;
     recomputeBasis();
 }
 

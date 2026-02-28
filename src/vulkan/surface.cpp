@@ -39,7 +39,7 @@ Result<Surface> Surface::create(const Instance& instance, const Window& window) 
 
     Surface s;
     s.instance_ = vkInst;
-    s.surface_  = result.value();
+    s.surface_ = result.value();
     return s;
 }
 
