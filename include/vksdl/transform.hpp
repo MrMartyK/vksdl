@@ -19,9 +19,12 @@ namespace vksdl {
 
 [[nodiscard]] inline VkTransformMatrixKHR transformTranslate(float x, float y, float z) {
     VkTransformMatrixKHR t{};
-    t.matrix[0][0] = 1.0f;  t.matrix[0][3] = x;
-    t.matrix[1][1] = 1.0f;  t.matrix[1][3] = y;
-    t.matrix[2][2] = 1.0f;  t.matrix[2][3] = z;
+    t.matrix[0][0] = 1.0f;
+    t.matrix[0][3] = x;
+    t.matrix[1][1] = 1.0f;
+    t.matrix[1][3] = y;
+    t.matrix[2][2] = 1.0f;
+    t.matrix[2][3] = z;
     return t;
 }
 
@@ -33,12 +36,15 @@ namespace vksdl {
     return t;
 }
 
-[[nodiscard]] inline VkTransformMatrixKHR transformTranslateScale(
-    float x, float y, float z, float s) {
+[[nodiscard]] inline VkTransformMatrixKHR transformTranslateScale(float x, float y, float z,
+                                                                  float s) {
     VkTransformMatrixKHR t{};
-    t.matrix[0][0] = s;     t.matrix[0][3] = x;
-    t.matrix[1][1] = s;     t.matrix[1][3] = y;
-    t.matrix[2][2] = s;     t.matrix[2][3] = z;
+    t.matrix[0][0] = s;
+    t.matrix[0][3] = x;
+    t.matrix[1][1] = s;
+    t.matrix[1][3] = y;
+    t.matrix[2][2] = s;
+    t.matrix[2][3] = z;
     return t;
 }
 
@@ -46,9 +52,11 @@ namespace vksdl {
     float c = std::cos(radians);
     float sn = std::sin(radians);
     VkTransformMatrixKHR t{};
-    t.matrix[0][0] =  c;   t.matrix[0][2] = sn;
+    t.matrix[0][0] = c;
+    t.matrix[0][2] = sn;
     t.matrix[1][1] = 1.0f;
-    t.matrix[2][0] = -sn;  t.matrix[2][2] = c;
+    t.matrix[2][0] = -sn;
+    t.matrix[2][2] = c;
     return t;
 }
 

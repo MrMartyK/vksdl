@@ -25,22 +25,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_mipmaps")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_mipmaps")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
@@ -48,11 +48,11 @@ int main() {
 
     {
         auto img = vksdl::ImageBuilder(allocator.value())
-            .size(256, 256)
-            .format(VK_FORMAT_R8G8B8A8_SRGB)
-            .sampled()
-            .mipmapped()
-            .build();
+                       .size(256, 256)
+                       .format(VK_FORMAT_R8G8B8A8_SRGB)
+                       .sampled()
+                       .mipmapped()
+                       .build();
         assert(img.ok());
         assert(img.value().mipLevels() == 9);
         std::printf("  mipmapped image mipLevels: ok\n");
@@ -60,50 +60,48 @@ int main() {
 
     {
         auto img = vksdl::ImageBuilder(allocator.value())
-            .size(256, 256)
-            .format(VK_FORMAT_R8G8B8A8_SRGB)
-            .sampled()
-            .build();
+                       .size(256, 256)
+                       .format(VK_FORMAT_R8G8B8A8_SRGB)
+                       .sampled()
+                       .build();
         assert(img.ok());
         assert(img.value().mipLevels() == 1);
         std::printf("  non-mipmapped image mipLevels: ok\n");
     }
 
     {
-        std::filesystem::path assetDir =
-            std::filesystem::path(SDL_GetBasePath()) / "assets";
+        std::filesystem::path assetDir = std::filesystem::path(SDL_GetBasePath()) / "assets";
         auto imgData = vksdl::loadImage(assetDir / "test_2x2.png");
         assert(imgData.ok());
 
         auto gpuImage = vksdl::ImageBuilder(allocator.value())
-            .size(imgData.value().width, imgData.value().height)
-            .format(VK_FORMAT_R8G8B8A8_SRGB)
-            .sampled()
-            .mipmapped()
-            .build();
+                            .size(imgData.value().width, imgData.value().height)
+                            .format(VK_FORMAT_R8G8B8A8_SRGB)
+                            .sampled()
+                            .mipmapped()
+                            .build();
         assert(gpuImage.ok());
         assert(gpuImage.value().mipLevels() == 2);
 
-        auto uploadResult = vksdl::uploadToImage(
-            allocator.value(), device.value(), gpuImage.value(),
-            imgData.value().pixels, imgData.value().sizeBytes());
+        auto uploadResult =
+            vksdl::uploadToImage(allocator.value(), device.value(), gpuImage.value(),
+                                 imgData.value().pixels, imgData.value().sizeBytes());
         assert(uploadResult.ok());
 
         // Record generateMipmaps in one-shot command buffer
         VkCommandPoolCreateInfo poolCI{};
-        poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         poolCI.queueFamilyIndex = device.value().queueFamilies().graphics;
 
         VkCommandPool cmdPool = VK_NULL_HANDLE;
-        VkResult vr = vkCreateCommandPool(device.value().vkDevice(), &poolCI,
-                                           nullptr, &cmdPool);
+        VkResult vr = vkCreateCommandPool(device.value().vkDevice(), &poolCI, nullptr, &cmdPool);
         assert(vr == VK_SUCCESS);
 
         VkCommandBufferAllocateInfo cmdAI{};
-        cmdAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmdAI.commandPool        = cmdPool;
-        cmdAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdAI.commandPool = cmdPool;
+        cmdAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdAI.commandBufferCount = 1;
 
         VkCommandBuffer cmd = VK_NULL_HANDLE;
@@ -120,9 +118,9 @@ int main() {
         vkEndCommandBuffer(cmd);
 
         VkSubmitInfo submitInfo{};
-        submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers    = &cmd;
+        submitInfo.pCommandBuffers = &cmd;
 
         vkQueueSubmit(device.value().graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(device.value().graphicsQueue());
@@ -133,11 +131,11 @@ int main() {
 
     {
         auto img = vksdl::ImageBuilder(allocator.value())
-            .size(64, 64)
-            .format(VK_FORMAT_R8G8B8A8_SRGB)
-            .sampled()
-            .mipmapped()
-            .build();
+                       .size(64, 64)
+                       .format(VK_FORMAT_R8G8B8A8_SRGB)
+                       .sampled()
+                       .mipmapped()
+                       .build();
         assert(img.ok());
         std::uint32_t levels = img.value().mipLevels();
 

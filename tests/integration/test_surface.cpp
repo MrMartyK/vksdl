@@ -17,11 +17,11 @@ int main() {
 
     // Create instance with window support
     auto instResult = vksdl::InstanceBuilder{}
-        .appName("surface_test")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                          .appName("surface_test")
+                          .requireVulkan(1, 3)
+                          .validation(vksdl::Validation::Off)
+                          .enableWindowSupport()
+                          .build();
     assert(instResult.ok());
     auto instance = std::move(instResult.value());
 

@@ -6,16 +6,15 @@
 using namespace vksdl::graph;
 
 // Helper to make state construction readable.
-static ResourceState makeState(VkPipelineStageFlags2 writeStage,
-                               VkAccessFlags2        writeAccess,
-                               VkImageLayout         layout) {
+static ResourceState makeState(VkPipelineStageFlags2 writeStage, VkAccessFlags2 writeAccess,
+                               VkImageLayout layout) {
     return ResourceState{
-        .lastWriteStage      = writeStage,
-        .lastWriteAccess     = writeAccess,
+        .lastWriteStage = writeStage,
+        .lastWriteAccess = writeAccess,
         .readStagesSinceWrite = VK_PIPELINE_STAGE_2_NONE,
         .readAccessSinceWrite = VK_ACCESS_2_NONE,
-        .currentLayout       = layout,
-        .queueFamily         = VK_QUEUE_FAMILY_IGNORED,
+        .currentLayout = layout,
+        .queueFamily = VK_QUEUE_FAMILY_IGNORED,
     };
 }
 
@@ -35,10 +34,9 @@ int main() {
     // 2. setState full range.
     {
         ImageSubresourceMap map(5, 1);
-        auto newState = makeState(
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        auto newState = makeState(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                  VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
         map.setState({0, 5, 0, 1}, newState);
         assert(map.sliceCount() == 1);
@@ -53,10 +51,8 @@ int main() {
     // 3. setState single mip -> splits into 3 slices.
     {
         ImageSubresourceMap map(5, 1);
-        auto newState = makeState(
-            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-            VK_ACCESS_2_TRANSFER_WRITE_BIT,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        auto newState = makeState(VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         map.setState({2, 1, 0, 1}, newState);
         assert(map.sliceCount() == 3);
@@ -82,14 +78,10 @@ int main() {
     // 4. Two disjoint ranges.
     {
         ImageSubresourceMap map(5, 1);
-        auto stateA = makeState(
-            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-            VK_ACCESS_2_TRANSFER_READ_BIT,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-        auto stateB = makeState(
-            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-            VK_ACCESS_2_TRANSFER_WRITE_BIT,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        auto stateA = makeState(VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        auto stateB = makeState(VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         map.setState({1, 1, 0, 1}, stateA);
         map.setState({3, 1, 0, 1}, stateB);
@@ -111,16 +103,16 @@ int main() {
         ImageSubresourceMap map(4, 1);
 
         ResourceState stateA{};
-        stateA.lastWriteStage  = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+        stateA.lastWriteStage = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
         stateA.lastWriteAccess = VK_ACCESS_2_SHADER_WRITE_BIT;
-        stateA.currentLayout   = VK_IMAGE_LAYOUT_GENERAL;
+        stateA.currentLayout = VK_IMAGE_LAYOUT_GENERAL;
 
         ResourceState stateB{};
-        stateB.lastWriteStage  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        stateB.lastWriteStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         stateB.lastWriteAccess = VK_ACCESS_2_SHADER_WRITE_BIT;
         stateB.readStagesSinceWrite = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
         stateB.readAccessSinceWrite = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
-        stateB.currentLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        stateB.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         map.setState({0, 2, 0, 1}, stateA);
         map.setState({2, 2, 0, 1}, stateB);
@@ -128,7 +120,7 @@ int main() {
         // Query spanning both.
         auto merged = map.queryState({0, 4, 0, 1});
         assert(merged.lastWriteStage ==
-            (VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT));
+               (VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT));
         assert(merged.readStagesSinceWrite == VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
         assert(merged.readAccessSinceWrite == VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
         // Mixed layouts -> UNDEFINED.
@@ -142,21 +134,18 @@ int main() {
         ImageSubresourceMap map(5, 1);
 
         // Split into mip0, mip1, mip2, mip3, mip4 with different states.
-        auto stateA = makeState(
-            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-            VK_ACCESS_2_TRANSFER_WRITE_BIT,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        auto stateA = makeState(VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-        map.setState({1, 1, 0, 1}, stateA);  // mip1 -> stateA
+        map.setState({1, 1, 0, 1}, stateA); // mip1 -> stateA
         assert(map.sliceCount() == 3);
 
         // Now set a range that overlaps the split boundary.
-        auto stateB = makeState(
-            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        auto stateB =
+            makeState(VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        map.setState({0, 3, 0, 1}, stateB);  // mips 0-2 -> stateB
+        map.setState({0, 3, 0, 1}, stateB); // mips 0-2 -> stateB
 
         // Mips 0-2 should all be stateB.
         auto q0 = map.queryState({0, 1, 0, 1});
@@ -177,14 +166,13 @@ int main() {
 
     // 7. Array layer splits.
     {
-        ImageSubresourceMap map(1, 6);  // 1 mip, 6 layers (cubemap).
+        ImageSubresourceMap map(1, 6); // 1 mip, 6 layers (cubemap).
 
-        auto faceState = makeState(
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        auto faceState = makeState(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                   VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-        map.setState({0, 1, 2, 1}, faceState);  // layer 2 only.
+        map.setState({0, 1, 2, 1}, faceState); // layer 2 only.
         assert(map.sliceCount() == 3);
 
         auto q2 = map.queryState({0, 1, 2, 1});
@@ -198,7 +186,7 @@ int main() {
 
         // 2D split: mip + layer on a multi-mip cubemap.
         ImageSubresourceMap map2(4, 6);
-        map2.setState({1, 2, 2, 3}, faceState);  // mips 1-2, layers 2-4.
+        map2.setState({1, 2, 2, 3}, faceState); // mips 1-2, layers 2-4.
 
         auto qInside = map2.queryState({1, 1, 3, 1});
         assert(qInside.currentLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -221,9 +209,9 @@ int main() {
         assert(aspectFromFormat(VK_FORMAT_X8_D24_UNORM_PACK32) == VK_IMAGE_ASPECT_DEPTH_BIT);
 
         assert(aspectFromFormat(VK_FORMAT_D24_UNORM_S8_UINT) ==
-            (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
+               (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
         assert(aspectFromFormat(VK_FORMAT_D32_SFLOAT_S8_UINT) ==
-            (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
+               (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
 
         assert(aspectFromFormat(VK_FORMAT_S8_UINT) == VK_IMAGE_ASPECT_STENCIL_BIT);
 

@@ -32,8 +32,8 @@ RtFunctions loadRtFunctions(VkDevice device) {
     fn.getShaderGroupHandles = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(
         vkGetDeviceProcAddr(device, "vkGetRayTracingShaderGroupHandlesKHR"));
 
-    fn.cmdTraceRays = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(
-        vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
+    fn.cmdTraceRays =
+        reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
 
     return fn;
 }

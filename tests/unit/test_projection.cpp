@@ -52,7 +52,7 @@ static void testPerspectiveReverseZ() {
         return clip_z / clip_w;
     };
     assert(near(ndcDepth(-zNear), 1.0f)); // near -> 1
-    assert(near(ndcDepth(-zFar),  0.0f)); // far  -> 0
+    assert(near(ndcDepth(-zFar), 0.0f));  // far  -> 0
 }
 
 static void testPerspectiveInfiniteReverseZ() {
@@ -74,17 +74,17 @@ static void testOrtho() {
 }
 
 static void testLookAt() {
-    float eye[]    = {0.0f, 0.0f, 5.0f};
+    float eye[] = {0.0f, 0.0f, 5.0f};
     float target[] = {0.0f, 0.0f, 0.0f};
-    float up[]     = {0.0f, 1.0f, 0.0f};
+    float up[] = {0.0f, 1.0f, 0.0f};
     auto V = vksdl::lookAt(eye, target, up);
 
     // Camera at origin should produce identity-like translation
     // The view matrix should transform eye position to origin
     // V * eye = [0, 0, 0, 1] (in homogeneous coords)
-    float ex = V.at(0,0)*eye[0] + V.at(0,1)*eye[1] + V.at(0,2)*eye[2] + V.at(0,3);
-    float ey = V.at(1,0)*eye[0] + V.at(1,1)*eye[1] + V.at(1,2)*eye[2] + V.at(1,3);
-    float ez = V.at(2,0)*eye[0] + V.at(2,1)*eye[1] + V.at(2,2)*eye[2] + V.at(2,3);
+    float ex = V.at(0, 0) * eye[0] + V.at(0, 1) * eye[1] + V.at(0, 2) * eye[2] + V.at(0, 3);
+    float ey = V.at(1, 0) * eye[0] + V.at(1, 1) * eye[1] + V.at(1, 2) * eye[2] + V.at(1, 3);
+    float ez = V.at(2, 0) * eye[0] + V.at(2, 1) * eye[1] + V.at(2, 2) * eye[2] + V.at(2, 3);
     assert(near(ex, 0.0f));
     assert(near(ey, 0.0f));
     assert(near(ez, 0.0f));

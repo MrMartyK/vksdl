@@ -14,22 +14,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_transfer_queue")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_transfer_queue")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
@@ -37,8 +37,7 @@ int main() {
 
     std::printf("  dedicated transfer queue: %s (family %u -> %u)\n",
                 device.value().hasDedicatedTransfer() ? "yes" : "no (using graphics)",
-                device.value().queueFamilies().transfer,
-                device.value().queueFamilies().graphics);
+                device.value().queueFamilies().transfer, device.value().queueFamilies().graphics);
 
     {
         auto tq = vksdl::TransferQueue::create(device.value(), allocator.value());
@@ -54,14 +53,11 @@ int main() {
 
         float vertices[] = {0.0f, 0.5f, -0.5f, -0.5f, 0.5f, -0.5f};
 
-        auto buf = vksdl::BufferBuilder(allocator.value())
-            .vertexBuffer()
-            .size(sizeof(vertices))
-            .build();
+        auto buf =
+            vksdl::BufferBuilder(allocator.value()).vertexBuffer().size(sizeof(vertices)).build();
         assert(buf.ok());
 
-        auto pending = tq.value().uploadAsync(buf.value(), vertices,
-                                                sizeof(vertices));
+        auto pending = tq.value().uploadAsync(buf.value(), vertices, sizeof(vertices));
         assert(pending.ok());
         assert(pending.value().buffer == buf.value().vkBuffer());
         assert(tq.value().currentValue() == 1);
@@ -79,10 +75,8 @@ int main() {
         std::vector<vksdl::Buffer> buffers;
         for (int i = 0; i < 5; ++i) {
             float data[] = {static_cast<float>(i)};
-            auto buf = vksdl::BufferBuilder(allocator.value())
-                .storageBuffer()
-                .size(sizeof(data))
-                .build();
+            auto buf =
+                vksdl::BufferBuilder(allocator.value()).storageBuffer().size(sizeof(data)).build();
             assert(buf.ok());
 
             auto pending = tq.value().uploadAsync(buf.value(), data, sizeof(data));
@@ -109,19 +103,18 @@ int main() {
     {
         // Test the no-op path of insertAcquireBarrier (same queue family).
         VkCommandPoolCreateInfo poolCI{};
-        poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         poolCI.queueFamilyIndex = device.value().queueFamilies().graphics;
 
         VkCommandPool cmdPool = VK_NULL_HANDLE;
-        VkResult vr = vkCreateCommandPool(device.value().vkDevice(), &poolCI,
-                                          nullptr, &cmdPool);
+        VkResult vr = vkCreateCommandPool(device.value().vkDevice(), &poolCI, nullptr, &cmdPool);
         assert(vr == VK_SUCCESS);
 
         VkCommandBufferAllocateInfo cmdAI{};
-        cmdAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmdAI.commandPool        = cmdPool;
-        cmdAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdAI.commandPool = cmdPool;
+        cmdAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdAI.commandBufferCount = 1;
 
         VkCommandBuffer cmd = VK_NULL_HANDLE;

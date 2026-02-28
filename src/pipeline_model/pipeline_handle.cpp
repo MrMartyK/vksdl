@@ -10,8 +10,7 @@ PipelineHandle::~PipelineHandle() {
     destroy();
 }
 
-PipelineHandle::PipelineHandle(PipelineHandle&& o) noexcept
-    : impl_(o.impl_) {
+PipelineHandle::PipelineHandle(PipelineHandle&& o) noexcept : impl_(o.impl_) {
     o.impl_ = nullptr;
 }
 
@@ -25,7 +24,8 @@ PipelineHandle& PipelineHandle::operator=(PipelineHandle&& o) noexcept {
 }
 
 void PipelineHandle::destroy() {
-    if (!impl_) return;
+    if (!impl_)
+        return;
     auto* impl = static_cast<detail::PipelineHandleImpl*>(impl_);
 
     // Signal background thread to not store into this handle, then
@@ -50,34 +50,40 @@ void PipelineHandle::destroy() {
 }
 
 void PipelineHandle::bind(VkCommandBuffer cmd) const {
-    if (!impl_) return;
+    if (!impl_)
+        return;
     auto* impl = static_cast<detail::PipelineHandleImpl*>(impl_);
     VkPipeline p = impl->optimized.load(std::memory_order_acquire);
-    if (p == VK_NULL_HANDLE) p = impl->baseline;
+    if (p == VK_NULL_HANDLE)
+        p = impl->baseline;
     vkCmdBindPipeline(cmd, impl->bindPoint, p);
 }
 
 bool PipelineHandle::isOptimized() const {
-    if (!impl_) return false;
+    if (!impl_)
+        return false;
     auto* impl = static_cast<detail::PipelineHandleImpl*>(impl_);
     return impl->optimized.load(std::memory_order_acquire) != VK_NULL_HANDLE;
 }
 
 bool PipelineHandle::isReady() const {
-    if (!impl_) return false;
+    if (!impl_)
+        return false;
     auto* impl = static_cast<detail::PipelineHandleImpl*>(impl_);
     return impl->baseline != VK_NULL_HANDLE;
 }
 
 VkPipeline PipelineHandle::vkPipeline() const {
-    if (!impl_) return VK_NULL_HANDLE;
+    if (!impl_)
+        return VK_NULL_HANDLE;
     auto* impl = static_cast<detail::PipelineHandleImpl*>(impl_);
     VkPipeline p = impl->optimized.load(std::memory_order_acquire);
     return (p != VK_NULL_HANDLE) ? p : impl->baseline;
 }
 
 VkPipelineLayout PipelineHandle::vkPipelineLayout() const {
-    if (!impl_) return VK_NULL_HANDLE;
+    if (!impl_)
+        return VK_NULL_HANDLE;
     auto* impl = static_cast<detail::PipelineHandleImpl*>(impl_);
     return impl->layout;
 }

@@ -15,38 +15,37 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_pipeline_feedback")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_pipeline_feedback")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto swapchain = vksdl::SwapchainBuilder(device.value(), surface.value())
-        .size(window.value().pixelSize())
-        .build();
+                         .size(window.value().pixelSize())
+                         .build();
     assert(swapchain.ok());
 
-    std::filesystem::path shaderDir =
-        std::filesystem::path(SDL_GetBasePath()) / "shaders";
+    std::filesystem::path shaderDir = std::filesystem::path(SDL_GetBasePath()) / "shaders";
 
     {
         auto result = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .build();
+                          .vertexShader(shaderDir / "triangle.vert.spv")
+                          .fragmentShader(shaderDir / "triangle.frag.spv")
+                          .colorFormat(swapchain.value())
+                          .build();
         assert(result.ok());
 
         auto* fb = result.value().feedback();
@@ -71,22 +70,22 @@ int main() {
 
         // First build populates the cache.
         auto first = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .cache(cache)
-            .build();
+                         .vertexShader(shaderDir / "triangle.vert.spv")
+                         .fragmentShader(shaderDir / "triangle.frag.spv")
+                         .colorFormat(swapchain.value())
+                         .cache(cache)
+                         .build();
         assert(first.ok());
         auto* fb1 = first.value().feedback();
         assert(fb1 != nullptr);
 
         // Second build should be a cache hit (driver-dependent, but expected).
         auto second = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .cache(cache)
-            .build();
+                          .vertexShader(shaderDir / "triangle.vert.spv")
+                          .fragmentShader(shaderDir / "triangle.frag.spv")
+                          .colorFormat(swapchain.value())
+                          .cache(cache)
+                          .build();
         assert(second.ok());
         auto* fb2 = second.value().feedback();
         assert(fb2 != nullptr);
@@ -104,11 +103,11 @@ int main() {
         assert(cacheResult.ok());
 
         auto result = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .cache(cacheResult.value())
-            .build();
+                          .vertexShader(shaderDir / "triangle.vert.spv")
+                          .fragmentShader(shaderDir / "triangle.frag.spv")
+                          .colorFormat(swapchain.value())
+                          .cache(cacheResult.value())
+                          .build();
         assert(result.ok());
         auto* fb = result.value().feedback();
         assert(fb != nullptr);
@@ -119,10 +118,10 @@ int main() {
 
     {
         auto result = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .build();
+                          .vertexShader(shaderDir / "triangle.vert.spv")
+                          .fragmentShader(shaderDir / "triangle.frag.spv")
+                          .colorFormat(swapchain.value())
+                          .build();
         assert(result.ok());
 
         auto pipeline = std::move(result).value();
@@ -141,8 +140,8 @@ int main() {
 
     {
         auto result = vksdl::ComputePipelineBuilder(device.value())
-            .shader(shaderDir / "noop.comp.spv")
-            .build();
+                          .shader(shaderDir / "noop.comp.spv")
+                          .build();
         assert(result.ok());
 
         auto* fb = result.value().feedback();

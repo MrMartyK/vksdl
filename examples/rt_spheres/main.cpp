@@ -18,16 +18,26 @@ struct Vec3 {
     float x, y, z;
 };
 
-static Vec3 operator+(Vec3 a, Vec3 b) { return {a.x+b.x, a.y+b.y, a.z+b.z}; }
-static Vec3 operator-(Vec3 a, Vec3 b) { return {a.x-b.x, a.y-b.y, a.z-b.z}; }
-static Vec3 operator*(Vec3 v, float s) { return {v.x*s, v.y*s, v.z*s}; }
+static Vec3 operator+(Vec3 a, Vec3 b) {
+    return {a.x + b.x, a.y + b.y, a.z + b.z};
+}
+static Vec3 operator-(Vec3 a, Vec3 b) {
+    return {a.x - b.x, a.y - b.y, a.z - b.z};
+}
+static Vec3 operator*(Vec3 v, float s) {
+    return {v.x * s, v.y * s, v.z * s};
+}
 
-static float dot(Vec3 a, Vec3 b) { return a.x*b.x + a.y*b.y + a.z*b.z; }
-static float length(Vec3 v) { return std::sqrt(dot(v, v)); }
+static float dot(Vec3 a, Vec3 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+static float length(Vec3 v) {
+    return std::sqrt(dot(v, v));
+}
 
 static Vec3 normalize(Vec3 v) {
     float len = length(v);
-    return {v.x/len, v.y/len, v.z/len};
+    return {v.x / len, v.y / len, v.z / len};
 }
 
 // Ray-sphere intersection. Returns distance t, or -1 on miss.
@@ -36,40 +46,47 @@ static float raySphereIntersect(Vec3 origin, Vec3 dir, Vec3 center, float radius
     float b = dot(oc, dir);
     float c = dot(oc, oc) - radius * radius;
     float disc = b * b - c;
-    if (disc < 0.0f) return -1.0f;
+    if (disc < 0.0f)
+        return -1.0f;
     float sqrtDisc = std::sqrt(disc);
     float t = -b - sqrtDisc;
-    if (t < 0.001f) t = -b + sqrtDisc;
+    if (t < 0.001f)
+        t = -b + sqrtDisc;
     return t > 0.001f ? t : -1.0f;
 }
 
 struct PushConstants {
-    float    camPos[3];    float camFov;
-    float    camRight[3];  std::uint32_t frameIdx;
-    float    camUp[3];     std::uint32_t sampleCnt;
-    float    camFwd[3];    float aperture;
-    float    focusDist;    float _pad[3];
+    float camPos[3];
+    float camFov;
+    float camRight[3];
+    std::uint32_t frameIdx;
+    float camUp[3];
+    std::uint32_t sampleCnt;
+    float camFwd[3];
+    float aperture;
+    float focusDist;
+    float _pad[3];
 };
 static_assert(sizeof(PushConstants) == 80);
 
 struct Material {
-    float    albedo[3];
-    std::uint32_t type;   // 0=diffuse, 1=metal, 2=dielectric
-    float    roughness;   // metal fuzz
-    float    ior;         // dielectric IOR
-    float    specRoughness; // GGX roughness for diffuse specular lobe
-    float    absorption;    // Beer-Lambert scale for dielectrics (0 = clear)
+    float albedo[3];
+    std::uint32_t type;  // 0=diffuse, 1=metal, 2=dielectric
+    float roughness;     // metal fuzz
+    float ior;           // dielectric IOR
+    float specRoughness; // GGX roughness for diffuse specular lobe
+    float absorption;    // Beer-Lambert scale for dielectrics (0 = clear)
 };
 static_assert(sizeof(Material) == 32);
 
 struct Sphere {
-    Vec3     center;
-    float    radius;
+    Vec3 center;
+    float radius;
     Material material;
 };
 
 struct MeshData {
-    std::vector<float>         vertices;  // xyz interleaved
+    std::vector<float> vertices; // xyz interleaved
     std::vector<std::uint32_t> indices;
 };
 
@@ -79,18 +96,17 @@ static MeshData generateIcosphere(int subdivisions) {
     const float b = phi;
 
     std::vector<Vec3> verts = {
-        {-a, b, 0}, { a, b, 0}, {-a,-b, 0}, { a,-b, 0},
-        { 0,-a, b}, { 0, a, b}, { 0,-a,-b}, { 0, a,-b},
-        { b, 0,-a}, { b, 0, a}, {-b, 0,-a}, {-b, 0, a},
+        {-a, b, 0},  {a, b, 0},  {-a, -b, 0}, {a, -b, 0}, {0, -a, b},  {0, a, b},
+        {0, -a, -b}, {0, a, -b}, {b, 0, -a},  {b, 0, a},  {-b, 0, -a}, {-b, 0, a},
     };
 
-    for (auto& v : verts) v = normalize(v);
+    for (auto& v : verts)
+        v = normalize(v);
 
     std::vector<std::uint32_t> tris = {
-        0,11,5,  0,5,1,   0,1,7,   0,7,10,  0,10,11,
-        1,5,9,   5,11,4,  11,10,2, 10,7,6,  7,1,8,
-        3,9,4,   3,4,2,   3,2,6,   3,6,8,   3,8,9,
-        4,9,5,   2,4,11,  6,2,10,  8,6,7,   9,8,1,
+        0, 11, 5,  0, 5,  1, 0, 1, 7, 0, 7,  10, 0, 10, 11, 1, 5, 9, 5, 11,
+        4, 11, 10, 2, 10, 7, 6, 7, 1, 8, 3,  9,  4, 3,  4,  2, 3, 2, 6, 3,
+        6, 8,  3,  8, 9,  4, 9, 5, 2, 4, 11, 6,  2, 10, 8,  6, 7, 9, 8, 1,
     };
 
     auto midpoint = [&](std::uint32_t i0, std::uint32_t i1) -> std::uint32_t {
@@ -104,7 +120,7 @@ static MeshData generateIcosphere(int subdivisions) {
         newTris.reserve(tris.size() * 4);
 
         for (std::size_t i = 0; i < tris.size(); i += 3) {
-            std::uint32_t v0 = tris[i], v1 = tris[i+1], v2 = tris[i+2];
+            std::uint32_t v0 = tris[i], v1 = tris[i + 1], v2 = tris[i + 2];
             std::uint32_t m01 = midpoint(v0, v1);
             std::uint32_t m12 = midpoint(v1, v2);
             std::uint32_t m20 = midpoint(v2, v0);
@@ -139,21 +155,21 @@ static std::vector<Sphere> generateScene(std::mt19937& rng) {
     spheres.push_back({{0, 0, 0}, 0, {{0.5f, 0.5f, 0.5f}, 0, 0, 0, 0.3f, 0}});
 
     // 3 large feature spheres.
-    spheres.push_back({{0, 1, 0}, 1.0f,
-        {{1.0f, 1.0f, 1.0f}, 2, 0.0f, 1.5f, 0, 0}});       // clear glass
-    spheres.push_back({{-4, 1, 0}, 1.0f,
-        {{0.4f, 0.2f, 0.1f}, 0, 0.0f, 0.0f, 0.5f, 0}});    // diffuse
-    spheres.push_back({{4, 1, 0}, 1.0f,
-        {{0.7f, 0.6f, 0.5f}, 1, 0.0f, 0.0f, 0, 0}});        // metal
+    spheres.push_back({{0, 1, 0}, 1.0f, {{1.0f, 1.0f, 1.0f}, 2, 0.0f, 1.5f, 0, 0}}); // clear glass
+    spheres.push_back({{-4, 1, 0}, 1.0f, {{0.4f, 0.2f, 0.1f}, 0, 0.0f, 0.0f, 0.5f, 0}}); // diffuse
+    spheres.push_back({{4, 1, 0}, 1.0f, {{0.7f, 0.6f, 0.5f}, 1, 0.0f, 0.0f, 0, 0}});     // metal
 
     // Small random spheres.
     for (int a = -11; a < 11; a++) {
         for (int b = -11; b < 11; b++) {
             Vec3 center = {a + 0.9f * randf(), 0.2f, b + 0.9f * randf()};
 
-            if (length(center - Vec3{0, 0.2f, 0}) < 1.2f) continue;
-            if (length(center - Vec3{-4, 0.2f, 0}) < 1.2f) continue;
-            if (length(center - Vec3{4, 0.2f, 0}) < 1.2f) continue;
+            if (length(center - Vec3{0, 0.2f, 0}) < 1.2f)
+                continue;
+            if (length(center - Vec3{-4, 0.2f, 0}) < 1.2f)
+                continue;
+            if (length(center - Vec3{4, 0.2f, 0}) < 1.2f)
+                continue;
 
             float chooseMat = randf();
             Material mat{};
@@ -203,97 +219,113 @@ int main() {
     auto window = app.createWindow("vksdl - RT Spheres [orbit]", 1280, 720).value();
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("vksdl_rt_spheres")
-        .requireVulkan(1, 3)
-        .enableWindowSupport()
-        .build().value();
+                        .appName("vksdl_rt_spheres")
+                        .requireVulkan(1, 3)
+                        .enableWindowSupport()
+                        .build()
+                        .value();
 
     auto surface = vksdl::Surface::create(instance, window).value();
 
     auto device = vksdl::DeviceBuilder(instance, surface)
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .needRayTracingPipeline()
-        .preferDiscreteGpu()
-        .build().value();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .needRayTracingPipeline()
+                      .preferDiscreteGpu()
+                      .build()
+                      .value();
 
     std::printf("GPU: %s\n", device.gpuName());
 
-    auto swapchain = vksdl::SwapchainBuilder(device, surface)
-        .size(window.pixelSize())
-        .build().value();
+    auto swapchain =
+        vksdl::SwapchainBuilder(device, surface).size(window.pixelSize()).build().value();
 
     auto frames = vksdl::FrameSync::create(device, swapchain.imageCount()).value();
     auto allocator = vksdl::Allocator::create(instance, device).value();
-
 
     std::mt19937 rng(42);
     auto spheres = generateScene(rng);
     std::printf("Scene: %zu spheres\n", spheres.size());
 
-
     auto sphereMesh = generateIcosphere(3);
-    std::printf("Icosphere: %zu vertices, %zu triangles\n",
-                sphereMesh.vertices.size() / 3, sphereMesh.indices.size() / 3);
-
+    std::printf("Icosphere: %zu vertices, %zu triangles\n", sphereMesh.vertices.size() / 3,
+                sphereMesh.indices.size() / 3);
 
     VkDeviceSize sphereVSize = sphereMesh.vertices.size() * sizeof(float);
     auto sphereVBuf = vksdl::BufferBuilder(allocator)
-        .vertexBuffer().accelerationStructureInput()
-        .size(sphereVSize).build().value();
-    if (!vksdl::uploadToBuffer(allocator, device, sphereVBuf,
-                               sphereMesh.vertices.data(), sphereVSize).ok()) return 1;
+                          .vertexBuffer()
+                          .accelerationStructureInput()
+                          .size(sphereVSize)
+                          .build()
+                          .value();
+    if (!vksdl::uploadToBuffer(allocator, device, sphereVBuf, sphereMesh.vertices.data(),
+                               sphereVSize)
+             .ok())
+        return 1;
     VkDeviceSize sphereISize = sphereMesh.indices.size() * sizeof(std::uint32_t);
     auto sphereIBuf = vksdl::BufferBuilder(allocator)
-        .indexBuffer().accelerationStructureInput()
-        .size(sphereISize).build().value();
-    if (!vksdl::uploadToBuffer(allocator, device, sphereIBuf,
-                               sphereMesh.indices.data(), sphereISize).ok()) return 1;
+                          .indexBuffer()
+                          .accelerationStructureInput()
+                          .size(sphereISize)
+                          .build()
+                          .value();
+    if (!vksdl::uploadToBuffer(allocator, device, sphereIBuf, sphereMesh.indices.data(),
+                               sphereISize)
+             .ok())
+        return 1;
 
     float groundVerts[] = {
-        -50.0f, 0.0f,  50.0f,
-         50.0f, 0.0f,  50.0f,
-         50.0f, 0.0f, -50.0f,
-        -50.0f, 0.0f, -50.0f,
+        -50.0f, 0.0f, 50.0f, 50.0f, 0.0f, 50.0f, 50.0f, 0.0f, -50.0f, -50.0f, 0.0f, -50.0f,
     };
-    std::uint32_t groundIndices[] = { 0, 1, 2,  0, 2, 3 };
+    std::uint32_t groundIndices[] = {0, 1, 2, 0, 2, 3};
 
     auto groundVBuf = vksdl::BufferBuilder(allocator)
-        .vertexBuffer().accelerationStructureInput()
-        .size(sizeof(groundVerts)).build().value();
-    if (!vksdl::uploadToBuffer(allocator, device, groundVBuf,
-                               groundVerts, sizeof(groundVerts)).ok()) return 1;
+                          .vertexBuffer()
+                          .accelerationStructureInput()
+                          .size(sizeof(groundVerts))
+                          .build()
+                          .value();
+    if (!vksdl::uploadToBuffer(allocator, device, groundVBuf, groundVerts, sizeof(groundVerts))
+             .ok())
+        return 1;
     auto groundIBuf = vksdl::BufferBuilder(allocator)
-        .indexBuffer().accelerationStructureInput()
-        .size(sizeof(groundIndices)).build().value();
-    if (!vksdl::uploadToBuffer(allocator, device, groundIBuf,
-                               groundIndices, sizeof(groundIndices)).ok()) return 1;
-
+                          .indexBuffer()
+                          .accelerationStructureInput()
+                          .size(sizeof(groundIndices))
+                          .build()
+                          .value();
+    if (!vksdl::uploadToBuffer(allocator, device, groundIBuf, groundIndices, sizeof(groundIndices))
+             .ok())
+        return 1;
 
     std::vector<Material> materials;
     materials.reserve(spheres.size());
-    for (const auto& s : spheres) materials.push_back(s.material);
+    for (const auto& s : spheres)
+        materials.push_back(s.material);
 
-    auto materialBuf = vksdl::uploadStorageBuffer(allocator, device,
-        materials.data(), materials.size() * sizeof(Material)).value();
-
+    auto materialBuf = vksdl::uploadStorageBuffer(allocator, device, materials.data(),
+                                                  materials.size() * sizeof(Material))
+                           .value();
 
     auto sphereGeo = vksdl::BlasTriangleGeometry::fromBuffers(
-        sphereVBuf, sphereIBuf,
-        static_cast<std::uint32_t>(sphereMesh.vertices.size() / 3),
-        static_cast<std::uint32_t>(sphereMesh.indices.size()),
-        3 * sizeof(float));
+        sphereVBuf, sphereIBuf, static_cast<std::uint32_t>(sphereMesh.vertices.size() / 3),
+        static_cast<std::uint32_t>(sphereMesh.indices.size()), 3 * sizeof(float));
 
     auto sphereBlas = vksdl::BlasBuilder(device, allocator)
-        .addTriangles(sphereGeo).preferFastTrace().build().value();
+                          .addTriangles(sphereGeo)
+                          .preferFastTrace()
+                          .build()
+                          .value();
 
-    auto groundGeo = vksdl::BlasTriangleGeometry::fromBuffers(
-        groundVBuf, groundIBuf, 4, 6, 3 * sizeof(float));
+    auto groundGeo =
+        vksdl::BlasTriangleGeometry::fromBuffers(groundVBuf, groundIBuf, 4, 6, 3 * sizeof(float));
 
     auto groundBlas = vksdl::BlasBuilder(device, allocator)
-        .addTriangles(groundGeo).preferFastTrace().build().value();
-
+                          .addTriangles(groundGeo)
+                          .preferFastTrace()
+                          .build()
+                          .value();
 
     auto buildTlas = [&]() {
         vksdl::TlasBuilder builder(device, allocator);
@@ -302,9 +334,8 @@ int main() {
         builder.addInstance(groundBlas, groundXform.matrix, 0);
 
         for (std::size_t i = 1; i < spheres.size(); i++) {
-            auto xform = vksdl::transformTranslateScale(
-                spheres[i].center.x, spheres[i].center.y, spheres[i].center.z,
-                spheres[i].radius);
+            auto xform = vksdl::transformTranslateScale(spheres[i].center.x, spheres[i].center.y,
+                                                        spheres[i].center.z, spheres[i].radius);
             builder.addInstance(sphereBlas, xform.matrix, static_cast<std::uint32_t>(i));
         }
 
@@ -313,65 +344,64 @@ int main() {
 
     auto tlas = buildTlas();
 
-
     auto createImages = [&](std::uint32_t w, std::uint32_t h) {
         auto accum = vksdl::ImageBuilder(allocator)
-            .size(w, h)
-            .format(VK_FORMAT_R32G32B32A32_SFLOAT)
-            .storage()
-            .addUsage(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-            .build().value();
+                         .size(w, h)
+                         .format(VK_FORMAT_R32G32B32A32_SFLOAT)
+                         .storage()
+                         .addUsage(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+                         .build()
+                         .value();
 
         auto display = vksdl::ImageBuilder(allocator)
-            .size(w, h)
-            .format(VK_FORMAT_R8G8B8A8_UNORM)
-            .storage()
-            .addUsage(VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-            .build().value();
+                           .size(w, h)
+                           .format(VK_FORMAT_R8G8B8A8_UNORM)
+                           .storage()
+                           .addUsage(VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+                           .build()
+                           .value();
 
         return std::make_pair(std::move(accum), std::move(display));
     };
 
-    auto [accumImage, displayImage] = createImages(
-        swapchain.extent().width, swapchain.extent().height);
-
+    auto [accumImage, displayImage] =
+        createImages(swapchain.extent().width, swapchain.extent().height);
 
     auto descriptors = vksdl::DescriptorSetBuilder(device)
-        .addAccelerationStructure(0,
-            VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
-        .addStorageImage(1, VK_SHADER_STAGE_RAYGEN_BIT_KHR)
-        .addStorageImage(2, VK_SHADER_STAGE_RAYGEN_BIT_KHR)
-        .addStorageBuffer(3, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
-        .build().value();
+                           .addAccelerationStructure(0, VK_SHADER_STAGE_RAYGEN_BIT_KHR |
+                                                            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
+                           .addStorageImage(1, VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+                           .addStorageImage(2, VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+                           .addStorageBuffer(3, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
+                           .build()
+                           .value();
 
     auto updateDescriptors = [&]() {
         descriptors.updateAccelerationStructure(0, tlas.vkAccelerationStructure());
         descriptors.updateImage(1, accumImage.vkImageView(), VK_IMAGE_LAYOUT_GENERAL);
         descriptors.updateImage(2, displayImage.vkImageView(), VK_IMAGE_LAYOUT_GENERAL);
-        descriptors.updateBuffer(3, materialBuf.vkBuffer(),
-                                 materials.size() * sizeof(Material));
+        descriptors.updateBuffer(3, materialBuf.vkBuffer(), materials.size() * sizeof(Material));
     };
     updateDescriptors();
-
 
     std::filesystem::path shaderDir = vksdl::exeDir() / "shaders";
 
     auto pipeline = vksdl::RayTracingPipelineBuilder(device)
-        .rayGenShader(shaderDir / "raygen.rgen.spv")
-        .missShader(shaderDir / "miss.rmiss.spv")
-        .closestHitShader(shaderDir / "closesthit.rchit.spv")
-        .descriptorSetLayout(descriptors.vkDescriptorSetLayout())
-        .pushConstants<PushConstants>(vksdl::kAllRtStages)
-        .maxRecursionDepth(2)
-        .build().value();
+                        .rayGenShader(shaderDir / "raygen.rgen.spv")
+                        .missShader(shaderDir / "miss.rmiss.spv")
+                        .closestHitShader(shaderDir / "closesthit.rchit.spv")
+                        .descriptorSetLayout(descriptors.vkDescriptorSetLayout())
+                        .pushConstants<PushConstants>(vksdl::kAllRtStages)
+                        .maxRecursionDepth(2)
+                        .build()
+                        .value();
 
-    auto sbt = vksdl::ShaderBindingTable::create(
-        device, pipeline, allocator, 1, 1).value();
+    auto sbt = vksdl::ShaderBindingTable::create(device, pipeline, allocator, 1, 1).value();
 
     // Orbit camera centered on the glass sphere, classic RTOW viewpoint.
     // FOV stored in radians on the camera; push constant needs tan(fovY/2).
 
-    constexpr float fovY = 0.7f;  // ~40 deg -- narrow for classic RTOW look
+    constexpr float fovY = 0.7f; // ~40 deg -- narrow for classic RTOW look
     vksdl::OrbitCamera camera(0.0f, 1.0f, 0.0f, 13.0f, 0.2f, -0.15f);
     camera.setFovY(fovY);
     camera.setViewport(swapchain.extent().width, swapchain.extent().height);
@@ -379,12 +409,11 @@ int main() {
 
     const float camFovTan = std::tan(fovY * 0.5f);
 
-    std::uint32_t frameIdx   = 0;
-    std::uint32_t sampleCnt  = 0;
+    std::uint32_t frameIdx = 0;
+    std::uint32_t sampleCnt = 0;
     bool accumDirty = true;
 
     std::printf("Controls: LMB orbit, RMB/MMB pan, scroll zoom, dblclick focus, ESC quit\n");
-
 
     bool running = true;
     vksdl::Event event;
@@ -400,12 +429,12 @@ int main() {
                 camera.feedScrollDelta(event.scroll);
             }
             // Double-click: pick a sphere to focus on.
-            if (event.type == vksdl::EventType::MouseButtonDown
-                && event.button == 1 && event.clicks >= 2) {
+            if (event.type == vksdl::EventType::MouseButtonDown && event.button == 1 &&
+                event.clicks >= 2) {
                 float px = event.mouseX;
                 float py = event.mouseY;
-                float w  = static_cast<float>(swapchain.extent().width);
-                float h  = static_cast<float>(swapchain.extent().height);
+                float w = static_cast<float>(swapchain.extent().width);
+                float h = static_cast<float>(swapchain.extent().height);
                 float aspect = w / h;
 
                 // Screen coords to [-1,1], Y flipped.
@@ -413,28 +442,17 @@ int main() {
                 float v = -((py / h) * 2.0f - 1.0f);
 
                 // Ray from camera through pixel (same math as raygen.rgen).
-                Vec3 origin = {camera.position()[0],
-                               camera.position()[1],
-                               camera.position()[2]};
-                Vec3 fwd   = {camera.forward()[0],
-                              camera.forward()[1],
-                              camera.forward()[2]};
-                Vec3 right = {camera.right()[0],
-                              camera.right()[1],
-                              camera.right()[2]};
-                Vec3 up    = {camera.up()[0],
-                              camera.up()[1],
-                              camera.up()[2]};
-                Vec3 dir = normalize(fwd
-                    + right * (u * aspect * camFovTan)
-                    + up    * (v * camFovTan));
+                Vec3 origin = {camera.position()[0], camera.position()[1], camera.position()[2]};
+                Vec3 fwd = {camera.forward()[0], camera.forward()[1], camera.forward()[2]};
+                Vec3 right = {camera.right()[0], camera.right()[1], camera.right()[2]};
+                Vec3 up = {camera.up()[0], camera.up()[1], camera.up()[2]};
+                Vec3 dir = normalize(fwd + right * (u * aspect * camFovTan) + up * (v * camFovTan));
 
                 // Test all spheres, find nearest hit.
                 float bestT = 1e30f;
                 int bestIdx = -1;
                 for (std::size_t i = 1; i < spheres.size(); i++) {
-                    float t = raySphereIntersect(origin, dir,
-                        spheres[i].center, spheres[i].radius);
+                    float t = raySphereIntersect(origin, dir, spheres[i].center, spheres[i].radius);
                     if (t > 0.0f && t < bestT) {
                         bestT = t;
                         bestIdx = static_cast<int>(i);
@@ -459,15 +477,17 @@ int main() {
         prevTime = now;
         dt = dt > 0.1f ? 0.1f : dt;
 
-        if (camera.update(dt)) accumDirty = true;
-        if (camera.shouldQuit()) running = false;
+        if (camera.update(dt))
+            accumDirty = true;
+        if (camera.shouldQuit())
+            running = false;
 
         if (window.consumeResize()) {
-            (void)swapchain.recreate(device, window);
+            (void) swapchain.recreate(device, window);
 
-            auto [newAccum, newDisplay] = createImages(
-                swapchain.extent().width, swapchain.extent().height);
-            accumImage  = std::move(newAccum);
+            auto [newAccum, newDisplay] =
+                createImages(swapchain.extent().width, swapchain.extent().height);
+            accumImage = std::move(newAccum);
             displayImage = std::move(newDisplay);
             updateDescriptors();
             camera.setViewport(swapchain.extent().width, swapchain.extent().height);
@@ -476,7 +496,7 @@ int main() {
 
         if (accumDirty) {
             sampleCnt = 0;
-            frameIdx  = 0;
+            frameIdx = 0;
             accumDirty = false;
         }
 
@@ -485,45 +505,43 @@ int main() {
 
         if ((sampleCnt & 15) == 0) {
             char title[128];
-            std::snprintf(title, sizeof(title),
-                          "vksdl - RT Spheres (%u samples)", sampleCnt);
+            std::snprintf(title, sizeof(title), "vksdl - RT Spheres (%u samples)", sampleCnt);
             SDL_SetWindowTitle(window.sdlWindow(), title);
         }
 
         auto [frame, img] = vksdl::acquireFrame(swapchain, frames, device, window).value();
 
         PushConstants pc{};
-        std::memcpy(pc.camPos,   camera.position(), 3 * sizeof(float));
-        pc.camFov    = camFovTan;
-        std::memcpy(pc.camRight, camera.right(),    3 * sizeof(float));
-        pc.frameIdx  = frameIdx;
-        std::memcpy(pc.camUp,    camera.up(),       3 * sizeof(float));
+        std::memcpy(pc.camPos, camera.position(), 3 * sizeof(float));
+        pc.camFov = camFovTan;
+        std::memcpy(pc.camRight, camera.right(), 3 * sizeof(float));
+        pc.frameIdx = frameIdx;
+        std::memcpy(pc.camUp, camera.up(), 3 * sizeof(float));
         pc.sampleCnt = sampleCnt;
-        std::memcpy(pc.camFwd,   camera.forward(),  3 * sizeof(float));
-        pc.aperture  = 0.08f;
+        std::memcpy(pc.camFwd, camera.forward(), 3 * sizeof(float));
+        pc.aperture = 0.08f;
         pc.focusDist = camera.distance();
 
         vksdl::beginOneTimeCommands(frame.cmd);
 
         if (sampleCnt == 1) {
             VkClearColorValue clearColor = {{0.0f, 0.0f, 0.0f, 0.0f}};
-            vksdl::clearImage(frame.cmd, accumImage, clearColor,
-                              VK_IMAGE_LAYOUT_GENERAL);
+            vksdl::clearImage(frame.cmd, accumImage, clearColor, VK_IMAGE_LAYOUT_GENERAL);
         }
 
         if (sampleCnt > 1) {
             VkMemoryBarrier2 memBarrier{};
-            memBarrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-            memBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+            memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+            memBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
             memBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
-            memBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
-            memBarrier.dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
-                                       VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
+            memBarrier.dstStageMask = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
+            memBarrier.dstAccessMask =
+                VK_ACCESS_2_SHADER_STORAGE_READ_BIT | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
 
             VkDependencyInfo dep{};
-            dep.sType                = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-            dep.memoryBarrierCount   = 1;
-            dep.pMemoryBarriers      = &memBarrier;
+            dep.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+            dep.memoryBarrierCount = 1;
+            dep.pMemoryBarriers = &memBarrier;
             vkCmdPipelineBarrier2(frame.cmd, &dep);
         }
 
@@ -532,14 +550,11 @@ int main() {
         pipeline.bind(frame.cmd, descriptors);
         pipeline.pushConstants(frame.cmd, pc);
 
-        sbt.traceRays(frame.cmd, swapchain.extent().width,
-                      swapchain.extent().height);
+        sbt.traceRays(frame.cmd, swapchain.extent().width, swapchain.extent().height);
 
-        vksdl::blitToSwapchain(frame.cmd, displayImage,
-                               VK_IMAGE_LAYOUT_GENERAL,
+        vksdl::blitToSwapchain(frame.cmd, displayImage, VK_IMAGE_LAYOUT_GENERAL,
                                VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
-                               VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                               img.image, swapchain.extent());
+                               VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT, img.image, swapchain.extent());
 
         vksdl::endCommands(frame.cmd);
 

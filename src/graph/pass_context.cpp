@@ -27,15 +27,15 @@ VkDeviceSize PassContext::bufferSize(ResourceHandle h) const {
 
 VkFormat PassContext::imageFormat(ResourceHandle h) const {
     assert(h.valid() && h.index < resources_->size());
-    assert((*resources_)[h.index].kind == ResourceKind::Image
-           && "imageFormat() called on a buffer resource");
+    assert((*resources_)[h.index].kind == ResourceKind::Image &&
+           "imageFormat() called on a buffer resource");
     return (*resources_)[h.index].imageDesc.format;
 }
 
 VkExtent2D PassContext::imageExtent(ResourceHandle h) const {
     assert(h.valid() && h.index < resources_->size());
-    assert((*resources_)[h.index].kind == ResourceKind::Image
-           && "imageExtent() called on a buffer resource");
+    assert((*resources_)[h.index].kind == ResourceKind::Image &&
+           "imageExtent() called on a buffer resource");
     const auto& desc = (*resources_)[h.index].imageDesc;
     return {desc.width, desc.height};
 }
@@ -43,17 +43,17 @@ VkExtent2D PassContext::imageExtent(ResourceHandle h) const {
 VkImageLayout PassContext::imageLayout(ResourceHandle h) const {
     assert(h.valid());
     for (const auto& pl : layouts_) {
-        if (pl.handle == h) return pl.layout;
+        if (pl.handle == h)
+            return pl.layout;
     }
     assert(false && "imageLayout: resource not declared in this pass");
     return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
-VkDescriptorImageInfo PassContext::imageInfo(ResourceHandle h,
-                                              VkSampler sampler) const {
+VkDescriptorImageInfo PassContext::imageInfo(ResourceHandle h, VkSampler sampler) const {
     VkDescriptorImageInfo info{};
-    info.sampler     = sampler;
-    info.imageView   = vkImageView(h);
+    info.sampler = sampler;
+    info.imageView = vkImageView(h);
     info.imageLayout = imageLayout(h);
     return info;
 }
@@ -62,7 +62,7 @@ VkDescriptorBufferInfo PassContext::bufferInfo(ResourceHandle h) const {
     VkDescriptorBufferInfo info{};
     info.buffer = vkBuffer(h);
     info.offset = 0;
-    info.range  = bufferSize(h);
+    info.range = bufferSize(h);
     return info;
 }
 
@@ -75,10 +75,10 @@ void PassContext::bindDescriptors(VkCommandBuffer cmd) {
     assert(descriptors_ && "bindDescriptors: pass has no Layer 2 descriptors");
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(descriptors_->sets.size()); ++i) {
         VkDescriptorSet set = descriptors_->sets[i];
-        if (set == VK_NULL_HANDLE) continue;
-        vkCmdBindDescriptorSets(cmd, descriptors_->bindPoint,
-                                descriptors_->pipelineLayout,
-                                i, 1, &set, 0, nullptr);
+        if (set == VK_NULL_HANDLE)
+            continue;
+        vkCmdBindDescriptorSets(cmd, descriptors_->bindPoint, descriptors_->pipelineLayout, i, 1,
+                                &set, 0, nullptr);
     }
 }
 
@@ -93,27 +93,23 @@ void PassContext::beginRendering(VkCommandBuffer cmd) {
     assert(!renderingBegun_ && "beginRendering: already active");
 
     VkRenderingInfo ri{};
-    ri.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    ri.renderArea.offset    = {0, 0};
-    ri.renderArea.extent    = rendering_->renderArea;
-    ri.layerCount           = 1;
-    ri.colorAttachmentCount = static_cast<std::uint32_t>(
-                                  rendering_->colorAttachments.size());
-    ri.pColorAttachments    = rendering_->colorAttachments.empty()
-                            ? nullptr
-                            : rendering_->colorAttachments.data();
-    ri.pDepthAttachment     = rendering_->hasDepth
-                            ? &rendering_->depthAttachment
-                            : nullptr;
+    ri.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    ri.renderArea.offset = {0, 0};
+    ri.renderArea.extent = rendering_->renderArea;
+    ri.layerCount = 1;
+    ri.colorAttachmentCount = static_cast<std::uint32_t>(rendering_->colorAttachments.size());
+    ri.pColorAttachments =
+        rendering_->colorAttachments.empty() ? nullptr : rendering_->colorAttachments.data();
+    ri.pDepthAttachment = rendering_->hasDepth ? &rendering_->depthAttachment : nullptr;
 
     vkCmdBeginRendering(cmd, &ri);
     renderingBegun_ = true;
 
     VkViewport vp{};
-    vp.x        = 0.0f;
-    vp.y        = 0.0f;
-    vp.width    = static_cast<float>(rendering_->renderArea.width);
-    vp.height   = static_cast<float>(rendering_->renderArea.height);
+    vp.x = 0.0f;
+    vp.y = 0.0f;
+    vp.width = static_cast<float>(rendering_->renderArea.width);
+    vp.height = static_cast<float>(rendering_->renderArea.height);
     vp.minDepth = 0.0f;
     vp.maxDepth = 1.0f;
     vkCmdSetViewport(cmd, 0, 1, &vp);
@@ -141,14 +137,14 @@ void PassContext::assumeState(ResourceHandle h, const ResourceState& state) {
 }
 
 void PassContext::assumeState(ResourceHandle h, const ResourceState& state,
-                               const SubresourceRange& range) {
+                              const SubresourceRange& range) {
     overrides_.push_back({h, state, range, false});
 }
 
 void PassContext::discardContents(ResourceHandle h) {
     ResourceState discarded{};
     discarded.currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    discarded.queueFamily   = VK_QUEUE_FAMILY_IGNORED;
+    discarded.queueFamily = VK_QUEUE_FAMILY_IGNORED;
     overrides_.push_back({h, discarded, {}, true});
 }
 

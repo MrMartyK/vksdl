@@ -15,7 +15,6 @@ namespace vksdl {
 [[nodiscard]] std::filesystem::path exeDir();
 
 // Returns exeDir() / relative.
-[[nodiscard]] std::filesystem::path exeRelativePath(
-    const std::filesystem::path& relative);
+[[nodiscard]] std::filesystem::path exeRelativePath(const std::filesystem::path& relative);
 
 } // namespace vksdl

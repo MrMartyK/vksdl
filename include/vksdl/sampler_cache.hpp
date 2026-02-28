@@ -20,7 +20,7 @@ class Device;
 //
 // Thread safety: none (single-threaded init-time usage expected).
 class SamplerCache {
-public:
+  public:
     [[nodiscard]] static Result<SamplerCache> create(const Device& device);
 
     ~SamplerCache();
@@ -36,27 +36,27 @@ public:
         return static_cast<std::uint32_t>(cache_.size());
     }
 
-private:
+  private:
     SamplerCache() = default;
     void destroy();
 
     // Hash key: the subset of VkSamplerCreateInfo fields that affect identity.
     struct SamplerKey {
-        VkFilter             magFilter;
-        VkFilter             minFilter;
-        VkSamplerMipmapMode  mipmapMode;
+        VkFilter magFilter;
+        VkFilter minFilter;
+        VkSamplerMipmapMode mipmapMode;
         VkSamplerAddressMode addressModeU;
         VkSamplerAddressMode addressModeV;
         VkSamplerAddressMode addressModeW;
-        float                mipLodBias;
-        VkBool32             anisotropyEnable;
-        float                maxAnisotropy;
-        VkBool32             compareEnable;
-        VkCompareOp          compareOp;
-        float                minLod;
-        float                maxLod;
-        VkBorderColor        borderColor;
-        VkBool32             unnormalizedCoordinates;
+        float mipLodBias;
+        VkBool32 anisotropyEnable;
+        float maxAnisotropy;
+        VkBool32 compareEnable;
+        VkCompareOp compareOp;
+        float minLod;
+        float maxLod;
+        VkBorderColor borderColor;
+        VkBool32 unnormalizedCoordinates;
 
         bool operator==(const SamplerKey&) const = default;
     };

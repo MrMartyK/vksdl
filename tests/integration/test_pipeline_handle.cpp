@@ -15,27 +15,27 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_pipeline_handle")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_pipeline_handle")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto swapchain = vksdl::SwapchainBuilder(device.value(), surface.value())
-        .size(window.value().pixelSize())
-        .build();
+                         .size(window.value().pixelSize())
+                         .build();
     assert(swapchain.ok());
 
     auto cacheResult = vksdl::PipelineCache::create(device.value());
@@ -45,18 +45,17 @@ int main() {
     auto frameSync = vksdl::FrameSync::create(device.value(), 2);
     assert(frameSync.ok());
 
-    std::filesystem::path shaderDir =
-        std::filesystem::path(SDL_GetBasePath()) / "shaders";
+    std::filesystem::path shaderDir = std::filesystem::path(SDL_GetBasePath()) / "shaders";
 
     {
-        auto compiler = vksdl::PipelineCompiler::create(
-            device.value(), cache, vksdl::PipelinePolicy::ForceMonolithic);
+        auto compiler = vksdl::PipelineCompiler::create(device.value(), cache,
+                                                        vksdl::PipelinePolicy::ForceMonolithic);
         assert(compiler.ok());
 
         auto builder = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value());
+                           .vertexShader(shaderDir / "triangle.vert.spv")
+                           .fragmentShader(shaderDir / "triangle.frag.spv")
+                           .colorFormat(swapchain.value());
 
         auto handleResult = compiler.value().compile(builder);
         assert(handleResult.ok());
@@ -73,14 +72,14 @@ int main() {
     }
 
     {
-        auto compiler = vksdl::PipelineCompiler::create(
-            device.value(), cache, vksdl::PipelinePolicy::ForceMonolithic);
+        auto compiler = vksdl::PipelineCompiler::create(device.value(), cache,
+                                                        vksdl::PipelinePolicy::ForceMonolithic);
         assert(compiler.ok());
 
         auto builder = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value());
+                           .vertexShader(shaderDir / "triangle.vert.spv")
+                           .fragmentShader(shaderDir / "triangle.frag.spv")
+                           .colorFormat(swapchain.value());
 
         auto handleResult = compiler.value().compile(builder);
         assert(handleResult.ok());
@@ -103,14 +102,14 @@ int main() {
     }
 
     {
-        auto compiler = vksdl::PipelineCompiler::create(
-            device.value(), cache, vksdl::PipelinePolicy::ForceMonolithic);
+        auto compiler = vksdl::PipelineCompiler::create(device.value(), cache,
+                                                        vksdl::PipelinePolicy::ForceMonolithic);
         assert(compiler.ok());
 
         auto builder = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value());
+                           .vertexShader(shaderDir / "triangle.vert.spv")
+                           .fragmentShader(shaderDir / "triangle.frag.spv")
+                           .colorFormat(swapchain.value());
 
         auto handleResult = compiler.value().compile(builder);
         assert(handleResult.ok());
@@ -127,8 +126,8 @@ int main() {
     }
 
     {
-        auto compiler = vksdl::PipelineCompiler::create(
-            device.value(), cache, vksdl::PipelinePolicy::ForceShaderObject);
+        auto compiler = vksdl::PipelineCompiler::create(device.value(), cache,
+                                                        vksdl::PipelinePolicy::ForceShaderObject);
         assert(!compiler.ok());
         assert(compiler.error().operation == "create pipeline compiler");
 
@@ -136,23 +135,23 @@ int main() {
     }
 
     {
-        auto compiler = vksdl::PipelineCompiler::create(
-            device.value(), cache, vksdl::PipelinePolicy::ForceMonolithic);
+        auto compiler = vksdl::PipelineCompiler::create(device.value(), cache,
+                                                        vksdl::PipelinePolicy::ForceMonolithic);
         assert(compiler.ok());
 
         auto builder1 = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value());
+                            .vertexShader(shaderDir / "triangle.vert.spv")
+                            .fragmentShader(shaderDir / "triangle.frag.spv")
+                            .colorFormat(swapchain.value());
 
         auto h1 = compiler.value().compile(builder1);
         assert(h1.ok());
 
         auto builder2 = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .cullBack();
+                            .vertexShader(shaderDir / "triangle.vert.spv")
+                            .fragmentShader(shaderDir / "triangle.frag.spv")
+                            .colorFormat(swapchain.value())
+                            .cullBack();
 
         auto h2 = compiler.value().compile(builder2);
         assert(h2.ok());
@@ -167,8 +166,8 @@ int main() {
     }
 
     {
-        auto compiler = vksdl::PipelineCompiler::create(
-            device.value(), cache, vksdl::PipelinePolicy::ForceMonolithic);
+        auto compiler = vksdl::PipelineCompiler::create(device.value(), cache,
+                                                        vksdl::PipelinePolicy::ForceMonolithic);
         assert(compiler.ok());
         assert(compiler.value().resolvedModel() == vksdl::PipelineModel::Monolithic);
         assert(compiler.value().policy() == vksdl::PipelinePolicy::ForceMonolithic);
@@ -177,15 +176,15 @@ int main() {
     }
 
     if (device.value().hasGPL()) {
-        auto compiler = vksdl::PipelineCompiler::create(
-            device.value(), cache, vksdl::PipelinePolicy::PreferGPL);
+        auto compiler = vksdl::PipelineCompiler::create(device.value(), cache,
+                                                        vksdl::PipelinePolicy::PreferGPL);
         assert(compiler.ok());
         assert(compiler.value().resolvedModel() == vksdl::PipelineModel::GPL);
 
         auto builder = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value());
+                           .vertexShader(shaderDir / "triangle.vert.spv")
+                           .fragmentShader(shaderDir / "triangle.frag.spv")
+                           .colorFormat(swapchain.value());
 
         auto handleResult = compiler.value().compile(builder);
         assert(handleResult.ok());
@@ -196,8 +195,7 @@ int main() {
 
         // Wait for background optimization.
         compiler.value().waitIdle();
-        assert(handle.isOptimized() &&
-               "handle should be optimized after waitIdle()");
+        assert(handle.isOptimized() && "handle should be optimized after waitIdle()");
 
         std::printf("  GPL compile + background optimize: ok\n");
     } else {

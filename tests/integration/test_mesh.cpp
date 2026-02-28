@@ -17,22 +17,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_mesh")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_mesh")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
@@ -58,8 +58,8 @@ int main() {
             assert(v.position[2] >= -2.0f && v.position[2] <= 2.0f);
         }
 
-        std::printf("  loadModel glTF (%zu meshes, %zu verts): ok\n",
-                    model.value().meshes.size(), mesh.vertices.size());
+        std::printf("  loadModel glTF (%zu meshes, %zu verts): ok\n", model.value().meshes.size(),
+                    mesh.vertices.size());
     }
 
     // 2. loadModel OBJ -- write minimal OBJ to temp file, load it
@@ -133,16 +133,15 @@ int main() {
         auto model = vksdl::loadModel(assetDir / "Box.glb");
         assert(model.ok());
 
-        auto mesh = vksdl::uploadMesh(allocator.value(), device.value(),
-                                       model.value().meshes[0]);
+        auto mesh = vksdl::uploadMesh(allocator.value(), device.value(), model.value().meshes[0]);
         assert(mesh.ok());
         assert(mesh.value().vkVertexBuffer() != VK_NULL_HANDLE);
         assert(mesh.value().vkIndexBuffer() != VK_NULL_HANDLE);
         assert(mesh.value().indexCount() > 0);
         assert(mesh.value().vertexCount() > 0);
 
-        std::printf("  uploadMesh (%u verts, %u indices): ok\n",
-                    mesh.value().vertexCount(), mesh.value().indexCount());
+        std::printf("  uploadMesh (%u verts, %u indices): ok\n", mesh.value().vertexCount(),
+                    mesh.value().indexCount());
     }
 
     // 7. Mesh move -- verify handles transferred
@@ -150,12 +149,11 @@ int main() {
         auto model = vksdl::loadModel(assetDir / "Box.glb");
         assert(model.ok());
 
-        auto mesh = vksdl::uploadMesh(allocator.value(), device.value(),
-                                       model.value().meshes[0]);
+        auto mesh = vksdl::uploadMesh(allocator.value(), device.value(), model.value().meshes[0]);
         assert(mesh.ok());
 
         VkBuffer vertHandle = mesh.value().vkVertexBuffer();
-        VkBuffer idxHandle  = mesh.value().vkIndexBuffer();
+        VkBuffer idxHandle = mesh.value().vkIndexBuffer();
         std::uint32_t idxCount = mesh.value().indexCount();
 
         vksdl::Mesh moved = std::move(mesh.value());
@@ -197,8 +195,7 @@ int main() {
         assert(model.ok());
         assert(model.value().meshes.size() >= 2);
 
-        std::printf("  multi-mesh OBJ (%zu meshes): ok\n",
-                    model.value().meshes.size());
+        std::printf("  multi-mesh OBJ (%zu meshes): ok\n", model.value().meshes.size());
 
         std::filesystem::remove(tmpObj);
     }

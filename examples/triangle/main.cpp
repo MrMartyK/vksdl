@@ -6,31 +6,30 @@
 
 // This is "real Vulkan" -- the part beginners are actually learning.
 
-static void recordTriangle(VkCommandBuffer cmd, VkExtent2D extent,
-                           VkImage swapImage, VkImageView swapView,
-                           const vksdl::Pipeline& pipeline) {
+static void recordTriangle(VkCommandBuffer cmd, VkExtent2D extent, VkImage swapImage,
+                           VkImageView swapView, const vksdl::Pipeline& pipeline) {
     vksdl::transitionToColorAttachment(cmd, swapImage);
 
     VkRenderingAttachmentInfo colorAttachment{};
-    colorAttachment.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colorAttachment.imageView   = swapView;
+    colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colorAttachment.imageView = swapView;
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colorAttachment.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
     VkRenderingInfo renderInfo{};
-    renderInfo.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderInfo.renderArea           = {{0, 0}, extent};
-    renderInfo.layerCount           = 1;
+    renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderInfo.renderArea = {{0, 0}, extent};
+    renderInfo.layerCount = 1;
     renderInfo.colorAttachmentCount = 1;
-    renderInfo.pColorAttachments    = &colorAttachment;
+    renderInfo.pColorAttachments = &colorAttachment;
 
     vkCmdBeginRendering(cmd, &renderInfo);
 
     VkViewport viewport{};
-    viewport.width    = static_cast<float>(extent.width);
-    viewport.height   = static_cast<float>(extent.height);
+    viewport.width = static_cast<float>(extent.width);
+    viewport.height = static_cast<float>(extent.height);
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(cmd, 0, 1, &viewport);
 
@@ -50,33 +49,35 @@ int main() {
     auto window = app.createWindow("vksdl - Triangle", 1280, 720).value();
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("vksdl_triangle")
-        .requireVulkan(1, 3)
-        .enableWindowSupport()
-        .build().value();
+                        .appName("vksdl_triangle")
+                        .requireVulkan(1, 3)
+                        .enableWindowSupport()
+                        .build()
+                        .value();
 
     auto surface = vksdl::Surface::create(instance, window).value();
 
     auto device = vksdl::DeviceBuilder(instance, surface)
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build().value();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build()
+                      .value();
 
-    auto swapchain = vksdl::SwapchainBuilder(device, surface)
-        .size(window.pixelSize())
-        .build().value();
+    auto swapchain =
+        vksdl::SwapchainBuilder(device, surface).size(window.pixelSize()).build().value();
 
     auto frames = vksdl::FrameSync::create(device, swapchain.imageCount()).value();
 
     std::filesystem::path shaderDir = vksdl::exeDir() / "shaders";
 
     auto pipeline = vksdl::PipelineBuilder(device)
-        .vertexShader(shaderDir / "triangle.vert.spv")
-        .fragmentShader(shaderDir / "triangle.frag.spv")
-        .colorFormat(swapchain)
-        .build().value();
+                        .vertexShader(shaderDir / "triangle.vert.spv")
+                        .fragmentShader(shaderDir / "triangle.frag.spv")
+                        .colorFormat(swapchain)
+                        .build()
+                        .value();
 
     bool running = true;
     vksdl::Event event;
@@ -90,16 +91,14 @@ int main() {
         }
 
         if (window.consumeResize()) {
-            (void)swapchain.recreate(device, window);
+            (void) swapchain.recreate(device, window);
         }
 
         auto [frame, img] = vksdl::acquireFrame(swapchain, frames, device, window).value();
 
         vksdl::beginOneTimeCommands(frame.cmd);
 
-        recordTriangle(frame.cmd, swapchain.extent(),
-                       img.image, img.view,
-                       pipeline);
+        recordTriangle(frame.cmd, swapchain.extent(), img.image, img.view, pipeline);
 
         vksdl::endCommands(frame.cmd);
 
