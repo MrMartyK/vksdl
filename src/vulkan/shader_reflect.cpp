@@ -20,7 +20,7 @@
 #endif
 #endif
 
-#include <spirv_reflect.c>
+#include <spirv_reflect.c> // NOLINT(bugprone-suspicious-include)
 #include <spirv_reflect.h>
 
 #if defined(_MSC_VER)

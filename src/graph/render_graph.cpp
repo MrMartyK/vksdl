@@ -394,7 +394,7 @@ void RenderGraph::buildAdjacency() {
     const auto resCount = static_cast<std::uint32_t>(resources_.size());
 
     // Flat bool matrix for deduplication (avoids hash map allocation).
-    std::vector<bool> adjMatrix(passCount * passCount, false);
+    std::vector<bool> adjMatrix(static_cast<std::size_t>(passCount) * passCount, false);
 
     // Collect per-resource writers and readers using flat arrays.
     // Each resource gets a small inline list of pass indices.
@@ -1051,8 +1051,6 @@ Result<void> RenderGraph::resolveDescriptors() {
                     break;
                 case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                 case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-                    writer.buffer(rb.binding, res.vkBuffer, res.bufferSize, 0, rb.type);
-                    break;
                 case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
                 case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
                     writer.buffer(rb.binding, res.vkBuffer, res.bufferSize, 0, rb.type);
