@@ -1,33 +1,85 @@
+<div align="center">
+
 # vksdl
 
 **Vulkan without the 800 lines of boilerplate before your first triangle.**
 
-vksdl wraps the ceremony -- instance creation, device selection, swapchain management, synchronization, pipeline construction -- and leaves the actual rendering to you. One `#include`, raw `VkCommandBuffer` inside, full escape hatches everywhere.
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue?logo=cplusplus&logoColor=white)](https://en.cppreference.com/w/cpp/20)
+[![Vulkan 1.3](https://img.shields.io/badge/Vulkan-1.3-red?logo=vulkan&logoColor=white)](https://vulkan.lunarg.com/)
+[![SDL3](https://img.shields.io/badge/SDL-3-blue?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiLz48L3N2Zz4=)](https://www.libsdl.org/)
+[![License: Zlib](https://img.shields.io/badge/License-Zlib-brightgreen.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.12.0-orange)](https://github.com/MrMartyK/vksdl/releases)
+[![Tests](https://img.shields.io/badge/tests-43%20passing-success)]()
 
-- **~17k lines** of C++20 across 56 public headers
-- **Vulkan 1.3 core** -- dynamic rendering, synchronization2, timeline semaphores. No legacy render passes, no compatibility mode
-- **SDL3** for windowing -- Windows, Linux, macOS from one codebase, zero platform `#ifdef`s
-- **43 tests**, 20 working examples from triangle to path-traced spheres to a 40-pass deferred renderer
-- **Zero per-frame allocations** in the hot path
+<br>
 
-[vksdl.com](https://vksdl.com)
+vksdl wraps the ceremony -- instance creation, device selection, swapchain management,
+synchronization, pipeline construction -- and leaves the actual rendering to you.
+
+One `#include`, raw `VkCommandBuffer` inside, full escape hatches everywhere.
+
+[Website](https://vksdl.com) · [Examples](#examples) · [Documentation](#api-at-a-glance) · [Getting Started](#getting-started)
+
+</div>
 
 ---
+
+<br>
+
+## Why vksdl
+
+Vulkan is explicit by design. That's its strength. But a huge amount of Vulkan code has exactly one correct answer -- creating an instance, selecting a GPU, tearing down objects in the right order. vksdl wraps that ceremony and leaves the real decisions to you.
+
+| | |
+|---|---|
+| **~17k lines** of C++20 across 56 public headers | **43 tests**, 20 working examples |
+| **Vulkan 1.3 core** -- dynamic rendering, synchronization2, timeline semaphores | **Zero per-frame allocations** in the hot path |
+| **SDL3** windowing -- Windows, Linux, macOS from one codebase | No legacy render passes, no compatibility mode |
+
+<br>
+
+## Getting Started
+
+### Prerequisites
+
+- [Vulkan SDK](https://vulkan.lunarg.com/) 1.3+
+- CMake 3.21+
+- C++20 compiler (GCC 14+, Clang 18+, MSVC 2022+)
+
+### Build
+
+```bash
+git clone --recursive https://github.com/MrMartyK/vksdl.git
+cd vksdl
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build
+cd build && ctest --output-on-failure
+```
+
+Dependencies (SDL3, VMA, stb, cgltf, tinyobjloader) are fetched automatically via the bundled vcpkg submodule.
+
+<br>
 
 ## Setup Is 15 Lines. The Rest Is Your Vulkan.
 
 ```cpp
 auto app       = vksdl::App::create().value();
 auto window    = app.createWindow("Triangle", 1280, 720).value();
+
 auto instance  = vksdl::InstanceBuilder{}.appName("tri")
     .requireVulkan(1, 3).enableWindowSupport().build().value();
+
 auto surface   = vksdl::Surface::create(instance, window).value();
+
 auto device    = vksdl::DeviceBuilder(instance, surface)
     .needSwapchain().needDynamicRendering().needSync2()
     .preferDiscreteGpu().build().value();
+
 auto swapchain = vksdl::SwapchainBuilder(device, surface)
     .size(window.pixelSize()).build().value();
+
 auto frames    = vksdl::FrameSync::create(device, swapchain.imageCount()).value();
+
 auto pipeline  = vksdl::PipelineBuilder(device)
     .vertexShader("shaders/triangle.vert.spv")
     .fragmentShader("shaders/triangle.frag.spv")
@@ -52,12 +104,12 @@ vksdl::presentFrame(device, swapchain, window, frame, img,
 
 The full triangle example is [113 lines](examples/triangle/main.cpp) including the render loop and resize handling. The raw Vulkan equivalent is 800+.
 
----
+<br>
 
-## What It Wraps vs What Stays Raw
+## What Gets Wrapped vs What Stays Raw
 
 | vksdl handles this | You write this |
-|--------------------|----------------|
+|---|---|
 | Instance + validation + debug messenger | Nothing -- one builder call |
 | GPU selection, queue families, feature chains | `needSwapchain()`, `needRayTracingPipeline()` |
 | Swapchain format/present mode, image views, resize | `recreate()` on window resize |
@@ -69,28 +121,12 @@ The full triangle example is [113 lines](examples/triangle/main.cpp) including t
 
 Every RAII object exposes its raw Vulkan handle -- `vkDevice()`, `vkPipeline()`, `vkBuffer()`, `vkImage()` -- so you can drop to raw Vulkan anywhere vksdl doesn't cover your case.
 
----
-
-## Build
-
-Requires [Vulkan SDK](https://vulkan.lunarg.com/) (1.3+), CMake 3.21+, a C++20 compiler.
-
-```bash
-git clone --recursive https://github.com/MrMartyK/vksdl.git
-cd vksdl
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build build
-cd build && ctest --output-on-failure
-```
-
-Dependencies (SDL3, VMA, stb, cgltf, tinyobjloader) are fetched automatically via the vcpkg submodule.
-
----
+<br>
 
 ## Examples
 
 | Example | What it demonstrates | Lines |
-|---------|---------------------|------:|
+|---|---|---:|
 | [triangle](examples/triangle/) | Window, device, swapchain, pipeline, render loop | 113 |
 | [quad](examples/quad/) | Vertex/index buffers, VMA staged uploads | ~145 |
 | [compute](examples/compute/) | Compute shader, storage image, blit to swapchain | 129 |
@@ -104,9 +140,45 @@ Dependencies (SDL3, VMA, stb, cgltf, tinyobjloader) are fetched automatically vi
 | [deferred](examples/deferred/) | 40-pass render graph: shadow, G-buffer, lighting, tonemap | 709 |
 | [pipeline_compiler](examples/pipeline_compiler/) | GPL fast-linking, async compile, pipeline feedback | 1339 |
 
-Plus 8 more covering pipeline cache, timeline sync, dynamic state, descriptor pools, async transfer, unified layouts, shader reflection, and device fault diagnostics.
+<details>
+<summary><strong>8 more examples</strong></summary>
 
----
+<br>
+
+Pipeline cache, timeline sync, dynamic state, descriptor pools, async transfer, unified layouts, shader reflection, and device fault diagnostics.
+
+</details>
+
+<br>
+
+## API at a Glance
+
+<details>
+<summary><strong>Core Types (60+)</strong></summary>
+
+<br>
+
+All types are RAII, move-only, and return `Result<T>` by default.
+
+`orThrow()` is an optional escape hatch -- it throws when exceptions are enabled and fail-fasts when exceptions are disabled.
+
+**Initialization** -- `App`, `InstanceBuilder`, `Surface`, `DeviceBuilder`
+
+**Presentation** -- `SwapchainBuilder`, `FrameSync`, `acquireFrame`, `presentFrame`
+
+**Pipelines** -- `PipelineBuilder`, `ComputePipelineBuilder`, `RTPipelineBuilder`, `PipelineCache`
+
+**Resources** -- `Buffer`, `Image`, `Sampler`, `DescriptorSetLayout`, `DescriptorPool`
+
+**Ray Tracing** -- `Blas`, `Tlas`, `ShaderBindingTable`
+
+**Render Graph** -- `RenderGraph`, `RenderPass`, automatic barrier insertion, topological sort
+
+**Utilities** -- `ShaderModule`, `TimelineSemaphore`, `QueryPool`, `DebugName`
+
+</details>
+
+<br>
 
 ## Design Philosophy
 
@@ -118,16 +190,36 @@ Plus 8 more covering pipeline cache, timeline sync, dynamic state, descriptor po
 
 The test: if two experienced Vulkan developers would write the same boilerplate identically, vksdl should eliminate it. If they'd write it differently, vksdl stays out of the way.
 
-Every type is RAII, move-only, and returns `Result<T>` by default. `orThrow()` is an optional escape hatch: it throws when exceptions are enabled, and fail-fasts when exceptions are disabled.
+<br>
 
----
+## Platform Support
 
-## Status
+| Platform | Compiler | Status |
+|---|---|---|
+| Windows 11 | GCC 15.2 (MSYS2 MinGW) | Tested, RTX 3060 |
+| Linux | GCC 14 / Clang 18 | Tested via CI |
+| macOS | Clang (via SDL3) | Expected to work, not yet tested |
 
-**v0.12.0** -- Core API is stable (60+ wrapped types). Render graph and pipeline model are functional and tested but still evolving.
+<br>
 
-Tested on Windows 11 (GCC 15.2 / MSYS2 MinGW, RTX 3060) and Linux (GCC 14 / Clang 18 via CI). macOS expected to work via SDL3 but not yet tested.
+## Project Status
+
+**v0.12.0** -- Core API is stable across 60+ wrapped types. The render graph and pipeline model are functional and tested but still evolving.
+
+See the [changelog](CHANGELOG.md) for release history.
+
+<br>
 
 ## License
 
-[Zlib](LICENSE)
+Released under the [Zlib License](LICENSE).
+
+<br>
+
+---
+
+<div align="center">
+
+[vksdl.com](https://vksdl.com)
+
+</div>
