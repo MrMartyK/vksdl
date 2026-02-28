@@ -17,11 +17,11 @@ int main() {
     auto window = std::move(winResult.value());
 
     auto instResult = vksdl::InstanceBuilder{}
-        .appName("device_test")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                          .appName("device_test")
+                          .requireVulkan(1, 3)
+                          .validation(vksdl::Validation::Off)
+                          .enableWindowSupport()
+                          .build();
     assert(instResult.ok());
     auto instance = std::move(instResult.value());
 
@@ -31,9 +31,7 @@ int main() {
 
     // Default: discrete preferred, swapchain via named method
     {
-        auto result = vksdl::DeviceBuilder(instance, surface)
-            .needSwapchain()
-            .build();
+        auto result = vksdl::DeviceBuilder(instance, surface).needSwapchain().build();
 
         assert(result.ok() && "device creation failed");
         auto device = std::move(result.value());
@@ -48,8 +46,7 @@ int main() {
         vkGetPhysicalDeviceProperties(device.vkPhysicalDevice(), &props);
         std::printf("  selected GPU: %s\n", props.deviceName);
         std::printf("  queue families: graphics=%u present=%u (%s)\n",
-                    device.queueFamilies().graphics,
-                    device.queueFamilies().present,
+                    device.queueFamilies().graphics, device.queueFamilies().present,
                     device.queueFamilies().shared() ? "shared" : "separate");
 
         device.waitIdle();
@@ -59,23 +56,32 @@ int main() {
     // Named feature methods (dynamic rendering + sync2)
     {
         auto result = vksdl::DeviceBuilder(instance, surface)
-            .needSwapchain()
-            .needDynamicRendering()
-            .needSync2()
-            .build();
+                          .needSwapchain()
+                          .needDynamicRendering()
+                          .needSync2()
+                          .build();
 
         assert(result.ok() && "device with named features failed");
         std::printf("  device with needDynamicRendering + needSync2: ok\n");
     }
 
+    // Preset method for common graphics setup.
+    {
+        auto result =
+            vksdl::DeviceBuilder(instance, surface).graphicsDefaults().preferDiscreteGpu().build();
+
+        assert(result.ok() && "device with graphicsDefaults failed");
+        std::printf("  device with graphicsDefaults: ok\n");
+    }
+
     // Escape hatch: lambda still works
     {
         auto result = vksdl::DeviceBuilder(instance, surface)
-            .needSwapchain()
-            .requireFeatures([](VkPhysicalDeviceVulkan13Features& f) {
-                f.dynamicRendering = VK_TRUE;
-            })
-            .build();
+                          .needSwapchain()
+                          .requireFeatures([](VkPhysicalDeviceVulkan13Features& f) {
+                              f.dynamicRendering = VK_TRUE;
+                          })
+                          .build();
 
         assert(result.ok() && "device with requireFeatures lambda failed");
         std::printf("  device with requireFeatures escape hatch: ok\n");
@@ -84,8 +90,8 @@ int main() {
     // Bogus extension should fail
     {
         auto result = vksdl::DeviceBuilder(instance, surface)
-            .requireExtension("VK_KHR_does_not_exist_device")
-            .build();
+                          .requireExtension("VK_KHR_does_not_exist_device")
+                          .build();
 
         assert(!result.ok());
         auto msg = result.error().format();

@@ -15,31 +15,30 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_pipeline_cache")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_pipeline_cache")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto swapchain = vksdl::SwapchainBuilder(device.value(), surface.value())
-        .size(window.value().pixelSize())
-        .build();
+                         .size(window.value().pixelSize())
+                         .build();
     assert(swapchain.ok());
 
-    std::filesystem::path shaderDir =
-        std::filesystem::path(SDL_GetBasePath()) / "shaders";
+    std::filesystem::path shaderDir = std::filesystem::path(SDL_GetBasePath()) / "shaders";
 
     {
         auto cache = vksdl::PipelineCache::create(device.value());
@@ -53,11 +52,11 @@ int main() {
         assert(cache.ok());
 
         auto pipeline = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .cache(cache.value())
-            .build();
+                            .vertexShader(shaderDir / "triangle.vert.spv")
+                            .fragmentShader(shaderDir / "triangle.frag.spv")
+                            .colorFormat(swapchain.value())
+                            .cache(cache.value())
+                            .build();
 
         assert(pipeline.ok() && "pipeline build with cache failed");
         assert(pipeline.value().vkPipeline() != VK_NULL_HANDLE);
@@ -74,11 +73,11 @@ int main() {
 
         // Build a pipeline to populate the cache.
         auto p1 = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .cache(cache.value())
-            .build();
+                      .vertexShader(shaderDir / "triangle.vert.spv")
+                      .fragmentShader(shaderDir / "triangle.frag.spv")
+                      .colorFormat(swapchain.value())
+                      .cache(cache.value())
+                      .build();
         assert(p1.ok());
 
         // Save to disk.
@@ -97,16 +96,15 @@ int main() {
         assert(loaded.ok() && "cache load failed");
         assert(loaded.value().vkPipelineCache() != VK_NULL_HANDLE);
         assert(loaded.value().dataSize() > 0);
-        std::printf("  load cache from disk: ok (size: %zu bytes)\n",
-                    loaded.value().dataSize());
+        std::printf("  load cache from disk: ok (size: %zu bytes)\n", loaded.value().dataSize());
 
         // Build again with loaded cache.
         auto p2 = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .cache(loaded.value())
-            .build();
+                      .vertexShader(shaderDir / "triangle.vert.spv")
+                      .fragmentShader(shaderDir / "triangle.frag.spv")
+                      .colorFormat(swapchain.value())
+                      .cache(loaded.value())
+                      .build();
         assert(p2.ok() && "pipeline build with loaded cache failed");
         std::printf("  pipeline build with loaded cache: ok\n");
 
@@ -115,8 +113,7 @@ int main() {
     }
 
     {
-        auto loaded = vksdl::PipelineCache::load(device.value(),
-                                                  "nonexistent_cache_file.bin");
+        auto loaded = vksdl::PipelineCache::load(device.value(), "nonexistent_cache_file.bin");
         assert(loaded.ok() && "load from missing file should succeed with empty cache");
         assert(loaded.value().vkPipelineCache() != VK_NULL_HANDLE);
         std::printf("  load from missing file (fallback): ok\n");
@@ -127,14 +124,39 @@ int main() {
         assert(cache.ok());
 
         auto pipeline = vksdl::PipelineBuilder(device.value())
-            .vertexShader(shaderDir / "triangle.vert.spv")
-            .fragmentShader(shaderDir / "triangle.frag.spv")
-            .colorFormat(swapchain.value())
-            .cache(cache.value().vkPipelineCache())
-            .build();
+                            .vertexShader(shaderDir / "triangle.vert.spv")
+                            .fragmentShader(shaderDir / "triangle.frag.spv")
+                            .colorFormat(swapchain.value())
+                            .cache(cache.value().vkPipelineCache())
+                            .build();
 
         assert(pipeline.ok() && "pipeline with raw VkPipelineCache failed");
         std::printf("  cache escape hatch (VkPipelineCache): ok\n");
+    }
+
+    {
+        auto dst = vksdl::PipelineCache::create(device.value());
+        auto src = vksdl::PipelineCache::create(device.value());
+        assert(dst.ok());
+        assert(src.ok());
+
+        // Build once into src so the merge has real data to merge.
+        auto seeded = vksdl::PipelineBuilder(device.value())
+                          .vertexShader(shaderDir / "triangle.vert.spv")
+                          .fragmentShader(shaderDir / "triangle.frag.spv")
+                          .colorFormat(swapchain.value())
+                          .cache(src.value())
+                          .build();
+        assert(seeded.ok());
+        assert(src.value().dataSize() > 0);
+
+        auto merge1 = dst.value().merge(src.value());
+        assert(merge1.ok());
+
+        auto merge2 = dst.value().merge(src.value().vkPipelineCache());
+        assert(merge2.ok());
+
+        std::printf("  cache merge wrapper: ok\n");
     }
 
     {

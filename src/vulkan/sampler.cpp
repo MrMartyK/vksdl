@@ -1,5 +1,5 @@
-#include <vksdl/sampler.hpp>
 #include <vksdl/device.hpp>
+#include <vksdl/sampler.hpp>
 
 namespace vksdl {
 
@@ -9,9 +9,8 @@ Sampler::~Sampler() {
     }
 }
 
-Sampler::Sampler(Sampler&& o) noexcept
-    : device_(o.device_), sampler_(o.sampler_) {
-    o.device_  = VK_NULL_HANDLE;
+Sampler::Sampler(Sampler&& o) noexcept : device_(o.device_), sampler_(o.sampler_) {
+    o.device_ = VK_NULL_HANDLE;
     o.sampler_ = VK_NULL_HANDLE;
 }
 
@@ -20,27 +19,26 @@ Sampler& Sampler::operator=(Sampler&& o) noexcept {
         if (sampler_ != VK_NULL_HANDLE) {
             vkDestroySampler(device_, sampler_, nullptr);
         }
-        device_  = o.device_;
+        device_ = o.device_;
         sampler_ = o.sampler_;
-        o.device_  = VK_NULL_HANDLE;
+        o.device_ = VK_NULL_HANDLE;
         o.sampler_ = VK_NULL_HANDLE;
     }
     return *this;
 }
 
-SamplerBuilder::SamplerBuilder(const Device& device)
-    : device_(device.vkDevice()) {}
+SamplerBuilder::SamplerBuilder(const Device& device) : device_(device.vkDevice()) {}
 
 SamplerBuilder& SamplerBuilder::linear() {
-    magFilter_  = VK_FILTER_LINEAR;
-    minFilter_  = VK_FILTER_LINEAR;
+    magFilter_ = VK_FILTER_LINEAR;
+    minFilter_ = VK_FILTER_LINEAR;
     mipmapMode_ = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     return *this;
 }
 
 SamplerBuilder& SamplerBuilder::nearest() {
-    magFilter_  = VK_FILTER_NEAREST;
-    minFilter_  = VK_FILTER_NEAREST;
+    magFilter_ = VK_FILTER_NEAREST;
+    minFilter_ = VK_FILTER_NEAREST;
     mipmapMode_ = VK_SAMPLER_MIPMAP_MODE_NEAREST;
     return *this;
 }
@@ -60,7 +58,7 @@ SamplerBuilder& SamplerBuilder::clampToEdge() {
 }
 
 SamplerBuilder& SamplerBuilder::anisotropy(float maxAniso) {
-    anisotropy_    = true;
+    anisotropy_ = true;
     maxAnisotropy_ = maxAniso;
     return *this;
 }
@@ -97,18 +95,18 @@ SamplerBuilder& SamplerBuilder::mipmapMode(VkSamplerMipmapMode mode) {
 
 Result<Sampler> SamplerBuilder::build() {
     VkSamplerCreateInfo ci{};
-    ci.sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    ci.magFilter    = magFilter_;
-    ci.minFilter    = minFilter_;
+    ci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    ci.magFilter = magFilter_;
+    ci.minFilter = minFilter_;
     ci.addressModeU = addressModeU_;
     ci.addressModeV = addressModeV_;
     ci.addressModeW = addressModeW_;
-    ci.mipmapMode   = mipmapMode_;
-    ci.maxLod       = VK_LOD_CLAMP_NONE;
+    ci.mipmapMode = mipmapMode_;
+    ci.maxLod = VK_LOD_CLAMP_NONE;
 
     if (anisotropy_) {
         ci.anisotropyEnable = VK_TRUE;
-        ci.maxAnisotropy    = maxAnisotropy_;
+        ci.maxAnisotropy = maxAnisotropy_;
     }
 
     Sampler s;
@@ -116,8 +114,7 @@ Result<Sampler> SamplerBuilder::build() {
 
     VkResult vr = vkCreateSampler(device_, &ci, nullptr, &s.sampler_);
     if (vr != VK_SUCCESS) {
-        return Error{"create sampler", static_cast<std::int32_t>(vr),
-                     "vkCreateSampler failed"};
+        return Error{"create sampler", static_cast<std::int32_t>(vr), "vkCreateSampler failed"};
     }
 
     return s;

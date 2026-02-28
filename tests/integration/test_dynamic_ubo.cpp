@@ -22,22 +22,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_dynamic_ubo")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_dynamic_ubo")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     {
@@ -49,8 +49,8 @@ int main() {
 
     {
         auto ds = vksdl::DescriptorSetBuilder(device.value())
-            .addDynamicUniformBuffer(0, VK_SHADER_STAGE_VERTEX_BIT)
-            .build();
+                      .addDynamicUniformBuffer(0, VK_SHADER_STAGE_VERTEX_BIT)
+                      .build();
         assert(ds.ok());
         assert(ds.value().vkDescriptorSet() != VK_NULL_HANDLE);
         assert(ds.value().vkDescriptorSetLayout() != VK_NULL_HANDLE);
@@ -60,9 +60,9 @@ int main() {
 
     {
         auto ds = vksdl::DescriptorSetBuilder(device.value())
-            .addUniformBuffer(0, VK_SHADER_STAGE_VERTEX_BIT)
-            .addDynamicUniformBuffer(1, VK_SHADER_STAGE_VERTEX_BIT)
-            .build();
+                      .addUniformBuffer(0, VK_SHADER_STAGE_VERTEX_BIT)
+                      .addDynamicUniformBuffer(1, VK_SHADER_STAGE_VERTEX_BIT)
+                      .build();
         assert(ds.ok());
         assert(ds.value().vkDescriptorSet() != VK_NULL_HANDLE);
         std::printf("  mixed uniform + dynamic: ok\n");
@@ -70,8 +70,8 @@ int main() {
 
     {
         auto ds = vksdl::DescriptorSetBuilder(device.value())
-            .addDynamicUniformBuffer(0, VK_SHADER_STAGE_VERTEX_BIT)
-            .build();
+                      .addDynamicUniformBuffer(0, VK_SHADER_STAGE_VERTEX_BIT)
+                      .build();
         assert(ds.ok());
         auto d1 = std::move(ds).value();
         auto d2 = std::move(d1);

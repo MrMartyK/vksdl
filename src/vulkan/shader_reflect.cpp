@@ -1,21 +1,31 @@
 // SPIRV-Reflect: compiled as a single translation unit, same pattern as VMA.
 // Suppress warnings from third-party code.
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4189) // local variable initialized but not referenced
+#pragma warning(disable : 4244) // conversion, possible loss of data
+#pragma warning(disable : 4505) // unreferenced local function
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wswitch"
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Woverflow"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wconversion"
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 #endif
 
+#include <spirv_reflect.c> // NOLINT(bugprone-suspicious-include)
 #include <spirv_reflect.h>
-#include <spirv_reflect.c>
 
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
@@ -61,11 +71,10 @@ static VkDescriptorType toVkType(SpvReflectDescriptorType t) {
 }
 
 Result<ReflectedLayout> reflectSpv(const std::vector<std::uint32_t>& code,
-                                    VkShaderStageFlags stage) {
+                                   VkShaderStageFlags stage) {
     SpvReflectShaderModule module{};
-    SpvReflectResult result = spvReflectCreateShaderModule(
-        code.size() * sizeof(std::uint32_t),
-        code.data(), &module);
+    SpvReflectResult result =
+        spvReflectCreateShaderModule(code.size() * sizeof(std::uint32_t), code.data(), &module);
 
     if (result != SPV_REFLECT_RESULT_SUCCESS) {
         return Error{"reflect SPIR-V", static_cast<std::int32_t>(result),
@@ -82,12 +91,13 @@ Result<ReflectedLayout> reflectSpv(const std::vector<std::uint32_t>& code,
 
         for (auto* b : bindings) {
             ReflectedBinding rb;
-            rb.set     = b->set;
+            rb.set = b->set;
             rb.binding = b->binding;
-            rb.type    = toVkType(b->descriptor_type);
-            rb.count   = b->count;
-            rb.stages  = stage;
-            if (b->name) rb.name = b->name;
+            rb.type = toVkType(b->descriptor_type);
+            rb.count = b->count;
+            rb.stages = stage;
+            if (b->name)
+                rb.name = b->name;
             layout.bindings.push_back(rb);
         }
     }
@@ -101,8 +111,8 @@ Result<ReflectedLayout> reflectSpv(const std::vector<std::uint32_t>& code,
         for (auto* block : blocks) {
             VkPushConstantRange range{};
             range.stageFlags = stage;
-            range.offset     = block->offset;
-            range.size       = block->size;
+            range.offset = block->offset;
+            range.size = block->size;
             layout.pushConstants.push_back(range);
         }
     }
@@ -113,11 +123,10 @@ Result<ReflectedLayout> reflectSpv(const std::vector<std::uint32_t>& code,
 }
 
 Result<ReflectedLayout> reflectSpvFile(const std::filesystem::path& path,
-                                        VkShaderStageFlags stage) {
+                                       VkShaderStageFlags stage) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
-        return Error{"reflect SPIR-V file", 0,
-                     "failed to open: " + path.string()};
+        return Error{"reflect SPIR-V file", 0, "failed to open: " + path.string()};
     }
 
     auto size = file.tellg();
@@ -134,8 +143,7 @@ Result<ReflectedLayout> reflectSpvFile(const std::filesystem::path& path,
     return reflectSpv(code, stage);
 }
 
-Result<ReflectedLayout> mergeReflections(const ReflectedLayout& a,
-                                          const ReflectedLayout& b) {
+Result<ReflectedLayout> mergeReflections(const ReflectedLayout& a, const ReflectedLayout& b) {
     ReflectedLayout merged;
     merged.bindings = a.bindings;
 
@@ -145,9 +153,9 @@ Result<ReflectedLayout> mergeReflections(const ReflectedLayout& a,
             if (mb.set == bb.set && mb.binding == bb.binding) {
                 if (mb.type != bb.type) {
                     return Error{"merge shader reflections", 0,
-                                 "binding " + std::to_string(bb.binding)
-                                 + " in set " + std::to_string(bb.set)
-                                 + " has conflicting types between stages"};
+                                 "binding " + std::to_string(bb.binding) + " in set " +
+                                     std::to_string(bb.set) +
+                                     " has conflicting types between stages"};
                 }
                 mb.stages |= bb.stages;
                 if (mb.name.empty() && !bb.name.empty())

@@ -18,36 +18,40 @@ namespace vksdl::graph {
 // write stage to C's read stage. Without the split, the naive single-state
 // model would see B's read state and skip the barrier -- corrupting on AMD.
 struct ResourceState {
-    VkPipelineStageFlags2 lastWriteStage        = VK_PIPELINE_STAGE_2_NONE;
-    VkAccessFlags2        lastWriteAccess        = VK_ACCESS_2_NONE;
-    VkPipelineStageFlags2 readStagesSinceWrite   = VK_PIPELINE_STAGE_2_NONE;
-    VkAccessFlags2        readAccessSinceWrite   = VK_ACCESS_2_NONE;
-    VkImageLayout         currentLayout          = VK_IMAGE_LAYOUT_UNDEFINED;
-    std::uint32_t         queueFamily            = VK_QUEUE_FAMILY_IGNORED;
+    VkPipelineStageFlags2 lastWriteStage = VK_PIPELINE_STAGE_2_NONE;
+    VkAccessFlags2 lastWriteAccess = VK_ACCESS_2_NONE;
+    VkPipelineStageFlags2 readStagesSinceWrite = VK_PIPELINE_STAGE_2_NONE;
+    VkAccessFlags2 readAccessSinceWrite = VK_ACCESS_2_NONE;
+    VkImageLayout currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    std::uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED;
 
     [[nodiscard]] bool operator==(const ResourceState&) const = default;
 };
 
 // A contiguous range of mip levels and array layers.
 struct SubresourceRange {
-    std::uint32_t baseMipLevel   = 0;
-    std::uint32_t levelCount     = 1;
+    std::uint32_t baseMipLevel = 0;
+    std::uint32_t levelCount = 1;
     std::uint32_t baseArrayLayer = 0;
-    std::uint32_t layerCount     = 1;
+    std::uint32_t layerCount = 1;
 
     [[nodiscard]] bool contains(const SubresourceRange& other) const;
     [[nodiscard]] bool overlaps(const SubresourceRange& other) const;
     [[nodiscard]] bool operator==(const SubresourceRange&) const = default;
 
     // End indices (exclusive) for interval arithmetic.
-    [[nodiscard]] std::uint32_t mipEnd()   const { return baseMipLevel + levelCount; }
-    [[nodiscard]] std::uint32_t layerEnd() const { return baseArrayLayer + layerCount; }
+    [[nodiscard]] std::uint32_t mipEnd() const {
+        return baseMipLevel + levelCount;
+    }
+    [[nodiscard]] std::uint32_t layerEnd() const {
+        return baseArrayLayer + layerCount;
+    }
 };
 
 // One subresource range and its current state.
 struct SubresourceSlice {
     SubresourceRange range;
-    ResourceState    state;
+    ResourceState state;
 };
 
 // Sparse subresource state map for images.
@@ -57,12 +61,13 @@ struct SubresourceSlice {
 // cascades, cube faces).
 //
 // Invariant: slices are non-overlapping and together cover the full image.
+//
+// Thread safety: thread-confined.
 class ImageSubresourceMap {
-public:
+  public:
     // Initialize with full-image range in the given state.
-    explicit ImageSubresourceMap(std::uint32_t mipLevels,
-                                std::uint32_t arrayLayers,
-                                ResourceState initialState = {});
+    explicit ImageSubresourceMap(std::uint32_t mipLevels, std::uint32_t arrayLayers,
+                                 ResourceState initialState = {});
 
     // Look up the state for a given range. If the range spans multiple
     // slices with different states, returns a merged state:
@@ -78,8 +83,7 @@ public:
 
     // Reset to a single slice covering the full image with the given state.
     // Reuses internal vector capacity (no heap allocation).
-    void resetState(std::uint32_t mipLevels, std::uint32_t arrayLayers,
-                    const ResourceState& state);
+    void resetState(std::uint32_t mipLevels, std::uint32_t arrayLayers, const ResourceState& state);
 
     // Number of tracked slices (for diagnostics/testing).
     [[nodiscard]] std::uint32_t sliceCount() const {
@@ -91,7 +95,7 @@ public:
         return slices_;
     }
 
-private:
+  private:
     std::vector<SubresourceSlice> slices_;
 };
 

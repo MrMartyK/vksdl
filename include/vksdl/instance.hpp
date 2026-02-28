@@ -23,29 +23,38 @@ inline constexpr Validation DefaultValidation = Validation::Off;
 inline constexpr Validation DefaultValidation = Validation::On;
 #endif
 
+// Thread safety: immutable after construction.
 class Instance {
-public:
+  public:
     ~Instance();
     Instance(Instance&&) noexcept;
     Instance& operator=(Instance&&) noexcept;
     Instance(const Instance&) = delete;
     Instance& operator=(const Instance&) = delete;
 
-    [[nodiscard]] VkInstance vkInstance() const { return instance_; }
-    [[nodiscard]] bool validationEnabled() const { return messenger_ != VK_NULL_HANDLE; }
+    [[nodiscard]] VkInstance native() const {
+        return instance_;
+    }
+    [[nodiscard]] VkInstance vkInstance() const {
+        return native();
+    }
+    [[nodiscard]] bool validationEnabled() const {
+        return messenger_ != VK_NULL_HANDLE;
+    }
 
-private:
+  private:
     friend class InstanceBuilder;
     Instance() = default;
 
-    VkInstance               instance_  = VK_NULL_HANDLE;
+    VkInstance instance_ = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT messenger_ = VK_NULL_HANDLE;
 };
 
 class InstanceBuilder {
-public:
+  public:
     InstanceBuilder& appName(std::string_view name);
-    InstanceBuilder& requireVulkan(std::uint32_t major, std::uint32_t minor, std::uint32_t patch = 0);
+    InstanceBuilder& requireVulkan(std::uint32_t major, std::uint32_t minor,
+                                   std::uint32_t patch = 0);
     InstanceBuilder& validation(Validation v);
     InstanceBuilder& addExtension(const char* name);
     InstanceBuilder& addLayer(const char* name);
@@ -55,13 +64,13 @@ public:
 
     [[nodiscard]] Result<Instance> build();
 
-private:
-    std::string              appName_       = "vksdl_app";
-    std::uint32_t            apiVersion_    = VK_API_VERSION_1_3;
-    Validation               validation_    = DefaultValidation;
+  private:
+    std::string appName_ = "vksdl_app";
+    std::uint32_t apiVersion_ = VK_API_VERSION_1_3;
+    Validation validation_ = DefaultValidation;
     std::vector<const char*> extensions_;
     std::vector<const char*> layers_;
-    bool                     windowSupport_ = false;
+    bool windowSupport_ = false;
 };
 
 } // namespace vksdl

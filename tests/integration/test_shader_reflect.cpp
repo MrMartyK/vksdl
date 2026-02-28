@@ -1,5 +1,5 @@
-#include <vksdl/shader_reflect.hpp>
 #include <vksdl/pipeline.hpp>
+#include <vksdl/shader_reflect.hpp>
 #include <vksdl/util.hpp>
 
 #include <vulkan/vulkan.h>
@@ -69,12 +69,11 @@ static void testMergeConflict() {
     std::printf("mergeReflections: type conflict\n");
 
     vksdl::ReflectedLayout a;
-    a.bindings.push_back({0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                          VK_SHADER_STAGE_VERTEX_BIT});
+    a.bindings.push_back({0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT});
 
     vksdl::ReflectedLayout b;
-    b.bindings.push_back({0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
-                          VK_SHADER_STAGE_FRAGMENT_BIT});
+    b.bindings.push_back(
+        {0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT});
 
     auto merged = vksdl::mergeReflections(a, b);
     assert(!merged.ok());
@@ -84,12 +83,11 @@ static void testMergeStageCombine() {
     std::printf("mergeReflections: stage flag combination\n");
 
     vksdl::ReflectedLayout a;
-    a.bindings.push_back({0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                          VK_SHADER_STAGE_VERTEX_BIT});
+    a.bindings.push_back({0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT});
 
     vksdl::ReflectedLayout b;
-    b.bindings.push_back({0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                          VK_SHADER_STAGE_FRAGMENT_BIT});
+    b.bindings.push_back(
+        {0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT});
 
     auto merged = vksdl::mergeReflections(a, b);
     assert(merged.ok());

@@ -16,4 +16,11 @@ SDL3-*/
 *-reference.md
 DESIGN.md
 RENDER_GRAPH_DESIGN.md
-pipeline_log.txt
+*.txt
+
+# CI / verification build trees
+build-*/
+install-verify-integration/
+
+# Temp / tooling
+*.ps1

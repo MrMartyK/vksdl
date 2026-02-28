@@ -34,11 +34,14 @@ class PipelineCache;
 //
 // ~PipelineCompiler blocks until all background compilations complete.
 // Call waitIdle() first if you need predictable shutdown timing.
+//
+// Thread safety: thread-confined. compile() and waitIdle() must be called
+// from a single thread. Background optimization is internal.
 class PipelineCompiler {
-public:
-    [[nodiscard]] static Result<PipelineCompiler> create(
-        const Device& device, PipelineCache& cache,
-        PipelinePolicy policy = PipelinePolicy::Auto);
+  public:
+    [[nodiscard]] static Result<PipelineCompiler>
+    create(const Device& device, PipelineCache& cache,
+           PipelinePolicy policy = PipelinePolicy::Auto);
 
     ~PipelineCompiler();
     PipelineCompiler(PipelineCompiler&&) noexcept;
@@ -61,14 +64,13 @@ public:
 
     [[nodiscard]] PipelineModelInfo modelInfo() const;
 
-private:
+  private:
     PipelineCompiler() = default;
     void destroy();
 
     // Transfer Pipeline ownership into a PipelineHandleImpl.
     // Must be a member (not a free function) so friend access to Pipeline works.
-    static void* transferPipeline(VkDevice device, Pipeline& pipeline,
-                                  bool markOptimized);
+    static void* transferPipeline(VkDevice device, Pipeline& pipeline, bool markOptimized);
 
     // Opaque impl hides threading primitives from public header.
     void* impl_ = nullptr;

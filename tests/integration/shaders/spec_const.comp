@@ -1,0 +1,9 @@
+#version 450
+layout(local_size_x_id = 0) in;
+
+layout(constant_id = 1) const float SCALE = 1.0;
+
+void main() {
+    // Spec constant test: local_size_x overridden via constant_id=0,
+    // SCALE overridden via constant_id=1.
+}

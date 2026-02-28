@@ -1,9 +1,9 @@
-#include <vksdl/vulkan_wsi.hpp>
 #include <vksdl/app.hpp>
+#include <vksdl/vulkan_wsi.hpp>
 
 #include <cassert>
-#include <cstring>
 #include <cstdio>
+#include <cstring>
 
 int main() {
     // SDL must be initialized for Vulkan extension query

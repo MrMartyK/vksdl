@@ -11,10 +11,9 @@ Surface::~Surface() {
     }
 }
 
-Surface::Surface(Surface&& o) noexcept
-    : instance_(o.instance_), surface_(o.surface_) {
+Surface::Surface(Surface&& o) noexcept : instance_(o.instance_), surface_(o.surface_) {
     o.instance_ = VK_NULL_HANDLE;
-    o.surface_  = VK_NULL_HANDLE;
+    o.surface_ = VK_NULL_HANDLE;
 }
 
 Surface& Surface::operator=(Surface&& o) noexcept {
@@ -22,22 +21,24 @@ Surface& Surface::operator=(Surface&& o) noexcept {
         if (surface_ != VK_NULL_HANDLE) {
             SDL_Vulkan_DestroySurface(instance_, surface_, nullptr);
         }
-        instance_   = o.instance_;
-        surface_    = o.surface_;
+        instance_ = o.instance_;
+        surface_ = o.surface_;
         o.instance_ = VK_NULL_HANDLE;
-        o.surface_  = VK_NULL_HANDLE;
+        o.surface_ = VK_NULL_HANDLE;
     }
     return *this;
 }
 
 Result<Surface> Surface::create(const Instance& instance, const Window& window) {
-    auto vkInst = instance.vkInstance();
+    auto* vkInst = instance.vkInstance();
     auto result = wsi::createSurface(vkInst, window);
-    if (!result.ok()) return result.error();
+    if (!result.ok()) {
+        return result.error();
+    }
 
     Surface s;
     s.instance_ = vkInst;
-    s.surface_  = result.value();
+    s.surface_ = result.value();
     return s;
 }
 

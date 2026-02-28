@@ -9,16 +9,32 @@
 
 // Helper: check if the GPU supports RT by attempting to create a device with
 // needRayTracingPipeline(). Returns false when the GPU lacks the extensions.
-static bool gpuSupportsRt(const vksdl::Instance& instance,
-                           const vksdl::Surface& surface) {
+static bool gpuSupportsRt(const vksdl::Instance& instance, const vksdl::Surface& surface) {
     auto result = vksdl::DeviceBuilder(instance, surface)
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .needRayTracingPipeline()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .needRayTracingPipeline()
+                      .preferDiscreteGpu()
+                      .build();
     return result.ok();
+}
+
+static VkAccelerationStructureInstanceKHR makeRtInstance(VkDeviceAddress blasAddress, float tx,
+                                                         float ty, float tz) {
+    VkAccelerationStructureInstanceKHR inst{};
+    inst.transform.matrix[0][0] = 1.0f;
+    inst.transform.matrix[1][1] = 1.0f;
+    inst.transform.matrix[2][2] = 1.0f;
+    inst.transform.matrix[0][3] = tx;
+    inst.transform.matrix[1][3] = ty;
+    inst.transform.matrix[2][3] = tz;
+    inst.instanceCustomIndex = 0;
+    inst.mask = 0xFF;
+    inst.instanceShaderBindingTableRecordOffset = 0;
+    inst.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+    inst.accelerationStructureReference = blasAddress;
+    return inst;
 }
 
 int main() {
@@ -29,11 +45,11 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_rt")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_rt")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
@@ -46,12 +62,12 @@ int main() {
     }
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .needRayTracingPipeline()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .needRayTracingPipeline()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     VkPhysicalDeviceProperties props{};
@@ -73,11 +89,11 @@ int main() {
 
     {
         auto dev2 = vksdl::DeviceBuilder(instance.value(), surface.value())
-            .needSwapchain()
-            .requireFeatures12([](VkPhysicalDeviceVulkan12Features& f) {
-                f.bufferDeviceAddress = VK_TRUE;
-            })
-            .build();
+                        .needSwapchain()
+                        .requireFeatures12([](VkPhysicalDeviceVulkan12Features& f) {
+                            f.bufferDeviceAddress = VK_TRUE;
+                        })
+                        .build();
         assert(dev2.ok());
         std::printf("  requireFeatures12: ok\n");
     }
@@ -87,10 +103,8 @@ int main() {
 
     {
         float verts[] = {0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f};
-        auto buf = vksdl::BufferBuilder(allocator.value())
-            .size(sizeof(verts))
-            .vertexBuffer()
-            .build();
+        auto buf =
+            vksdl::BufferBuilder(allocator.value()).size(sizeof(verts)).vertexBuffer().build();
         assert(buf.ok());
         assert(buf.value().deviceAddress() != 0);
         std::printf("  Buffer::deviceAddress(): ok\n");
@@ -98,42 +112,36 @@ int main() {
 
     vksdl::Blas blas = [&]() {
         float verts[] = {
-            -0.5f, -0.5f, 0.0f,
-             0.5f, -0.5f, 0.0f,
-             0.0f,  0.5f, 0.0f,
+            -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f,
         };
         std::uint32_t indices[] = {0, 1, 2};
 
-        auto vbuf = vksdl::BufferBuilder(allocator.value())
-            .size(sizeof(verts))
-            .vertexBuffer()
-            .build();
+        auto vbuf =
+            vksdl::BufferBuilder(allocator.value()).size(sizeof(verts)).vertexBuffer().build();
         assert(vbuf.ok());
-        (void)vksdl::uploadToBuffer(allocator.value(), device.value(),
-                                    vbuf.value(), verts, sizeof(verts));
+        (void) vksdl::uploadToBuffer(allocator.value(), device.value(), vbuf.value(), verts,
+                                     sizeof(verts));
 
-        auto ibuf = vksdl::BufferBuilder(allocator.value())
-            .size(sizeof(indices))
-            .indexBuffer()
-            .build();
+        auto ibuf =
+            vksdl::BufferBuilder(allocator.value()).size(sizeof(indices)).indexBuffer().build();
         assert(ibuf.ok());
-        (void)vksdl::uploadToBuffer(allocator.value(), device.value(),
-                                    ibuf.value(), indices, sizeof(indices));
+        (void) vksdl::uploadToBuffer(allocator.value(), device.value(), ibuf.value(), indices,
+                                     sizeof(indices));
 
         vksdl::BlasTriangleGeometry geo{};
         geo.vertexBufferAddress = vbuf.value().deviceAddress();
-        geo.indexBufferAddress  = ibuf.value().deviceAddress();
-        geo.vertexCount  = 3;
-        geo.indexCount   = 3;
+        geo.indexBufferAddress = ibuf.value().deviceAddress();
+        geo.vertexCount = 3;
+        geo.indexCount = 3;
         geo.vertexStride = 3 * sizeof(float);
         geo.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-        geo.indexType    = VK_INDEX_TYPE_UINT32;
-        geo.opaque       = true;
+        geo.indexType = VK_INDEX_TYPE_UINT32;
+        geo.opaque = true;
 
         auto result = vksdl::BlasBuilder(device.value(), allocator.value())
-            .addTriangles(geo)
-            .preferFastTrace()
-            .build();
+                          .addTriangles(geo)
+                          .preferFastTrace()
+                          .build();
         assert(result.ok());
         assert(result.value().vkAccelerationStructure() != VK_NULL_HANDLE);
         assert(result.value().deviceAddress() != 0);
@@ -150,12 +158,12 @@ int main() {
     }
 
     vksdl::Tlas tlas = [&]() {
-        float identity[3][4] = {{1,0,0,0},{0,1,0,0},{0,0,1,0}};
+        float identity[3][4] = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}};
 
         auto result = vksdl::TlasBuilder(device.value(), allocator.value())
-            .addInstance(blas, identity)
-            .preferFastTrace()
-            .build();
+                          .addInstance(blas, identity)
+                          .preferFastTrace()
+                          .build();
         assert(result.ok());
         assert(result.value().vkAccelerationStructure() != VK_NULL_HANDLE);
         std::printf("  TLAS creation: ok\n");
@@ -170,32 +178,98 @@ int main() {
     }
 
     auto descriptors = vksdl::DescriptorSetBuilder(device.value())
-        .addAccelerationStructure(0, VK_SHADER_STAGE_RAYGEN_BIT_KHR)
-        .addStorageImage(1, VK_SHADER_STAGE_RAYGEN_BIT_KHR)
-        .build();
+                           .addAccelerationStructure(0, VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+                           .addStorageImage(1, VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+                           .build();
     assert(descriptors.ok());
 
     descriptors.value().updateAccelerationStructure(0, tlas.vkAccelerationStructure());
     std::printf("  DescriptorSet AS binding: ok\n");
 
-    std::filesystem::path shaderDir =
-        std::filesystem::path(SDL_GetBasePath()) / "shaders";
+    std::filesystem::path shaderDir = std::filesystem::path(SDL_GetBasePath()) / "shaders";
 
     auto pipeline = vksdl::RayTracingPipelineBuilder(device.value())
-        .rayGenShader(shaderDir / "raygen.rgen.spv")
-        .missShader(shaderDir / "miss.rmiss.spv")
-        .closestHitShader(shaderDir / "closesthit.rchit.spv")
-        .descriptorSetLayout(descriptors.value().vkDescriptorSetLayout())
-        .maxRecursionDepth(1)
-        .build();
+                        .rayGenShader(shaderDir / "raygen.rgen.spv")
+                        .missShader(shaderDir / "miss.rmiss.spv")
+                        .closestHitShader(shaderDir / "closesthit.rchit.spv")
+                        .descriptorSetLayout(descriptors.value().vkDescriptorSetLayout())
+                        .maxRecursionDepth(1)
+                        .build();
     assert(pipeline.ok());
     assert(pipeline.value().vkPipeline() != VK_NULL_HANDLE);
     assert(pipeline.value().vkPipelineLayout() != VK_NULL_HANDLE);
     std::printf("  RT pipeline creation: ok\n");
 
     {
-        auto sbt = vksdl::ShaderBindingTable::create(
-            device.value(), pipeline.value(), allocator.value(), 1, 1);
+        auto builder = vksdl::TlasBuilder(device.value(), allocator.value()).allowUpdate();
+        float identity[3][4] = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}};
+        builder.addInstance(blas, identity);
+        auto tlasUpdatable = builder.build();
+        assert(tlasUpdatable.ok());
+        assert(tlasUpdatable.value().supportsUpdate());
+        assert(tlasUpdatable.value().maxInstanceCount() == 1);
+        assert(tlasUpdatable.value().updateScratchSize() > 0);
+
+        auto instanceBuffer = vksdl::BufferBuilder(allocator.value())
+                                  .size(sizeof(VkAccelerationStructureInstanceKHR))
+                                  .accelerationStructureInput()
+                                  .deviceAddressable()
+                                  .mapped()
+                                  .build();
+        assert(instanceBuffer.ok());
+
+        auto scratch = vksdl::BufferBuilder(allocator.value())
+                           .scratchBuffer()
+                           .size(tlasUpdatable.value().updateScratchSize())
+                           .build();
+        assert(scratch.ok());
+
+        auto* mapped = reinterpret_cast<VkAccelerationStructureInstanceKHR*>(
+            instanceBuffer.value().mappedData());
+        assert(mapped != nullptr);
+
+        VkCommandPoolCreateInfo poolCI{};
+        poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolCI.queueFamilyIndex = device.value().queueFamilies().graphics;
+
+        VkCommandPool pool = VK_NULL_HANDLE;
+        VkResult vr = vkCreateCommandPool(device.value().vkDevice(), &poolCI, nullptr, &pool);
+        assert(vr == VK_SUCCESS);
+
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = pool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer cmd = VK_NULL_HANDLE;
+        vr = vkAllocateCommandBuffers(device.value().vkDevice(), &allocInfo, &cmd);
+        assert(vr == VK_SUCCESS);
+
+        *mapped = makeRtInstance(blas.deviceAddress(), 0.0f, 0.0f, 0.0f);
+        vksdl::beginOneTimeCommands(cmd);
+        auto update0 =
+            tlasUpdatable.value().cmdUpdate(cmd, scratch.value(), instanceBuffer.value(), 1);
+        assert(update0.ok());
+        auto submit0 = vksdl::endSubmitOneShotBlocking(device.value().graphicsQueue(), cmd);
+        assert(submit0.ok());
+
+        *mapped = makeRtInstance(blas.deviceAddress(), 0.1f, 0.0f, 0.0f);
+        vksdl::beginOneTimeCommands(cmd);
+        auto update1 =
+            tlasUpdatable.value().cmdUpdate(cmd, scratch.value(), instanceBuffer.value(), 1);
+        assert(update1.ok());
+        auto submit1 = vksdl::endSubmitOneShotBlocking(device.value().graphicsQueue(), cmd);
+        assert(submit1.ok());
+
+        vkDestroyCommandPool(device.value().vkDevice(), pool, nullptr);
+        std::printf("  TLAS cmdUpdate path: ok\n");
+    }
+
+    {
+        auto sbt = vksdl::ShaderBindingTable::create(device.value(), pipeline.value(),
+                                                     allocator.value(), 1, 1);
         assert(sbt.ok());
 
         assert(sbt.value().raygenRegion().deviceAddress != 0);
@@ -218,20 +292,19 @@ int main() {
         float verts[] = {0, 0, 0, 1, 0, 0, 0, 1, 0};
         std::uint32_t indices[] = {0, 1, 2};
 
-        auto vbuf = vksdl::BufferBuilder(allocator.value())
-            .size(sizeof(verts)).vertexBuffer().build();
+        auto vbuf =
+            vksdl::BufferBuilder(allocator.value()).size(sizeof(verts)).vertexBuffer().build();
         assert(vbuf.ok());
 
         vksdl::BlasTriangleGeometry geo{};
         geo.vertexBufferAddress = vbuf.value().deviceAddress();
-        geo.indexBufferAddress  = 0;
-        geo.vertexCount  = 3;
-        geo.indexCount   = 0;
+        geo.indexBufferAddress = 0;
+        geo.vertexCount = 3;
+        geo.indexCount = 0;
         geo.vertexStride = 3 * sizeof(float);
-        geo.opaque       = true;
+        geo.opaque = true;
 
-        auto builder = vksdl::BlasBuilder(device.value(), allocator.value())
-            .addTriangles(geo);
+        auto builder = vksdl::BlasBuilder(device.value(), allocator.value()).addTriangles(geo);
         auto sizes = builder.sizes();
         assert(sizes.ok());
         assert(sizes.value().accelerationStructureSize > 0);

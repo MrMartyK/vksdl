@@ -1,5 +1,5 @@
-#include <vksdl/blas.hpp>
 #include <vksdl/allocator.hpp>
+#include <vksdl/blas.hpp>
 #include <vksdl/buffer.hpp>
 #include <vksdl/device.hpp>
 #include <vksdl/mesh.hpp>
@@ -7,18 +7,29 @@
 
 #include "rt_functions.hpp"
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4189) // local variable initialized but not referenced
+#pragma warning(disable : 4244) // conversion, possible loss of data
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
 #include <vk_mem_alloc.h>
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 
 namespace vksdl {
 
 struct Blas::BackingBuffer {
-    VmaAllocator  allocator  = nullptr;
-    VkBuffer      buffer     = VK_NULL_HANDLE;
+    VmaAllocator allocator = nullptr;
+    VkBuffer buffer = VK_NULL_HANDLE;
     VmaAllocation allocation = nullptr;
 };
 
@@ -32,18 +43,16 @@ Blas::~Blas() {
     }
     if (backing_) {
         if (backing_->buffer != VK_NULL_HANDLE) {
-            vmaDestroyBuffer(backing_->allocator, backing_->buffer,
-                             backing_->allocation);
+            vmaDestroyBuffer(backing_->allocator, backing_->buffer, backing_->allocation);
         }
         delete backing_;
     }
 }
 
 Blas::Blas(Blas&& o) noexcept
-    : device_(o.device_), as_(o.as_), address_(o.address_),
-      backing_(o.backing_) {
-    o.device_  = VK_NULL_HANDLE;
-    o.as_      = VK_NULL_HANDLE;
+    : device_(o.device_), as_(o.as_), address_(o.address_), backing_(o.backing_) {
+    o.device_ = VK_NULL_HANDLE;
+    o.as_ = VK_NULL_HANDLE;
     o.address_ = 0;
     o.backing_ = nullptr;
 }
@@ -58,19 +67,18 @@ Blas& Blas::operator=(Blas&& o) noexcept {
         }
         if (backing_) {
             if (backing_->buffer != VK_NULL_HANDLE) {
-                vmaDestroyBuffer(backing_->allocator, backing_->buffer,
-                                 backing_->allocation);
+                vmaDestroyBuffer(backing_->allocator, backing_->buffer, backing_->allocation);
             }
             delete backing_;
         }
 
-        device_  = o.device_;
-        as_      = o.as_;
+        device_ = o.device_;
+        as_ = o.as_;
         address_ = o.address_;
         backing_ = o.backing_;
 
-        o.device_  = VK_NULL_HANDLE;
-        o.as_      = VK_NULL_HANDLE;
+        o.device_ = VK_NULL_HANDLE;
+        o.as_ = VK_NULL_HANDLE;
         o.address_ = 0;
         o.backing_ = nullptr;
     }
@@ -79,24 +87,21 @@ Blas& Blas::operator=(Blas&& o) noexcept {
 
 namespace {
 
-VkAccelerationStructureGeometryKHR toVkGeometry(
-    const BlasTriangleGeometry& g) {
+VkAccelerationStructureGeometryKHR toVkGeometry(const BlasTriangleGeometry& g) {
 
     VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
-    triangles.sType        = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-    triangles.vertexFormat  = g.vertexFormat;
+    triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+    triangles.vertexFormat = g.vertexFormat;
     triangles.vertexData.deviceAddress = g.vertexBufferAddress;
-    triangles.vertexStride  = g.vertexStride;
-    triangles.maxVertex     = g.vertexCount > 0 ? g.vertexCount - 1 : 0;
-    triangles.indexType     = g.indexType;
+    triangles.vertexStride = g.vertexStride;
+    triangles.maxVertex = g.vertexCount > 0 ? g.vertexCount - 1 : 0;
+    triangles.indexType = g.indexType;
     triangles.indexData.deviceAddress = g.indexBufferAddress;
 
     VkAccelerationStructureGeometryKHR geom{};
-    geom.sType        = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    geom.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
     geom.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-    geom.flags        = g.opaque
-        ? static_cast<VkGeometryFlagsKHR>(VK_GEOMETRY_OPAQUE_BIT_KHR)
-        : 0;
+    geom.flags = g.opaque ? static_cast<VkGeometryFlagsKHR>(VK_GEOMETRY_OPAQUE_BIT_KHR) : 0;
     geom.geometry.triangles = triangles;
 
     return geom;
@@ -104,25 +109,24 @@ VkAccelerationStructureGeometryKHR toVkGeometry(
 
 } // anonymous namespace
 
-BlasTriangleGeometry BlasTriangleGeometry::fromBuffers(
-    const Buffer& vertexBuffer, const Buffer& indexBuffer,
-    std::uint32_t vertexCount, std::uint32_t indexCount,
-    std::uint32_t vertexStride) {
+BlasTriangleGeometry BlasTriangleGeometry::fromBuffers(const Buffer& vertexBuffer,
+                                                       const Buffer& indexBuffer,
+                                                       std::uint32_t vertexCount,
+                                                       std::uint32_t indexCount,
+                                                       std::uint32_t vertexStride) {
 
     BlasTriangleGeometry geo{};
     geo.vertexBufferAddress = vertexBuffer.deviceAddress();
-    geo.indexBufferAddress  = indexBuffer.deviceAddress();
-    geo.vertexCount  = vertexCount;
-    geo.indexCount   = indexCount;
+    geo.indexBufferAddress = indexBuffer.deviceAddress();
+    geo.vertexCount = vertexCount;
+    geo.indexCount = indexCount;
     geo.vertexStride = vertexStride;
     return geo;
 }
 
 BlasBuilder::BlasBuilder(const Device& device, const Allocator& allocator)
-    : device_(device.vkDevice()),
-      physDevice_(device.vkPhysicalDevice()),
-      queue_(device.graphicsQueue()),
-      queueFamily_(device.queueFamilies().graphics),
+    : device_(device.vkDevice()), physDevice_(device.vkPhysicalDevice()),
+      queue_(device.graphicsQueue()), queueFamily_(device.queueFamilies().graphics),
       scratchAlignment_(device.minAccelerationStructureScratchOffsetAlignment()),
       allocator_(&allocator) {}
 
@@ -134,22 +138,22 @@ BlasBuilder& BlasBuilder::addTriangles(const BlasTriangleGeometry& geometry) {
 BlasBuilder& BlasBuilder::addMesh(const Mesh& mesh) {
     // Get device addresses via builder's VkDevice, not from Mesh.
     VkBufferDeviceAddressInfo vertexAddrInfo{};
-    vertexAddrInfo.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    vertexAddrInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     vertexAddrInfo.buffer = mesh.vkVertexBuffer();
 
     VkBufferDeviceAddressInfo indexAddrInfo{};
-    indexAddrInfo.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    indexAddrInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     indexAddrInfo.buffer = mesh.vkIndexBuffer();
 
     BlasTriangleGeometry g{};
     g.vertexBufferAddress = vkGetBufferDeviceAddress(device_, &vertexAddrInfo);
-    g.indexBufferAddress  = vkGetBufferDeviceAddress(device_, &indexAddrInfo);
-    g.vertexCount         = mesh.vertexCount();
-    g.indexCount          = mesh.indexCount();
-    g.vertexStride        = sizeof(Vertex);
-    g.vertexFormat        = VK_FORMAT_R32G32B32_SFLOAT;
-    g.indexType           = VK_INDEX_TYPE_UINT32;
-    g.opaque              = true;
+    g.indexBufferAddress = vkGetBufferDeviceAddress(device_, &indexAddrInfo);
+    g.vertexCount = mesh.vertexCount();
+    g.indexCount = mesh.indexCount();
+    g.vertexStride = sizeof(Vertex);
+    g.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+    g.indexType = VK_INDEX_TYPE_UINT32;
+    g.opaque = true;
 
     geometries_.push_back(g);
     return *this;
@@ -172,8 +176,7 @@ BlasBuilder& BlasBuilder::allowCompaction() {
 
 Result<BlasBuildSizes> BlasBuilder::sizes() const {
     if (geometries_.empty()) {
-        return Error{"BLAS sizes", 0,
-                     "no geometries added -- call addTriangles() or addMesh()"};
+        return Error{"BLAS sizes", 0, "no geometries added -- call addTriangles() or addMesh()"};
     }
 
     auto fn = detail::loadRtFunctions(device_);
@@ -186,7 +189,7 @@ Result<BlasBuildSizes> BlasBuilder::sizes() const {
     std::vector<VkAccelerationStructureGeometryKHR> vkGeoms(geometries_.size());
     std::vector<std::uint32_t> maxPrimCounts(geometries_.size());
     for (std::size_t i = 0; i < geometries_.size(); ++i) {
-        vkGeoms[i]       = toVkGeometry(geometries_[i]);
+        vkGeoms[i] = toVkGeometry(geometries_[i]);
         maxPrimCounts[i] = geometries_[i].indexCount / 3;
     }
 
@@ -196,19 +199,18 @@ Result<BlasBuildSizes> BlasBuilder::sizes() const {
     }
 
     VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
-    buildInfo.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-    buildInfo.type          = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    buildInfo.flags         = flags;
-    buildInfo.mode          = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+    buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    buildInfo.flags = flags;
+    buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     buildInfo.geometryCount = static_cast<std::uint32_t>(vkGeoms.size());
-    buildInfo.pGeometries   = vkGeoms.data();
+    buildInfo.pGeometries = vkGeoms.data();
 
     VkAccelerationStructureBuildSizesInfoKHR sizeInfo{};
     sizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 
-    fn.getBuildSizes(device_,
-                     VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-                     &buildInfo, maxPrimCounts.data(), &sizeInfo);
+    fn.getBuildSizes(device_, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo,
+                     maxPrimCounts.data(), &sizeInfo);
 
     return BlasBuildSizes{
         sizeInfo.accelerationStructureSize,
@@ -219,13 +221,12 @@ Result<BlasBuildSizes> BlasBuilder::sizes() const {
 
 Result<Blas> BlasBuilder::build() {
     if (geometries_.empty()) {
-        return Error{"BLAS build", 0,
-                     "no geometries added -- call addTriangles() or addMesh()"};
+        return Error{"BLAS build", 0, "no geometries added -- call addTriangles() or addMesh()"};
     }
 
     auto fn = detail::loadRtFunctions(device_);
-    if (!fn.createAs || !fn.cmdBuildAs || !fn.getBuildSizes ||
-        !fn.getAsDeviceAddress || !fn.destroyAs) {
+    if (!fn.createAs || !fn.cmdBuildAs || !fn.getBuildSizes || !fn.getAsDeviceAddress ||
+        !fn.destroyAs) {
         return Error{"BLAS build", 0,
                      "RT extension functions not available "
                      "-- did you call needRayTracingPipeline()?"};
@@ -236,13 +237,13 @@ Result<Blas> BlasBuilder::build() {
     std::vector<std::uint32_t> maxPrimCounts(geometries_.size());
 
     for (std::size_t i = 0; i < geometries_.size(); ++i) {
-        vkGeoms[i]       = toVkGeometry(geometries_[i]);
+        vkGeoms[i] = toVkGeometry(geometries_[i]);
         maxPrimCounts[i] = geometries_[i].indexCount / 3;
 
         ranges[i] = {};
-        ranges[i].primitiveCount  = geometries_[i].indexCount / 3;
+        ranges[i].primitiveCount = geometries_[i].indexCount / 3;
         ranges[i].primitiveOffset = 0;
-        ranges[i].firstVertex     = 0;
+        ranges[i].firstVertex = 0;
         ranges[i].transformOffset = 0;
     }
 
@@ -252,19 +253,18 @@ Result<Blas> BlasBuilder::build() {
     }
 
     VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
-    buildInfo.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-    buildInfo.type          = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    buildInfo.flags         = flags;
-    buildInfo.mode          = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+    buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    buildInfo.flags = flags;
+    buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     buildInfo.geometryCount = static_cast<std::uint32_t>(vkGeoms.size());
-    buildInfo.pGeometries   = vkGeoms.data();
+    buildInfo.pGeometries = vkGeoms.data();
 
     VkAccelerationStructureBuildSizesInfoKHR sizeInfo{};
     sizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 
-    fn.getBuildSizes(device_,
-                     VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-                     &buildInfo, maxPrimCounts.data(), &sizeInfo);
+    fn.getBuildSizes(device_, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo,
+                     maxPrimCounts.data(), &sizeInfo);
 
     // Raw VMA handles -- Blas owns the backing buffer directly to avoid
     // circular dependencies with the Buffer RAII type.
@@ -272,7 +272,7 @@ Result<Blas> BlasBuilder::build() {
 
     VkBufferCreateInfo backingCI{};
     backingCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    backingCI.size  = sizeInfo.accelerationStructureSize;
+    backingCI.size = sizeInfo.accelerationStructureSize;
     backingCI.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
                       VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
@@ -282,9 +282,8 @@ Result<Blas> BlasBuilder::build() {
     auto* backing = new Blas::BackingBuffer{};
     backing->allocator = vma;
 
-    VkResult vr = vmaCreateBuffer(vma, &backingCI, &backingAllocCI,
-                                   &backing->buffer, &backing->allocation,
-                                   nullptr);
+    VkResult vr = vmaCreateBuffer(vma, &backingCI, &backingAllocCI, &backing->buffer,
+                                  &backing->allocation, nullptr);
     if (vr != VK_SUCCESS) {
         delete backing;
         return Error{"BLAS build", static_cast<std::int32_t>(vr),
@@ -293,15 +292,15 @@ Result<Blas> BlasBuilder::build() {
 
     // Set up before createAs so the destructor fires on any subsequent error.
     Blas blas;
-    blas.device_  = device_;
+    blas.device_ = device_;
     blas.backing_ = backing;
 
     VkAccelerationStructureCreateInfoKHR asCI{};
-    asCI.sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+    asCI.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
     asCI.buffer = backing->buffer;
     asCI.offset = 0;
-    asCI.size   = sizeInfo.accelerationStructureSize;
-    asCI.type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    asCI.size = sizeInfo.accelerationStructureSize;
+    asCI.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 
     vr = fn.createAs(device_, &asCI, nullptr, &blas.as_);
     if (vr != VK_SUCCESS) {
@@ -315,10 +314,7 @@ Result<Blas> BlasBuilder::build() {
         scratchAllocSize += scratchAlignment_ - 1;
     }
 
-    auto scratchResult = BufferBuilder(*allocator_)
-        .scratchBuffer()
-        .size(scratchAllocSize)
-        .build();
+    auto scratchResult = BufferBuilder(*allocator_).scratchBuffer().size(scratchAllocSize).build();
     if (!scratchResult.ok()) {
         return scratchResult.error();
     }
@@ -335,8 +331,8 @@ Result<Blas> BlasBuilder::build() {
     VkQueryPool queryPool = VK_NULL_HANDLE;
     if (allowCompaction_) {
         VkQueryPoolCreateInfo queryPoolCI{};
-        queryPoolCI.sType      = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
-        queryPoolCI.queryType  = VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR;
+        queryPoolCI.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+        queryPoolCI.queryType = VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR;
         queryPoolCI.queryCount = 1;
 
         vr = vkCreateQueryPool(device_, &queryPoolCI, nullptr, &queryPool);
@@ -347,29 +343,30 @@ Result<Blas> BlasBuilder::build() {
     }
 
     VkCommandPoolCreateInfo poolCI{};
-    poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     poolCI.queueFamilyIndex = queueFamily_;
 
     VkCommandPool cmdPool = VK_NULL_HANDLE;
     vr = vkCreateCommandPool(device_, &poolCI, nullptr, &cmdPool);
     if (vr != VK_SUCCESS) {
-        if (queryPool) vkDestroyQueryPool(device_, queryPool, nullptr);
-        return Error{"BLAS build", static_cast<std::int32_t>(vr),
-                     "failed to create command pool"};
+        if (queryPool)
+            vkDestroyQueryPool(device_, queryPool, nullptr);
+        return Error{"BLAS build", static_cast<std::int32_t>(vr), "failed to create command pool"};
     }
 
     VkCommandBufferAllocateInfo cmdAI{};
-    cmdAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmdAI.commandPool        = cmdPool;
-    cmdAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdAI.commandPool = cmdPool;
+    cmdAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cmdAI.commandBufferCount = 1;
 
     VkCommandBuffer cmd = VK_NULL_HANDLE;
     vr = vkAllocateCommandBuffers(device_, &cmdAI, &cmd);
     if (vr != VK_SUCCESS) {
         vkDestroyCommandPool(device_, cmdPool, nullptr);
-        if (queryPool) vkDestroyQueryPool(device_, queryPool, nullptr);
+        if (queryPool)
+            vkDestroyQueryPool(device_, queryPool, nullptr);
         return Error{"BLAS build", static_cast<std::int32_t>(vr),
                      "failed to allocate command buffer"};
     }
@@ -386,41 +383,41 @@ Result<Blas> BlasBuilder::build() {
     // Barrier ensures the build completes before the property read.
     if (allowCompaction_) {
         VkMemoryBarrier2 barrier{};
-        barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-        barrier.srcStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
+        barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
         barrier.srcAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
-        barrier.dstStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
         barrier.dstAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR;
 
         VkDependencyInfo depInfo{};
-        depInfo.sType                = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-        depInfo.memoryBarrierCount   = 1;
-        depInfo.pMemoryBarriers      = &barrier;
+        depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        depInfo.memoryBarrierCount = 1;
+        depInfo.pMemoryBarriers = &barrier;
 
         vkCmdPipelineBarrier2(cmd, &depInfo);
 
         vkCmdResetQueryPool(cmd, queryPool, 0, 1);
-        fn.cmdWriteAsProperties(
-            cmd, 1, &blas.as_,
-            VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR,
-            queryPool, 0);
+        fn.cmdWriteAsProperties(cmd, 1, &blas.as_,
+                                VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR, queryPool,
+                                0);
     }
 
     vkEndCommandBuffer(cmd);
 
     VkSubmitInfo submitInfo{};
-    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers    = &cmd;
+    submitInfo.pCommandBuffers = &cmd;
 
     vr = vkQueueSubmit(queue_, 1, &submitInfo, VK_NULL_HANDLE);
     if (vr != VK_SUCCESS) {
         vkDestroyCommandPool(device_, cmdPool, nullptr);
-        if (queryPool) vkDestroyQueryPool(device_, queryPool, nullptr);
-        return Error{"BLAS build", static_cast<std::int32_t>(vr),
-                     "failed to submit build command"};
+        if (queryPool)
+            vkDestroyQueryPool(device_, queryPool, nullptr);
+        return Error{"BLAS build", static_cast<std::int32_t>(vr), "failed to submit build command"};
     }
 
+    // VKSDL_BLOCKING_WAIT: synchronous BLAS build waits for completion.
     vkQueueWaitIdle(queue_);
     vkDestroyCommandPool(device_, cmdPool, nullptr);
 
@@ -433,9 +430,8 @@ Result<Blas> BlasBuilder::build() {
     if (allowCompaction_) {
         VkDeviceSize compactedSize = 0;
         vr = vkGetQueryPoolResults(
-            device_, queryPool, 0, 1,
-            sizeof(compactedSize), &compactedSize,
-            sizeof(compactedSize),
+            device_, queryPool, 0, 1, sizeof(compactedSize), &compactedSize, sizeof(compactedSize),
+            // VKSDL_BLOCKING_WAIT: synchronous compaction path waits for query results.
             VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
 
         if (vr != VK_SUCCESS || compactedSize == 0) {
@@ -446,16 +442,15 @@ Result<Blas> BlasBuilder::build() {
 
         VkBufferCreateInfo compactBackingCI{};
         compactBackingCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        compactBackingCI.size  = compactedSize;
+        compactBackingCI.size = compactedSize;
         compactBackingCI.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
                                  VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
         auto* compactBacking = new Blas::BackingBuffer{};
         compactBacking->allocator = vma;
 
-        vr = vmaCreateBuffer(vma, &compactBackingCI, &backingAllocCI,
-                              &compactBacking->buffer,
-                              &compactBacking->allocation, nullptr);
+        vr = vmaCreateBuffer(vma, &compactBackingCI, &backingAllocCI, &compactBacking->buffer,
+                             &compactBacking->allocation, nullptr);
         if (vr != VK_SUCCESS) {
             delete compactBacking;
             vkDestroyQueryPool(device_, queryPool, nullptr);
@@ -464,11 +459,11 @@ Result<Blas> BlasBuilder::build() {
         }
 
         VkAccelerationStructureCreateInfoKHR compactAsCI{};
-        compactAsCI.sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+        compactAsCI.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
         compactAsCI.buffer = compactBacking->buffer;
         compactAsCI.offset = 0;
-        compactAsCI.size   = compactedSize;
-        compactAsCI.type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+        compactAsCI.size = compactedSize;
+        compactAsCI.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 
         VkAccelerationStructureKHR compactAs = VK_NULL_HANDLE;
         vr = fn.createAs(device_, &compactAsCI, nullptr, &compactAs);
@@ -490,9 +485,9 @@ Result<Blas> BlasBuilder::build() {
         }
 
         VkCommandBufferAllocateInfo cmdAI2{};
-        cmdAI2.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmdAI2.commandPool        = cmdPool2;
-        cmdAI2.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdAI2.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdAI2.commandPool = cmdPool2;
+        cmdAI2.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdAI2.commandBufferCount = 1;
 
         VkCommandBuffer cmd2 = VK_NULL_HANDLE;
@@ -513,17 +508,17 @@ Result<Blas> BlasBuilder::build() {
 
         VkCopyAccelerationStructureInfoKHR copyInfo{};
         copyInfo.sType = VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR;
-        copyInfo.src   = blas.as_;
-        copyInfo.dst   = compactAs;
-        copyInfo.mode  = VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_KHR;
+        copyInfo.src = blas.as_;
+        copyInfo.dst = compactAs;
+        copyInfo.mode = VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_KHR;
 
         fn.cmdCopyAs(cmd2, &copyInfo);
         vkEndCommandBuffer(cmd2);
 
         VkSubmitInfo submitInfo2{};
-        submitInfo2.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo2.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo2.commandBufferCount = 1;
-        submitInfo2.pCommandBuffers    = &cmd2;
+        submitInfo2.pCommandBuffers = &cmd2;
 
         vr = vkQueueSubmit(queue_, 1, &submitInfo2, VK_NULL_HANDLE);
         if (vr != VK_SUCCESS) {
@@ -535,15 +530,15 @@ Result<Blas> BlasBuilder::build() {
                          "failed to submit compaction copy"};
         }
 
+        // VKSDL_BLOCKING_WAIT: synchronous BLAS compaction copy waits for completion.
         vkQueueWaitIdle(queue_);
         vkDestroyCommandPool(device_, cmdPool2, nullptr);
 
         fn.destroyAs(device_, blas.as_, nullptr);
-        vmaDestroyBuffer(backing->allocator, backing->buffer,
-                         backing->allocation);
+        vmaDestroyBuffer(backing->allocator, backing->buffer, backing->allocation);
         delete backing;
 
-        blas.as_      = compactAs;
+        blas.as_ = compactAs;
         blas.backing_ = compactBacking;
 
         // Re-query: compaction copy produces a new AS object with a new address.
@@ -558,13 +553,11 @@ Result<Blas> BlasBuilder::build() {
 
 Result<Blas> BlasBuilder::cmdBuild(VkCommandBuffer cmd, const Buffer& scratch) {
     if (geometries_.empty()) {
-        return Error{"BLAS cmdBuild", 0,
-                     "no geometries added -- call addTriangles() or addMesh()"};
+        return Error{"BLAS cmdBuild", 0, "no geometries added -- call addTriangles() or addMesh()"};
     }
 
     auto fn = detail::loadRtFunctions(device_);
-    if (!fn.createAs || !fn.cmdBuildAs || !fn.getBuildSizes ||
-        !fn.getAsDeviceAddress) {
+    if (!fn.createAs || !fn.cmdBuildAs || !fn.getBuildSizes || !fn.getAsDeviceAddress) {
         return Error{"BLAS cmdBuild", 0,
                      "RT extension functions not available "
                      "-- did you call needRayTracingPipeline()?"};
@@ -575,13 +568,13 @@ Result<Blas> BlasBuilder::cmdBuild(VkCommandBuffer cmd, const Buffer& scratch) {
     std::vector<std::uint32_t> maxPrimCounts(geometries_.size());
 
     for (std::size_t i = 0; i < geometries_.size(); ++i) {
-        vkGeoms[i]       = toVkGeometry(geometries_[i]);
+        vkGeoms[i] = toVkGeometry(geometries_[i]);
         maxPrimCounts[i] = geometries_[i].indexCount / 3;
 
         ranges[i] = {};
-        ranges[i].primitiveCount  = geometries_[i].indexCount / 3;
+        ranges[i].primitiveCount = geometries_[i].indexCount / 3;
         ranges[i].primitiveOffset = 0;
-        ranges[i].firstVertex     = 0;
+        ranges[i].firstVertex = 0;
         ranges[i].transformOffset = 0;
     }
 
@@ -591,25 +584,24 @@ Result<Blas> BlasBuilder::cmdBuild(VkCommandBuffer cmd, const Buffer& scratch) {
     }
 
     VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
-    buildInfo.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-    buildInfo.type          = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    buildInfo.flags         = flags;
-    buildInfo.mode          = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+    buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    buildInfo.flags = flags;
+    buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     buildInfo.geometryCount = static_cast<std::uint32_t>(vkGeoms.size());
-    buildInfo.pGeometries   = vkGeoms.data();
+    buildInfo.pGeometries = vkGeoms.data();
 
     VkAccelerationStructureBuildSizesInfoKHR sizeInfo{};
     sizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 
-    fn.getBuildSizes(device_,
-                     VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-                     &buildInfo, maxPrimCounts.data(), &sizeInfo);
+    fn.getBuildSizes(device_, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo,
+                     maxPrimCounts.data(), &sizeInfo);
 
     VmaAllocator vma = allocator_->vmaAllocator();
 
     VkBufferCreateInfo backingCI{};
     backingCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    backingCI.size  = sizeInfo.accelerationStructureSize;
+    backingCI.size = sizeInfo.accelerationStructureSize;
     backingCI.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
                       VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
@@ -619,9 +611,8 @@ Result<Blas> BlasBuilder::cmdBuild(VkCommandBuffer cmd, const Buffer& scratch) {
     auto* backing = new Blas::BackingBuffer{};
     backing->allocator = vma;
 
-    VkResult vr = vmaCreateBuffer(vma, &backingCI, &backingAllocCI,
-                                   &backing->buffer, &backing->allocation,
-                                   nullptr);
+    VkResult vr = vmaCreateBuffer(vma, &backingCI, &backingAllocCI, &backing->buffer,
+                                  &backing->allocation, nullptr);
     if (vr != VK_SUCCESS) {
         delete backing;
         return Error{"BLAS cmdBuild", static_cast<std::int32_t>(vr),
@@ -629,15 +620,15 @@ Result<Blas> BlasBuilder::cmdBuild(VkCommandBuffer cmd, const Buffer& scratch) {
     }
 
     Blas blas;
-    blas.device_  = device_;
+    blas.device_ = device_;
     blas.backing_ = backing;
 
     VkAccelerationStructureCreateInfoKHR asCI{};
-    asCI.sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+    asCI.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
     asCI.buffer = backing->buffer;
     asCI.offset = 0;
-    asCI.size   = sizeInfo.accelerationStructureSize;
-    asCI.type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    asCI.size = sizeInfo.accelerationStructureSize;
+    asCI.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 
     vr = fn.createAs(device_, &asCI, nullptr, &blas.as_);
     if (vr != VK_SUCCESS) {
@@ -650,7 +641,7 @@ Result<Blas> BlasBuilder::cmdBuild(VkCommandBuffer cmd, const Buffer& scratch) {
         scratchAddr = alignUp(scratchAddr, scratchAlignment_);
     }
 
-    buildInfo.dstAccelerationStructure  = blas.as_;
+    buildInfo.dstAccelerationStructure = blas.as_;
     buildInfo.scratchData.deviceAddress = scratchAddr;
 
     const VkAccelerationStructureBuildRangeInfoKHR* pRanges = ranges.data();
@@ -667,8 +658,7 @@ Result<Blas> BlasBuilder::cmdBuild(VkCommandBuffer cmd, const Buffer& scratch) {
     return blas;
 }
 
-Result<void> compactBlas(
-    const Device& device, const Allocator& allocator, Blas& blas) {
+Result<void> compactBlas(const Device& device, const Allocator& allocator, Blas& blas) {
 
     // Precondition: the BLAS must have been built with ALLOW_COMPACTION_BIT.
     // The Vulkan spec requires this flag for compacted-size queries to return
@@ -678,34 +668,32 @@ Result<void> compactBlas(
         return Error{"compact BLAS", 0, "BLAS has no acceleration structure"};
     }
 
-    VkDevice dev   = device.vkDevice();
-    VkQueue  queue = device.graphicsQueue();
+    VkDevice dev = device.vkDevice();
+    VkQueue queue = device.graphicsQueue();
     std::uint32_t family = device.queueFamilies().graphics;
 
     auto fn = detail::loadRtFunctions(dev);
-    if (!fn.createAs || !fn.destroyAs || !fn.cmdWriteAsProperties ||
-        !fn.cmdCopyAs || !fn.getAsDeviceAddress) {
-        return Error{"compact BLAS", 0,
-                     "RT extension functions not available"};
+    if (!fn.createAs || !fn.destroyAs || !fn.cmdWriteAsProperties || !fn.cmdCopyAs ||
+        !fn.getAsDeviceAddress) {
+        return Error{"compact BLAS", 0, "RT extension functions not available"};
     }
 
     VmaAllocator vma = allocator.vmaAllocator();
 
     VkQueryPoolCreateInfo queryPoolCI{};
-    queryPoolCI.sType      = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
-    queryPoolCI.queryType  = VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR;
+    queryPoolCI.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    queryPoolCI.queryType = VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR;
     queryPoolCI.queryCount = 1;
 
     VkQueryPool queryPool = VK_NULL_HANDLE;
     VkResult vr = vkCreateQueryPool(dev, &queryPoolCI, nullptr, &queryPool);
     if (vr != VK_SUCCESS) {
-        return Error{"compact BLAS", static_cast<std::int32_t>(vr),
-                     "failed to create query pool"};
+        return Error{"compact BLAS", static_cast<std::int32_t>(vr), "failed to create query pool"};
     }
 
     VkCommandPoolCreateInfo poolCI{};
-    poolCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolCI.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    poolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolCI.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     poolCI.queueFamilyIndex = family;
 
     VkCommandPool cmdPool = VK_NULL_HANDLE;
@@ -717,9 +705,9 @@ Result<void> compactBlas(
     }
 
     VkCommandBufferAllocateInfo cmdAI{};
-    cmdAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmdAI.commandPool        = cmdPool;
-    cmdAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdAI.commandPool = cmdPool;
+    cmdAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cmdAI.commandBufferCount = 1;
 
     VkCommandBuffer cmd = VK_NULL_HANDLE;
@@ -737,17 +725,15 @@ Result<void> compactBlas(
     vkBeginCommandBuffer(cmd, &beginInfo);
 
     vkCmdResetQueryPool(cmd, queryPool, 0, 1);
-    fn.cmdWriteAsProperties(
-        cmd, 1, &blas.as_,
-        VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR,
-        queryPool, 0);
+    fn.cmdWriteAsProperties(cmd, 1, &blas.as_,
+                            VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR, queryPool, 0);
 
     vkEndCommandBuffer(cmd);
 
     VkSubmitInfo submitInfo{};
-    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers    = &cmd;
+    submitInfo.pCommandBuffers = &cmd;
 
     vr = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
     if (vr != VK_SUCCESS) {
@@ -757,14 +743,14 @@ Result<void> compactBlas(
                      "failed to submit property query"};
     }
 
+    // VKSDL_BLOCKING_WAIT: helper compaction query waits for transfer queue idle.
     vkQueueWaitIdle(queue);
     vkDestroyCommandPool(dev, cmdPool, nullptr);
 
     VkDeviceSize compactedSize = 0;
     vr = vkGetQueryPoolResults(
-        dev, queryPool, 0, 1,
-        sizeof(compactedSize), &compactedSize,
-        sizeof(compactedSize),
+        dev, queryPool, 0, 1, sizeof(compactedSize), &compactedSize, sizeof(compactedSize),
+        // VKSDL_BLOCKING_WAIT: helper compaction path waits for query results.
         VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
 
     if (vr != VK_SUCCESS || compactedSize == 0) {
@@ -775,7 +761,7 @@ Result<void> compactBlas(
 
     VkBufferCreateInfo compactCI{};
     compactCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    compactCI.size  = compactedSize;
+    compactCI.size = compactedSize;
     compactCI.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
                       VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
@@ -785,9 +771,8 @@ Result<void> compactBlas(
     auto* compactBacking = new Blas::BackingBuffer{};
     compactBacking->allocator = vma;
 
-    vr = vmaCreateBuffer(vma, &compactCI, &compactAllocCI,
-                          &compactBacking->buffer,
-                          &compactBacking->allocation, nullptr);
+    vr = vmaCreateBuffer(vma, &compactCI, &compactAllocCI, &compactBacking->buffer,
+                         &compactBacking->allocation, nullptr);
     if (vr != VK_SUCCESS) {
         delete compactBacking;
         vkDestroyQueryPool(dev, queryPool, nullptr);
@@ -796,11 +781,11 @@ Result<void> compactBlas(
     }
 
     VkAccelerationStructureCreateInfoKHR compactAsCI{};
-    compactAsCI.sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+    compactAsCI.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
     compactAsCI.buffer = compactBacking->buffer;
     compactAsCI.offset = 0;
-    compactAsCI.size   = compactedSize;
-    compactAsCI.type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    compactAsCI.size = compactedSize;
+    compactAsCI.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 
     VkAccelerationStructureKHR compactAs = VK_NULL_HANDLE;
     vr = fn.createAs(dev, &compactAsCI, nullptr, &compactAs);
@@ -822,9 +807,9 @@ Result<void> compactBlas(
     }
 
     VkCommandBufferAllocateInfo cmdAI2{};
-    cmdAI2.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmdAI2.commandPool        = cmdPool2;
-    cmdAI2.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAI2.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdAI2.commandPool = cmdPool2;
+    cmdAI2.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cmdAI2.commandBufferCount = 1;
 
     VkCommandBuffer cmd2 = VK_NULL_HANDLE;
@@ -845,17 +830,17 @@ Result<void> compactBlas(
 
     VkCopyAccelerationStructureInfoKHR copyInfo{};
     copyInfo.sType = VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR;
-    copyInfo.src   = blas.as_;
-    copyInfo.dst   = compactAs;
-    copyInfo.mode  = VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_KHR;
+    copyInfo.src = blas.as_;
+    copyInfo.dst = compactAs;
+    copyInfo.mode = VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_KHR;
 
     fn.cmdCopyAs(cmd2, &copyInfo);
     vkEndCommandBuffer(cmd2);
 
     VkSubmitInfo submitInfo2{};
-    submitInfo2.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo2.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo2.commandBufferCount = 1;
-    submitInfo2.pCommandBuffers    = &cmd2;
+    submitInfo2.pCommandBuffers = &cmd2;
 
     vr = vkQueueSubmit(queue, 1, &submitInfo2, VK_NULL_HANDLE);
     if (vr != VK_SUCCESS) {
@@ -867,6 +852,7 @@ Result<void> compactBlas(
                      "failed to submit compaction copy"};
     }
 
+    // VKSDL_BLOCKING_WAIT: helper compaction copy waits for completion.
     vkQueueWaitIdle(queue);
     vkDestroyCommandPool(dev, cmdPool2, nullptr);
     vkDestroyQueryPool(dev, queryPool, nullptr);
@@ -878,7 +864,7 @@ Result<void> compactBlas(
     }
     delete blas.backing_;
 
-    blas.as_      = compactAs;
+    blas.as_ = compactAs;
     blas.backing_ = compactBacking;
 
     VkAccelerationStructureDeviceAddressInfoKHR addrInfo{};

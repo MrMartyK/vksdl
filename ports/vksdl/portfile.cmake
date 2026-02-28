@@ -3,8 +3,8 @@ vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO MrMartyK/vksdl
-    REF "v${VERSION}"
-    SHA512 0  # TODO: compute real hash after tagging the release
+    REF 79c7e5c46f2a9c04daeebb8812edfb908886e3f5
+    SHA512 2d0937dac75d4a251406de6dff7403fea6debe7c361a55bbd7b4e37cf57338eeda366daf0a4512e1a081bb3d3bbc11e5d00f3b443563fa939e88225958a09233
     HEAD_REF main
 )
 

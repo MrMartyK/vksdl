@@ -15,22 +15,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_texture_upload")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_texture_upload")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
@@ -38,8 +38,7 @@ int main() {
 
     // 1. loadImage -- load test_2x2.png
     {
-        std::filesystem::path assetDir =
-            std::filesystem::path(SDL_GetBasePath()) / "assets";
+        std::filesystem::path assetDir = std::filesystem::path(SDL_GetBasePath()) / "assets";
         auto img = vksdl::loadImage(assetDir / "test_2x2.png");
         assert(img.ok());
         assert(img.value().width == 2);
@@ -59,32 +58,27 @@ int main() {
 
     // 3. uploadToImage -- load + create GPU image + upload
     {
-        std::filesystem::path assetDir =
-            std::filesystem::path(SDL_GetBasePath()) / "assets";
+        std::filesystem::path assetDir = std::filesystem::path(SDL_GetBasePath()) / "assets";
         auto imgData = vksdl::loadImage(assetDir / "test_2x2.png");
         assert(imgData.ok());
 
         auto gpuImage = vksdl::ImageBuilder(allocator.value())
-            .size(imgData.value().width, imgData.value().height)
-            .format(VK_FORMAT_R8G8B8A8_SRGB)
-            .sampled()
-            .build();
+                            .size(imgData.value().width, imgData.value().height)
+                            .format(VK_FORMAT_R8G8B8A8_SRGB)
+                            .sampled()
+                            .build();
         assert(gpuImage.ok());
 
-        auto uploadResult = vksdl::uploadToImage(
-            allocator.value(),
-            device.value(),
-            gpuImage.value(),
-            imgData.value().pixels,
-            imgData.value().sizeBytes());
+        auto uploadResult =
+            vksdl::uploadToImage(allocator.value(), device.value(), gpuImage.value(),
+                                 imgData.value().pixels, imgData.value().sizeBytes());
         assert(uploadResult.ok());
         std::printf("  uploadToImage: ok\n");
     }
 
     // 4. ImageData move semantics
     {
-        std::filesystem::path assetDir =
-            std::filesystem::path(SDL_GetBasePath()) / "assets";
+        std::filesystem::path assetDir = std::filesystem::path(SDL_GetBasePath()) / "assets";
         auto imgData = vksdl::loadImage(assetDir / "test_2x2.png");
         assert(imgData.ok());
 

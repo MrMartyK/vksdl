@@ -8,28 +8,28 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <optional>
+#include <type_traits>
 #include <vector>
 
 namespace vksdl {
 
 // Common stage flag combinations for RT push constants and descriptor bindings.
 inline constexpr VkShaderStageFlags kAllRtStages =
-    VK_SHADER_STAGE_RAYGEN_BIT_KHR |
-    VK_SHADER_STAGE_MISS_BIT_KHR |
-    VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
-    VK_SHADER_STAGE_ANY_HIT_BIT_KHR |
+    VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR |
+    VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR |
     VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
 
-inline constexpr VkShaderStageFlags kRtHitStages =
-    VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
-    VK_SHADER_STAGE_ANY_HIT_BIT_KHR |
-    VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+inline constexpr VkShaderStageFlags kRtHitStages = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+                                                   VK_SHADER_STAGE_ANY_HIT_BIT_KHR |
+                                                   VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
 
 class Device;
 class PipelineCache;
 
+// Thread safety: thread-confined.
 class RayTracingPipelineBuilder {
-public:
+  public:
     explicit RayTracingPipelineBuilder(const Device& device);
 
     // Path-based shader stages (builder loads, creates, and destroys modules).
@@ -50,15 +50,32 @@ public:
     // (0 = first closestHit, 1 = second, etc.). Not the global stage index.
     // If no explicit hit groups are added, auto-grouping creates one
     // TRIANGLES_HIT_GROUP per closest-hit shader.
-    RayTracingPipelineBuilder& addTrianglesHitGroup(
-        std::uint32_t closestHitIndex,
-        std::uint32_t anyHitIndex = VK_SHADER_UNUSED_KHR);
-    RayTracingPipelineBuilder& addProceduralHitGroup(
-        std::uint32_t intersectionIndex,
-        std::uint32_t closestHitIndex,
-        std::uint32_t anyHitIndex = VK_SHADER_UNUSED_KHR);
+    RayTracingPipelineBuilder&
+    addTrianglesHitGroup(std::uint32_t closestHitIndex,
+                         std::uint32_t anyHitIndex = VK_SHADER_UNUSED_KHR);
+    RayTracingPipelineBuilder&
+    addProceduralHitGroup(std::uint32_t intersectionIndex, std::uint32_t closestHitIndex,
+                          std::uint32_t anyHitIndex = VK_SHADER_UNUSED_KHR);
 
     RayTracingPipelineBuilder& maxRecursionDepth(std::uint32_t depth);
+
+    // Specialization constants (shared across all stages).
+    // For per-stage specialization, use the specialize() escape hatch
+    // with manually built VkPipelineShaderStageCreateInfo structs.
+    template <typename T>
+    RayTracingPipelineBuilder& specConstant(std::uint32_t constantId, const T& value) {
+        static_assert(std::is_trivially_copyable_v<T>,
+                      "specConstant requires a trivially copyable type");
+        VkSpecializationMapEntry entry{};
+        entry.constantID = constantId;
+        entry.offset = static_cast<std::uint32_t>(specData_.size());
+        entry.size = sizeof(T);
+        specEntries_.push_back(entry);
+        const auto* bytes = reinterpret_cast<const std::uint8_t*>(&value);
+        specData_.insert(specData_.end(), bytes, bytes + sizeof(T));
+        return *this;
+    }
+    RayTracingPipelineBuilder& specialize(const VkSpecializationInfo& info);
 
     // Pipeline cache.
     RayTracingPipelineBuilder& cache(const PipelineCache& c);
@@ -70,8 +87,7 @@ public:
     RayTracingPipelineBuilder& pipelineLayout(VkPipelineLayout layout);
 
     // Convenience: deduces size from struct type, single range at offset 0.
-    template<typename T>
-    RayTracingPipelineBuilder& pushConstants(VkShaderStageFlags stages) {
+    template <typename T> RayTracingPipelineBuilder& pushConstants(VkShaderStageFlags stages) {
         return pushConstantRange({stages, 0, static_cast<std::uint32_t>(sizeof(T))});
     }
     RayTracingPipelineBuilder& pushConstants(VkShaderStageFlags stages, std::uint32_t size) {
@@ -80,35 +96,38 @@ public:
 
     [[nodiscard]] Result<Pipeline> build();
 
-private:
+  private:
     enum class StageType { RayGen, Miss, ClosestHit, AnyHit, Intersection };
 
     struct StageEntry {
-        StageType              type;
-        std::filesystem::path  path;
-        VkShaderModule         module = VK_NULL_HANDLE;
+        StageType type;
+        std::filesystem::path path;
+        VkShaderModule module = VK_NULL_HANDLE;
     };
 
     struct HitGroupEntry {
-        bool          procedural       = false;
-        std::uint32_t closestHitIndex  = VK_SHADER_UNUSED_KHR;
-        std::uint32_t anyHitIndex      = VK_SHADER_UNUSED_KHR;
+        bool procedural = false;
+        std::uint32_t closestHitIndex = VK_SHADER_UNUSED_KHR;
+        std::uint32_t anyHitIndex = VK_SHADER_UNUSED_KHR;
         std::uint32_t intersectionIndex = VK_SHADER_UNUSED_KHR;
     };
 
-    [[nodiscard]] Result<VkShaderModule> createModule(
-        const std::vector<std::uint32_t>& code) const;
+    [[nodiscard]] Result<VkShaderModule> createModule(const std::vector<std::uint32_t>& code) const;
 
     VkDevice device_ = VK_NULL_HANDLE;
 
-    std::vector<StageEntry>    stages_;
+    std::vector<StageEntry> stages_;
     std::vector<HitGroupEntry> hitGroups_;
-    std::uint32_t              maxRecursion_ = 1;
+    std::uint32_t maxRecursion_ = 1;
 
-    std::vector<VkPushConstantRange>   pushConstantRanges_;
+    std::vector<VkPushConstantRange> pushConstantRanges_;
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts_;
-    VkPipelineLayout                   externalLayout_ = VK_NULL_HANDLE;
-    VkPipelineCache                    cache_ = VK_NULL_HANDLE;
+    VkPipelineLayout externalLayout_ = VK_NULL_HANDLE;
+    VkPipelineCache cache_ = VK_NULL_HANDLE;
+
+    std::vector<VkSpecializationMapEntry> specEntries_;
+    std::vector<std::uint8_t> specData_;
+    std::optional<VkSpecializationInfo> externalSpecInfo_;
 };
 
 } // namespace vksdl

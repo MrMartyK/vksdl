@@ -12,29 +12,28 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_bindless_table")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_bindless_table")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
     assert(allocator.ok());
 
-    std::printf("  bindless available: %s\n",
-                device.value().hasBindless() ? "yes" : "no");
+    std::printf("  bindless available: %s\n", device.value().hasBindless() ? "yes" : "no");
 
     if (!device.value().hasBindless()) {
         std::printf("all bindless_table tests skipped (no bindless support)\n");
@@ -53,9 +52,7 @@ int main() {
 
     {
         auto table = vksdl::BindlessTable::create(
-            device.value(), 256,
-            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            VK_SHADER_STAGE_COMPUTE_BIT);
+            device.value(), 256, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
         assert(table.ok());
         assert(table.value().capacity() == 256);
         assert(table.value().descriptorType() == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
@@ -67,14 +64,13 @@ int main() {
         assert(table.ok());
 
         auto img = vksdl::ImageBuilder(allocator.value())
-            .size(16, 16)
-            .format(VK_FORMAT_R8G8B8A8_UNORM)
-            .sampled()
-            .build();
+                       .size(16, 16)
+                       .format(VK_FORMAT_R8G8B8A8_UNORM)
+                       .sampled()
+                       .build();
         assert(img.ok());
 
-        auto sampler = vksdl::SamplerBuilder(device.value())
-            .linear().clampToEdge().build();
+        auto sampler = vksdl::SamplerBuilder(device.value()).linear().clampToEdge().build();
         assert(sampler.ok());
 
         // Write to slot 0 and slot 42 (partial binding -- skip everything between).
@@ -88,31 +84,27 @@ int main() {
     }
 
     {
-        auto table = vksdl::BindlessTable::create(
-            device.value(), 32, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        auto table =
+            vksdl::BindlessTable::create(device.value(), 32, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
         assert(table.ok());
 
         auto img = vksdl::ImageBuilder(allocator.value())
-            .size(16, 16)
-            .format(VK_FORMAT_R8G8B8A8_UNORM)
-            .storage()
-            .build();
+                       .size(16, 16)
+                       .format(VK_FORMAT_R8G8B8A8_UNORM)
+                       .storage()
+                       .build();
         assert(img.ok());
 
-        table.value().writeStorageImage(0, img.value().vkImageView(),
-                                        VK_IMAGE_LAYOUT_GENERAL);
+        table.value().writeStorageImage(0, img.value().vkImageView(), VK_IMAGE_LAYOUT_GENERAL);
         std::printf("  write storage image: ok\n");
     }
 
     {
-        auto table = vksdl::BindlessTable::create(
-            device.value(), 128, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto table =
+            vksdl::BindlessTable::create(device.value(), 128, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         assert(table.ok());
 
-        auto buf = vksdl::BufferBuilder(allocator.value())
-            .size(256)
-            .storageBuffer()
-            .build();
+        auto buf = vksdl::BufferBuilder(allocator.value()).size(256).storageBuffer().build();
         assert(buf.ok());
 
         table.value().writeBuffer(0, buf.value().vkBuffer(), 256);
@@ -126,19 +118,19 @@ int main() {
 
         // Create a pipeline layout that matches the bindless layout.
         VkPipelineLayoutCreateInfo plCI{};
-        plCI.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        plCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         plCI.setLayoutCount = 1;
         VkDescriptorSetLayout dsl = table.value().vkDescriptorSetLayout();
-        plCI.pSetLayouts    = &dsl;
+        plCI.pSetLayouts = &dsl;
 
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        VkResult vr = vkCreatePipelineLayout(device.value().vkDevice(),
-                                              &plCI, nullptr, &pipelineLayout);
+        VkResult vr =
+            vkCreatePipelineLayout(device.value().vkDevice(), &plCI, nullptr, &pipelineLayout);
         assert(vr == VK_SUCCESS);
 
         VkCommandPoolCreateInfo cpCI{};
-        cpCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        cpCI.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        cpCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cpCI.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         cpCI.queueFamilyIndex = device.value().queueFamilies().graphics;
 
         VkCommandPool cmdPool = VK_NULL_HANDLE;
@@ -146,9 +138,9 @@ int main() {
         assert(vr == VK_SUCCESS);
 
         VkCommandBufferAllocateInfo cbAI{};
-        cbAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cbAI.commandPool        = cmdPool;
-        cbAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cbAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cbAI.commandPool = cmdPool;
+        cbAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cbAI.commandBufferCount = 1;
 
         VkCommandBuffer cmd = VK_NULL_HANDLE;

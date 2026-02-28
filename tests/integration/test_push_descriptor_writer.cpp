@@ -14,22 +14,22 @@ int main() {
     assert(window.ok());
 
     auto instance = vksdl::InstanceBuilder{}
-        .appName("test_push_descriptor_writer")
-        .requireVulkan(1, 3)
-        .validation(vksdl::Validation::Off)
-        .enableWindowSupport()
-        .build();
+                        .appName("test_push_descriptor_writer")
+                        .requireVulkan(1, 3)
+                        .validation(vksdl::Validation::Off)
+                        .enableWindowSupport()
+                        .build();
     assert(instance.ok());
 
     auto surface = vksdl::Surface::create(instance.value(), window.value());
     assert(surface.ok());
 
     auto device = vksdl::DeviceBuilder(instance.value(), surface.value())
-        .needSwapchain()
-        .needDynamicRendering()
-        .needSync2()
-        .preferDiscreteGpu()
-        .build();
+                      .needSwapchain()
+                      .needDynamicRendering()
+                      .needSync2()
+                      .preferDiscreteGpu()
+                      .build();
     assert(device.ok());
 
     auto allocator = vksdl::Allocator::create(instance.value(), device.value());
@@ -47,29 +47,29 @@ int main() {
 
     // Create a descriptor set layout with PUSH_DESCRIPTOR flag.
     VkDescriptorSetLayoutBinding bindings[2] = {};
-    bindings[0].binding         = 0;
-    bindings[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    bindings[0].binding = 0;
+    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     bindings[0].descriptorCount = 1;
-    bindings[0].stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;
-    bindings[1].binding         = 1;
-    bindings[1].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    bindings[1].binding = 1;
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     bindings[1].descriptorCount = 1;
-    bindings[1].stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutCreateInfo dslCI{};
-    dslCI.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    dslCI.flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+    dslCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    dslCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
     dslCI.bindingCount = 2;
-    dslCI.pBindings    = bindings;
+    dslCI.pBindings = bindings;
 
     VkDescriptorSetLayout dsl = VK_NULL_HANDLE;
     VkResult vr = vkCreateDescriptorSetLayout(dev, &dslCI, nullptr, &dsl);
     assert(vr == VK_SUCCESS);
 
     VkPipelineLayoutCreateInfo plCI{};
-    plCI.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    plCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     plCI.setLayoutCount = 1;
-    plCI.pSetLayouts    = &dsl;
+    plCI.pSetLayouts = &dsl;
 
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     vr = vkCreatePipelineLayout(dev, &plCI, nullptr, &pipelineLayout);
@@ -77,8 +77,8 @@ int main() {
 
     // Create a command pool + buffer for recording push descriptor commands.
     VkCommandPoolCreateInfo cpCI{};
-    cpCI.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    cpCI.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    cpCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    cpCI.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     cpCI.queueFamilyIndex = device.value().queueFamilies().graphics;
 
     VkCommandPool cmdPool = VK_NULL_HANDLE;
@@ -86,9 +86,9 @@ int main() {
     assert(vr == VK_SUCCESS);
 
     VkCommandBufferAllocateInfo cbAI{};
-    cbAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cbAI.commandPool        = cmdPool;
-    cbAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cbAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cbAI.commandPool = cmdPool;
+    cbAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cbAI.commandBufferCount = 1;
 
     VkCommandBuffer cmd = VK_NULL_HANDLE;
@@ -96,23 +96,17 @@ int main() {
     assert(vr == VK_SUCCESS);
 
     // Create test resources.
-    auto ubo = vksdl::BufferBuilder(allocator.value())
-        .size(64)
-        .uniformBuffer()
-        .build();
+    auto ubo = vksdl::BufferBuilder(allocator.value()).size(64).uniformBuffer().build();
     assert(ubo.ok());
 
     auto img = vksdl::ImageBuilder(allocator.value())
-        .size(16, 16)
-        .format(VK_FORMAT_R8G8B8A8_UNORM)
-        .sampled()
-        .build();
+                   .size(16, 16)
+                   .format(VK_FORMAT_R8G8B8A8_UNORM)
+                   .sampled()
+                   .build();
     assert(img.ok());
 
-    auto sampler = vksdl::SamplerBuilder(device.value())
-        .linear()
-        .clampToEdge()
-        .build();
+    auto sampler = vksdl::SamplerBuilder(device.value()).linear().clampToEdge().build();
     assert(sampler.ok());
 
     {
@@ -137,8 +131,7 @@ int main() {
         vkBeginCommandBuffer(cmd, &beginInfo);
 
         vksdl::PushDescriptorWriter(pipelineLayout, 0)
-            .image(1, img.value().vkImageView(),
-                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .image(1, img.value().vkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                    sampler.value().vkSampler())
             .push(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
@@ -155,8 +148,7 @@ int main() {
 
         vksdl::PushDescriptorWriter(pipelineLayout, 0)
             .buffer(0, ubo.value().vkBuffer(), 64)
-            .image(1, img.value().vkImageView(),
-                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .image(1, img.value().vkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                    sampler.value().vkSampler())
             .push(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
@@ -167,33 +159,33 @@ int main() {
 
     {
         auto storageImg = vksdl::ImageBuilder(allocator.value())
-            .size(16, 16)
-            .format(VK_FORMAT_R8G8B8A8_UNORM)
-            .storage()
-            .build();
+                              .size(16, 16)
+                              .format(VK_FORMAT_R8G8B8A8_UNORM)
+                              .storage()
+                              .build();
         assert(storageImg.ok());
 
         // Need a layout with storage image binding for this test.
         VkDescriptorSetLayoutBinding storageBind{};
-        storageBind.binding         = 0;
-        storageBind.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        storageBind.binding = 0;
+        storageBind.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         storageBind.descriptorCount = 1;
-        storageBind.stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
+        storageBind.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
         VkDescriptorSetLayoutCreateInfo storageDslCI{};
-        storageDslCI.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        storageDslCI.flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+        storageDslCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        storageDslCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
         storageDslCI.bindingCount = 1;
-        storageDslCI.pBindings    = &storageBind;
+        storageDslCI.pBindings = &storageBind;
 
         VkDescriptorSetLayout storageDsl = VK_NULL_HANDLE;
         vr = vkCreateDescriptorSetLayout(dev, &storageDslCI, nullptr, &storageDsl);
         assert(vr == VK_SUCCESS);
 
         VkPipelineLayoutCreateInfo storagePlCI{};
-        storagePlCI.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        storagePlCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         storagePlCI.setLayoutCount = 1;
-        storagePlCI.pSetLayouts    = &storageDsl;
+        storagePlCI.pSetLayouts = &storageDsl;
 
         VkPipelineLayout storagePL = VK_NULL_HANDLE;
         vr = vkCreatePipelineLayout(dev, &storagePlCI, nullptr, &storagePL);
@@ -205,8 +197,7 @@ int main() {
         vkBeginCommandBuffer(cmd, &beginInfo);
 
         vksdl::PushDescriptorWriter(storagePL, 0)
-            .storageImage(0, storageImg.value().vkImageView(),
-                          VK_IMAGE_LAYOUT_GENERAL)
+            .storageImage(0, storageImg.value().vkImageView(), VK_IMAGE_LAYOUT_GENERAL)
             .push(cmd, VK_PIPELINE_BIND_POINT_COMPUTE);
 
         vkEndCommandBuffer(cmd);
@@ -223,8 +214,7 @@ int main() {
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         vkBeginCommandBuffer(cmd, &beginInfo);
 
-        vksdl::PushDescriptorWriter(pipelineLayout, 0)
-            .push(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+        vksdl::PushDescriptorWriter(pipelineLayout, 0).push(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         vkEndCommandBuffer(cmd);
         vkResetCommandBuffer(cmd, 0);

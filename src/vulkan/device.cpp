@@ -19,37 +19,32 @@ Device::~Device() {
 }
 
 Device::Device(Device&& o) noexcept
-    : device_(o.device_),
-      physicalDevice_(o.physicalDevice_),
-      graphicsQueue_(o.graphicsQueue_),
-      presentQueue_(o.presentQueue_),
-      transferQueue_(o.transferQueue_),
-      families_(o.families_),
-      minUboAlignment_(o.minUboAlignment_),
-      maxMsaaSamples_(o.maxMsaaSamples_),
-      timestampPeriod_(o.timestampPeriod_),
-      gpuName_(std::move(o.gpuName_)),
-      hasDeviceFault_(o.hasDeviceFault_),
-      hasUnifiedLayouts_(o.hasUnifiedLayouts_),
-      hasGPL_(o.hasGPL_),
-      hasGplFastLinking_(o.hasGplFastLinking_),
-      hasGplIndepInterp_(o.hasGplIndepInterp_),
-      hasPCCC_(o.hasPCCC_),
-      hasPushDescriptors_(o.hasPushDescriptors_),
-      hasBindless_(o.hasBindless_),
-      pfnTraceRays_(o.pfnTraceRays_),
-      rtHandleSize_(o.rtHandleSize_),
-      rtBaseAlignment_(o.rtBaseAlignment_),
-      rtHandleAlignment_(o.rtHandleAlignment_),
-      rtMaxRecursion_(o.rtMaxRecursion_),
-      rtScratchAlignment_(o.rtScratchAlignment_) {
-    o.device_         = VK_NULL_HANDLE;
+    : device_(o.device_), physicalDevice_(o.physicalDevice_), graphicsQueue_(o.graphicsQueue_),
+      presentQueue_(o.presentQueue_), transferQueue_(o.transferQueue_),
+      computeQueue_(o.computeQueue_), families_(o.families_), minUboAlignment_(o.minUboAlignment_),
+      maxMsaaSamples_(o.maxMsaaSamples_), timestampPeriod_(o.timestampPeriod_),
+      gpuName_(std::move(o.gpuName_)), hasDeviceFault_(o.hasDeviceFault_),
+      hasMemoryBudget_(o.hasMemoryBudget_), hasMemoryPriority_(o.hasMemoryPriority_),
+      hasUnifiedLayouts_(o.hasUnifiedLayouts_), hasGPL_(o.hasGPL_),
+      hasGplFastLinking_(o.hasGplFastLinking_), hasGplIndepInterp_(o.hasGplIndepInterp_),
+      hasPCCC_(o.hasPCCC_), hasPushDescriptors_(o.hasPushDescriptors_),
+      hasBindless_(o.hasBindless_), hasInvocationReorder_(o.hasInvocationReorder_),
+      hasPipelineBinary_(o.hasPipelineBinary_), hasMeshShaders_(o.hasMeshShaders_),
+      hasPresentTiming_(o.hasPresentTiming_), hasGoogleDisplayTiming_(o.hasGoogleDisplayTiming_),
+      hasExtPresentTiming_(o.hasExtPresentTiming_), deviceLost_(o.deviceLost_),
+      deviceLostCallback_(std::move(o.deviceLostCallback_)), pfnTraceRays_(o.pfnTraceRays_),
+      pfnDrawMeshTasks_(o.pfnDrawMeshTasks_), rtHandleSize_(o.rtHandleSize_),
+      rtBaseAlignment_(o.rtBaseAlignment_), rtHandleAlignment_(o.rtHandleAlignment_),
+      rtMaxRecursion_(o.rtMaxRecursion_), rtScratchAlignment_(o.rtScratchAlignment_) {
+    o.device_ = VK_NULL_HANDLE;
     o.physicalDevice_ = VK_NULL_HANDLE;
-    o.graphicsQueue_  = VK_NULL_HANDLE;
-    o.presentQueue_   = VK_NULL_HANDLE;
-    o.transferQueue_  = VK_NULL_HANDLE;
-    o.families_       = {};
-    o.pfnTraceRays_   = nullptr;
+    o.graphicsQueue_ = VK_NULL_HANDLE;
+    o.presentQueue_ = VK_NULL_HANDLE;
+    o.transferQueue_ = VK_NULL_HANDLE;
+    o.computeQueue_ = VK_NULL_HANDLE;
+    o.families_ = {};
+    o.pfnTraceRays_ = nullptr;
+    o.pfnDrawMeshTasks_ = nullptr;
 }
 
 Device& Device::operator=(Device&& o) noexcept {
@@ -57,92 +52,131 @@ Device& Device::operator=(Device&& o) noexcept {
         if (device_ != VK_NULL_HANDLE) {
             vkDestroyDevice(device_, nullptr);
         }
-        device_            = o.device_;
-        physicalDevice_    = o.physicalDevice_;
-        graphicsQueue_     = o.graphicsQueue_;
-        presentQueue_      = o.presentQueue_;
-        transferQueue_     = o.transferQueue_;
-        families_          = o.families_;
-        minUboAlignment_   = o.minUboAlignment_;
-        maxMsaaSamples_    = o.maxMsaaSamples_;
-        timestampPeriod_   = o.timestampPeriod_;
-        gpuName_           = std::move(o.gpuName_);
-        hasDeviceFault_    = o.hasDeviceFault_;
+        device_ = o.device_;
+        physicalDevice_ = o.physicalDevice_;
+        graphicsQueue_ = o.graphicsQueue_;
+        presentQueue_ = o.presentQueue_;
+        transferQueue_ = o.transferQueue_;
+        computeQueue_ = o.computeQueue_;
+        families_ = o.families_;
+        minUboAlignment_ = o.minUboAlignment_;
+        maxMsaaSamples_ = o.maxMsaaSamples_;
+        timestampPeriod_ = o.timestampPeriod_;
+        gpuName_ = std::move(o.gpuName_);
+        hasDeviceFault_ = o.hasDeviceFault_;
+        hasMemoryBudget_ = o.hasMemoryBudget_;
+        hasMemoryPriority_ = o.hasMemoryPriority_;
         hasUnifiedLayouts_ = o.hasUnifiedLayouts_;
-        hasGPL_            = o.hasGPL_;
+        hasGPL_ = o.hasGPL_;
         hasGplFastLinking_ = o.hasGplFastLinking_;
         hasGplIndepInterp_ = o.hasGplIndepInterp_;
-        hasPCCC_           = o.hasPCCC_;
+        hasPCCC_ = o.hasPCCC_;
         hasPushDescriptors_ = o.hasPushDescriptors_;
-        hasBindless_        = o.hasBindless_;
-        pfnTraceRays_      = o.pfnTraceRays_;
-        rtHandleSize_      = o.rtHandleSize_;
-        rtBaseAlignment_   = o.rtBaseAlignment_;
+        hasBindless_ = o.hasBindless_;
+        hasInvocationReorder_ = o.hasInvocationReorder_;
+        hasPipelineBinary_ = o.hasPipelineBinary_;
+        hasMeshShaders_ = o.hasMeshShaders_;
+        hasPresentTiming_ = o.hasPresentTiming_;
+        hasGoogleDisplayTiming_ = o.hasGoogleDisplayTiming_;
+        hasExtPresentTiming_ = o.hasExtPresentTiming_;
+        deviceLost_ = o.deviceLost_;
+        deviceLostCallback_ = std::move(o.deviceLostCallback_);
+        pfnTraceRays_ = o.pfnTraceRays_;
+        pfnDrawMeshTasks_ = o.pfnDrawMeshTasks_;
+        rtHandleSize_ = o.rtHandleSize_;
+        rtBaseAlignment_ = o.rtBaseAlignment_;
         rtHandleAlignment_ = o.rtHandleAlignment_;
-        rtMaxRecursion_    = o.rtMaxRecursion_;
+        rtMaxRecursion_ = o.rtMaxRecursion_;
         rtScratchAlignment_ = o.rtScratchAlignment_;
-        o.device_         = VK_NULL_HANDLE;
+        o.device_ = VK_NULL_HANDLE;
         o.physicalDevice_ = VK_NULL_HANDLE;
-        o.graphicsQueue_  = VK_NULL_HANDLE;
-        o.presentQueue_   = VK_NULL_HANDLE;
-        o.transferQueue_  = VK_NULL_HANDLE;
-        o.families_       = {};
-        o.pfnTraceRays_   = nullptr;
+        o.graphicsQueue_ = VK_NULL_HANDLE;
+        o.presentQueue_ = VK_NULL_HANDLE;
+        o.transferQueue_ = VK_NULL_HANDLE;
+        o.computeQueue_ = VK_NULL_HANDLE;
+        o.families_ = {};
+        o.pfnTraceRays_ = nullptr;
+        o.pfnDrawMeshTasks_ = nullptr;
     }
     return *this;
 }
 
 void Device::waitIdle() const {
     if (device_ != VK_NULL_HANDLE) {
+        // VKSDL_BLOCKING_WAIT: full-device idle for explicit teardown/recovery paths.
         vkDeviceWaitIdle(device_);
     }
 }
 
 std::string Device::queryDeviceFault() const {
-    if (!hasDeviceFault_ || device_ == VK_NULL_HANDLE) return {};
+    if (!hasDeviceFault_ || device_ == VK_NULL_HANDLE)
+        return {};
 
     auto pfn = reinterpret_cast<PFN_vkGetDeviceFaultInfoEXT>(
         vkGetDeviceProcAddr(device_, "vkGetDeviceFaultInfoEXT"));
-    if (!pfn) return {};
+    if (!pfn)
+        return {};
 
     VkDeviceFaultCountsEXT counts{};
     counts.sType = VK_STRUCTURE_TYPE_DEVICE_FAULT_COUNTS_EXT;
     VkResult vr = pfn(device_, &counts, nullptr);
-    if (vr != VK_SUCCESS && vr != VK_INCOMPLETE) return {};
+    if (vr != VK_SUCCESS && vr != VK_INCOMPLETE)
+        return {};
 
     std::vector<VkDeviceFaultAddressInfoEXT> addressInfos(counts.addressInfoCount);
-    std::vector<VkDeviceFaultVendorInfoEXT>  vendorInfos(counts.vendorInfoCount);
+    std::vector<VkDeviceFaultVendorInfoEXT> vendorInfos(counts.vendorInfoCount);
 
     VkDeviceFaultInfoEXT info{};
-    info.sType             = VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_EXT;
-    info.pAddressInfos     = addressInfos.empty() ? nullptr : addressInfos.data();
-    info.pVendorInfos      = vendorInfos.empty() ? nullptr : vendorInfos.data();
+    info.sType = VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_EXT;
+    info.pAddressInfos = addressInfos.empty() ? nullptr : addressInfos.data();
+    info.pVendorInfos = vendorInfos.empty() ? nullptr : vendorInfos.data();
     info.pVendorBinaryData = nullptr;
 
     vr = pfn(device_, &counts, &info);
-    if (vr != VK_SUCCESS && vr != VK_INCOMPLETE) return {};
+    if (vr != VK_SUCCESS && vr != VK_INCOMPLETE)
+        return {};
 
     std::string result = "Device fault: ";
     result += info.description;
 
     for (std::uint32_t i = 0; i < counts.addressInfoCount; ++i) {
-        result += "\n  address fault [" + std::to_string(i) + "]: type="
-                + std::to_string(addressInfos[i].addressType)
-                + ([&]() {
-                    char hex[32];
-                    std::snprintf(hex, sizeof(hex), " addr=0x%" PRIx64,
-                                  static_cast<std::uint64_t>(addressInfos[i].reportedAddress));
-                    return std::string(hex);
-                })();
+        result += "\n  address fault [" + std::to_string(i) +
+                  "]: type=" + std::to_string(addressInfos[i].addressType) + ([&]() {
+                      char hex[32];
+                      std::snprintf(hex, sizeof(hex), " addr=0x%" PRIx64,
+                                    static_cast<std::uint64_t>(addressInfos[i].reportedAddress));
+                      return std::string(hex);
+                  })();
     }
     for (std::uint32_t i = 0; i < counts.vendorInfoCount; ++i) {
-        result += "\n  vendor fault [" + std::to_string(i) + "]: "
-                + std::string(vendorInfos[i].description)
-                + " code=" + std::to_string(vendorInfos[i].vendorFaultCode)
-                + " data=" + std::to_string(vendorInfos[i].vendorFaultData);
+        result += "\n  vendor fault [" + std::to_string(i) +
+                  "]: " + std::string(vendorInfos[i].description) +
+                  " code=" + std::to_string(vendorInfos[i].vendorFaultCode) +
+                  " data=" + std::to_string(vendorInfos[i].vendorFaultData);
     }
 
     return result;
+}
+
+void Device::onDeviceLost(DeviceLostCallback cb) {
+    deviceLostCallback_ = std::move(cb);
+}
+
+void Device::reportDeviceLost() const {
+    deviceLost_ = true;
+    if (deviceLostCallback_) {
+        deviceLostCallback_(*this);
+        return;
+    }
+    // Default: log + fault info + abort
+    std::fprintf(stderr, "vksdl: VK_ERROR_DEVICE_LOST on '%s'\n", gpuName_.c_str());
+    if (hasDeviceFault_) {
+        auto fault = queryDeviceFault();
+        if (!fault.empty()) {
+            std::fprintf(stderr, "%s\n", fault.c_str());
+        }
+    }
+    std::abort();
 }
 
 DeviceBuilder::DeviceBuilder(const Instance& instance, const Surface& surface)
@@ -153,15 +187,17 @@ DeviceBuilder& DeviceBuilder::needSwapchain() {
 }
 
 DeviceBuilder& DeviceBuilder::needDynamicRendering() {
-    return requireFeatures([](VkPhysicalDeviceVulkan13Features& f) {
-        f.dynamicRendering = VK_TRUE;
-    });
+    return requireFeatures(
+        [](VkPhysicalDeviceVulkan13Features& f) { f.dynamicRendering = VK_TRUE; });
 }
 
 DeviceBuilder& DeviceBuilder::needSync2() {
-    return requireFeatures([](VkPhysicalDeviceVulkan13Features& f) {
-        f.synchronization2 = VK_TRUE;
-    });
+    return requireFeatures(
+        [](VkPhysicalDeviceVulkan13Features& f) { f.synchronization2 = VK_TRUE; });
+}
+
+DeviceBuilder& DeviceBuilder::graphicsDefaults() {
+    return needSwapchain().needDynamicRendering().needSync2();
 }
 
 DeviceBuilder& DeviceBuilder::needGPL() {
@@ -171,14 +207,25 @@ DeviceBuilder& DeviceBuilder::needGPL() {
     return *this;
 }
 
+DeviceBuilder& DeviceBuilder::needMeshShaders() {
+    requireExtension(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+    needMeshShaders_ = true;
+    return *this;
+}
+
+DeviceBuilder& DeviceBuilder::needAsyncCompute() {
+    // Records preference only. findQueueFamilies() scans for a dedicated
+    // compute family regardless; this flag is available for future scoring.
+    needAsyncCompute_ = true;
+    return *this;
+}
+
 DeviceBuilder& DeviceBuilder::needRayTracingPipeline() {
     requireExtension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
     requireExtension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
     requireExtension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-    requireFeatures12([](VkPhysicalDeviceVulkan12Features& f) {
-        f.bufferDeviceAddress = VK_TRUE;
-    });
-    needRayTracingPipeline_    = true;
+    requireFeatures12([](VkPhysicalDeviceVulkan12Features& f) { f.bufferDeviceAddress = VK_TRUE; });
+    needRayTracingPipeline_ = true;
     needAccelerationStructure_ = true;
     return *this;
 }
@@ -187,10 +234,8 @@ DeviceBuilder& DeviceBuilder::needRayQuery() {
     requireExtension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
     requireExtension(VK_KHR_RAY_QUERY_EXTENSION_NAME);
     requireExtension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-    requireFeatures12([](VkPhysicalDeviceVulkan12Features& f) {
-        f.bufferDeviceAddress = VK_TRUE;
-    });
-    needRayQuery_              = true;
+    requireFeatures12([](VkPhysicalDeviceVulkan12Features& f) { f.bufferDeviceAddress = VK_TRUE; });
+    needRayQuery_ = true;
     needAccelerationStructure_ = true;
     return *this;
 }
@@ -213,8 +258,8 @@ DeviceBuilder& DeviceBuilder::requireExtension(const char* name) {
     return *this;
 }
 
-DeviceBuilder& DeviceBuilder::requireFeatures(
-    std::function<void(VkPhysicalDeviceVulkan13Features&)> configureFn) {
+DeviceBuilder&
+DeviceBuilder::requireFeatures(std::function<void(VkPhysicalDeviceVulkan13Features&)> configureFn) {
     featureRequests_.push_back({std::move(configureFn)});
     return *this;
 }
@@ -225,8 +270,8 @@ DeviceBuilder& DeviceBuilder::requireFeatures12(
     return *this;
 }
 
-DeviceBuilder& DeviceBuilder::requireCoreFeatures(
-    std::function<void(VkPhysicalDeviceFeatures&)> configureFn) {
+DeviceBuilder&
+DeviceBuilder::requireCoreFeatures(std::function<void(VkPhysicalDeviceFeatures&)> configureFn) {
     coreFeatureRequests_.push_back({std::move(configureFn)});
     return *this;
 }
@@ -247,14 +292,14 @@ QueueFamilies DeviceBuilder::findQueueFamilies(VkPhysicalDevice gpu) const {
     for (std::uint32_t i = 0; i < count; ++i) {
         bool hasGraphics = (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
         bool hasTransfer = (families[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0;
-        bool hasCompute  = (families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)  != 0;
+        bool hasCompute = (families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
 
         VkBool32 presentSupport = VK_FALSE;
         vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, surface_, &presentSupport);
 
         if (hasGraphics && presentSupport) {
             result.graphics = i;
-            result.present  = i;
+            result.present = i;
         } else {
             if (hasGraphics && result.graphics == UINT32_MAX) {
                 result.graphics = i;
@@ -266,12 +311,20 @@ QueueFamilies DeviceBuilder::findQueueFamilies(VkPhysicalDevice gpu) const {
 
         // Prefer a transfer-only family (TRANSFER but not GRAPHICS or COMPUTE).
         // Fall back to transfer+compute (but not graphics) if no pure transfer.
-        if (hasTransfer && !hasGraphics) {
-            if (!hasCompute && result.transfer == UINT32_MAX) {
+        // Dedicated transfer (!hasCompute) is preferred, so check it first.
+        if (hasTransfer && !hasGraphics && result.transfer == UINT32_MAX) {
+            if (!hasCompute) {
                 result.transfer = i; // ideal: dedicated transfer
-            } else if (hasCompute && result.transfer == UINT32_MAX) {
-                result.transfer = i; // acceptable: async compute+transfer
             }
+        }
+        if (hasTransfer && !hasGraphics && hasCompute && result.transfer == UINT32_MAX) {
+            result.transfer = i; // acceptable: async compute+transfer
+        }
+
+        // Dedicated compute: COMPUTE but not GRAPHICS. Nearly all such families
+        // also have TRANSFER, so we don't filter on it.
+        if (hasCompute && !hasGraphics && result.compute == UINT32_MAX) {
+            result.compute = i;
         }
     }
 
@@ -292,15 +345,18 @@ bool DeviceBuilder::supportsExtensions(VkPhysicalDevice gpu) const {
                 break;
             }
         }
-        if (!found) return false;
+        if (!found)
+            return false;
     }
     return true;
 }
 
 int DeviceBuilder::scoreDevice(VkPhysicalDevice gpu) const {
     auto families = findQueueFamilies(gpu);
-    if (!families.valid()) return -1;
-    if (!supportsExtensions(gpu)) return -1;
+    if (!families.valid())
+        return -1;
+    if (!supportsExtensions(gpu))
+        return -1;
 
     VkPhysicalDeviceProperties props;
     vkGetPhysicalDeviceProperties(gpu, &props);
@@ -320,7 +376,8 @@ int DeviceBuilder::scoreDevice(VkPhysicalDevice gpu) const {
         break;
     }
 
-    if (families.shared()) score += 100;
+    if (families.shared())
+        score += 100;
 
     // When RT was requested, prefer GPUs that support all required RT extensions.
     // supportsExtensions() already verified the base extensions are present (it
@@ -350,7 +407,7 @@ int DeviceBuilder::scoreDevice(VkPhysicalDevice gpu) const {
             }
         }
         if (hasDedicatedType) {
-            score += static_cast<int>(mem.memoryHeaps[i].size / (1024 * 1024));
+            score += static_cast<int>(mem.memoryHeaps[i].size / (1024ULL * 1024ULL));
             break;
         }
     }
@@ -377,7 +434,7 @@ Result<Device> DeviceBuilder::build() {
         int score = scoreDevice(gpu);
         if (score > bestScore) {
             bestScore = score;
-            bestGpu   = gpu;
+            bestGpu = gpu;
         }
     }
 
@@ -408,14 +465,17 @@ Result<Device> DeviceBuilder::build() {
     if (families.transfer != UINT32_MAX) {
         uniqueFamilies.insert(families.transfer);
     }
+    if (families.compute != UINT32_MAX) {
+        uniqueFamilies.insert(families.compute);
+    }
     std::vector<VkDeviceQueueCreateInfo> queueCIs;
     float priority = 1.0f;
 
     for (auto family : uniqueFamilies) {
         VkDeviceQueueCreateInfo qci{};
-        qci.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        qci.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         qci.queueFamilyIndex = family;
-        qci.queueCount       = 1;
+        qci.queueCount = 1;
         qci.pQueuePriorities = &priority;
         queueCIs.push_back(qci);
     }
@@ -466,28 +526,27 @@ Result<Device> DeviceBuilder::build() {
 
     // Bindless descriptor indexing (Vulkan 1.2 core features).
     // Enable opportunistically when the two essential features are supported.
-    bool haveBindless =
-        supported12.descriptorBindingPartiallyBound == VK_TRUE &&
-        supported12.runtimeDescriptorArray          == VK_TRUE;
+    bool haveBindless = supported12.descriptorBindingPartiallyBound == VK_TRUE &&
+                        supported12.runtimeDescriptorArray == VK_TRUE;
     if (haveBindless) {
         features12.descriptorBindingPartiallyBound = VK_TRUE;
-        features12.runtimeDescriptorArray          = VK_TRUE;
+        features12.runtimeDescriptorArray = VK_TRUE;
         // Enable per-type updateAfterBind and nonUniformIndexing when supported.
-        if (supported12.descriptorBindingSampledImageUpdateAfterBind)  {
-            features12.descriptorBindingSampledImageUpdateAfterBind  = VK_TRUE;
-            features12.shaderSampledImageArrayNonUniformIndexing     = VK_TRUE;
+        if (supported12.descriptorBindingSampledImageUpdateAfterBind) {
+            features12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+            features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
         }
         if (supported12.descriptorBindingStorageImageUpdateAfterBind) {
-            features12.descriptorBindingStorageImageUpdateAfterBind  = VK_TRUE;
-            features12.shaderStorageImageArrayNonUniformIndexing     = VK_TRUE;
+            features12.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+            features12.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
         }
         if (supported12.descriptorBindingStorageBufferUpdateAfterBind) {
             features12.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
-            features12.shaderStorageBufferArrayNonUniformIndexing    = VK_TRUE;
+            features12.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
         }
         if (supported12.descriptorBindingUniformBufferUpdateAfterBind) {
             features12.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
-            features12.shaderUniformBufferArrayNonUniformIndexing    = VK_TRUE;
+            features12.shaderUniformBufferArrayNonUniformIndexing = VK_TRUE;
         }
     }
 
@@ -504,6 +563,14 @@ Result<Device> DeviceBuilder::build() {
     rqFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
     rqFeatures.rayQuery = VK_TRUE;
 
+    // Mesh shader feature struct (only used when needMeshShaders_ is set).
+    VkPhysicalDeviceMeshShaderFeaturesEXT meshFeatures{};
+    meshFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+    meshFeatures.meshShader = VK_TRUE;
+    // taskShader is optional at the pipeline level but must be enabled at the device
+    // level to allow task shaders to be used in any pipeline on this device.
+    meshFeatures.taskShader = VK_TRUE;
+
     // Enumerate available extensions for opportunistic feature detection.
     std::uint32_t availExtCount = 0;
     vkEnumerateDeviceExtensionProperties(bestGpu, nullptr, &availExtCount, nullptr);
@@ -512,19 +579,29 @@ Result<Device> DeviceBuilder::build() {
 
     auto hasExtension = [&](const char* name) {
         for (auto& ext : availExts) {
-            if (std::strcmp(ext.extensionName, name) == 0) return true;
+            if (std::strcmp(ext.extensionName, name) == 0)
+                return true;
         }
         return false;
     };
 
     // SER: enable opportunistically when the GPU supports it. Zero behavioral
     // impact -- the driver reorders shader invocations for better coherence.
-    bool haveSer = needRayTracingPipeline_
-                   && hasExtension(VK_NV_RAY_TRACING_INVOCATION_REORDER_EXTENSION_NAME);
+    bool haveSer = needRayTracingPipeline_ &&
+                   hasExtension(VK_NV_RAY_TRACING_INVOCATION_REORDER_EXTENSION_NAME);
 
     VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV serFeatures{};
-    serFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_NV;
+    serFeatures.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_NV;
     serFeatures.rayTracingInvocationReorder = VK_TRUE;
+
+    // Pipeline binary: detect opportunistically. Allows pipelines to be
+    // captured as driver-opaque blobs and reloaded to skip compilation.
+    bool havePipelineBinary = hasExtension(VK_KHR_PIPELINE_BINARY_EXTENSION_NAME);
+
+    VkPhysicalDevicePipelineBinaryFeaturesKHR pipelineBinaryFeatures{};
+    pipelineBinaryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_BINARY_FEATURES_KHR;
+    pipelineBinaryFeatures.pipelineBinaries = VK_TRUE;
 
     // Device fault: enable opportunistically for better VK_ERROR_DEVICE_LOST
     // diagnostics. No behavioral impact when no fault occurs.
@@ -535,6 +612,25 @@ Result<Device> DeviceBuilder::build() {
 
     // Push descriptors: detect opportunistically.
     bool havePushDescriptors = hasExtension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+
+    // Memory budget: detect opportunistically. Enables accurate OS-reported
+    // heap usage in vmaGetHeapBudgets. Zero overhead when budget is not queried.
+    bool haveMemoryBudget = hasExtension(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+
+    // Memory priority: detect opportunistically. Allows the driver to prefer
+    // keeping higher-priority allocations resident under memory pressure.
+    bool haveMemoryPriority = hasExtension(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
+
+    // Present timing: detect either extension. Prefer VK_EXT_present_timing
+    // (newer, cross-platform) over VK_GOOGLE_display_timing (older, Android).
+    // VK_EXT_present_timing may not be in current SDK headers -- check string only.
+    bool haveGoogleDisplayTiming = hasExtension(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
+    bool haveExtPresentTiming = hasExtension("VK_EXT_present_timing");
+    bool havePresentTiming = haveExtPresentTiming || haveGoogleDisplayTiming;
+
+    VkPhysicalDeviceMemoryPriorityFeaturesEXT memPriorityFeatures{};
+    memPriorityFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
+    memPriorityFeatures.memoryPriority = VK_TRUE;
 
     // Graphics pipeline library: detect opportunistically (or required via needGPL()).
     bool haveGPL = hasExtension(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
@@ -559,6 +655,11 @@ Result<Device> DeviceBuilder::build() {
         pNextChain = *it;
     }
 
+    if (haveMemoryPriority) {
+        memPriorityFeatures.pNext = pNextChain;
+        pNextChain = &memPriorityFeatures;
+    }
+
     if (haveGPL) {
         gplFeatures.pNext = pNextChain;
         pNextChain = &gplFeatures;
@@ -572,6 +673,16 @@ Result<Device> DeviceBuilder::build() {
     if (haveSer) {
         serFeatures.pNext = pNextChain;
         pNextChain = &serFeatures;
+    }
+
+    if (havePipelineBinary) {
+        pipelineBinaryFeatures.pNext = pNextChain;
+        pNextChain = &pipelineBinaryFeatures;
+    }
+
+    if (needMeshShaders_) {
+        meshFeatures.pNext = pNextChain;
+        pNextChain = &meshFeatures;
     }
 
     if (needRayQuery_) {
@@ -614,6 +725,24 @@ Result<Device> DeviceBuilder::build() {
     if (havePushDescriptors) {
         allExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     }
+    if (haveMemoryBudget) {
+        allExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+    }
+    if (haveMemoryPriority) {
+        allExtensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
+    }
+    if (havePipelineBinary) {
+        allExtensions.push_back(VK_KHR_PIPELINE_BINARY_EXTENSION_NAME);
+    }
+    if (haveGoogleDisplayTiming) {
+        allExtensions.push_back(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
+    }
+    // VK_EXT_present_timing: SDK headers may not define it yet, but we can
+    // still enable it as a string if present on the device.
+    if (haveExtPresentTiming) {
+        allExtensions.push_back("VK_EXT_present_timing");
+    }
+
     if (haveGPL) {
         // Avoid duplicate if user already called needGPL().
         bool alreadyInList = false;
@@ -640,16 +769,16 @@ Result<Device> DeviceBuilder::build() {
     }
 
     VkDeviceCreateInfo ci{};
-    ci.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    ci.pNext                   = &features2;
-    ci.queueCreateInfoCount    = static_cast<std::uint32_t>(queueCIs.size());
-    ci.pQueueCreateInfos       = queueCIs.data();
-    ci.enabledExtensionCount   = static_cast<std::uint32_t>(allExtensions.size());
+    ci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    ci.pNext = &features2;
+    ci.queueCreateInfoCount = static_cast<std::uint32_t>(queueCIs.size());
+    ci.pQueueCreateInfos = queueCIs.data();
+    ci.enabledExtensionCount = static_cast<std::uint32_t>(allExtensions.size());
     ci.ppEnabledExtensionNames = allExtensions.data();
 
     Device dev;
     dev.physicalDevice_ = bestGpu;
-    dev.families_       = families;
+    dev.families_ = families;
 
     VkResult vr = vkCreateDevice(bestGpu, &ci, nullptr, &dev.device_);
     if (vr != VK_SUCCESS) {
@@ -666,18 +795,31 @@ Result<Device> DeviceBuilder::build() {
     }
 
     vkGetDeviceQueue(dev.device_, families.graphics, 0, &dev.graphicsQueue_);
-    vkGetDeviceQueue(dev.device_, families.present,  0, &dev.presentQueue_);
+    vkGetDeviceQueue(dev.device_, families.present, 0, &dev.presentQueue_);
     if (families.transfer != UINT32_MAX) {
         vkGetDeviceQueue(dev.device_, families.transfer, 0, &dev.transferQueue_);
     } else {
         dev.transferQueue_ = dev.graphicsQueue_;
     }
+    if (families.compute != UINT32_MAX) {
+        vkGetDeviceQueue(dev.device_, families.compute, 0, &dev.computeQueue_);
+    } else {
+        dev.computeQueue_ = dev.graphicsQueue_;
+    }
 
-    dev.hasDeviceFault_      = haveDeviceFault;
-    dev.hasUnifiedLayouts_   = haveUnifiedLayouts;
-    dev.hasPCCC_             = havePCCC;
-    dev.hasPushDescriptors_  = havePushDescriptors;
-    dev.hasBindless_         = haveBindless;
+    dev.hasDeviceFault_ = haveDeviceFault;
+    dev.hasMemoryBudget_ = haveMemoryBudget;
+    dev.hasMemoryPriority_ = haveMemoryPriority;
+    dev.hasUnifiedLayouts_ = haveUnifiedLayouts;
+    dev.hasPCCC_ = havePCCC;
+    dev.hasPushDescriptors_ = havePushDescriptors;
+    dev.hasBindless_ = haveBindless;
+    dev.hasInvocationReorder_ = haveSer;
+    dev.hasPipelineBinary_ = havePipelineBinary;
+    dev.hasMeshShaders_ = needMeshShaders_;
+    dev.hasPresentTiming_ = havePresentTiming;
+    dev.hasGoogleDisplayTiming_ = haveGoogleDisplayTiming;
+    dev.hasExtPresentTiming_ = haveExtPresentTiming;
 
     // Query GPL properties when the extension is enabled.
     if (haveGPL) {
@@ -691,27 +833,32 @@ Result<Device> DeviceBuilder::build() {
         gplProps2.pNext = &gplProps;
         vkGetPhysicalDeviceProperties2(bestGpu, &gplProps2);
 
-        dev.hasGplFastLinking_  = (gplProps.graphicsPipelineLibraryFastLinking == VK_TRUE);
-        dev.hasGplIndepInterp_  = (gplProps.graphicsPipelineLibraryIndependentInterpolationDecoration == VK_TRUE);
+        dev.hasGplFastLinking_ = (gplProps.graphicsPipelineLibraryFastLinking == VK_TRUE);
+        dev.hasGplIndepInterp_ =
+            (gplProps.graphicsPipelineLibraryIndependentInterpolationDecoration == VK_TRUE);
     }
 
     VkPhysicalDeviceProperties devProps;
     vkGetPhysicalDeviceProperties(bestGpu, &devProps);
-    dev.minUboAlignment_  = devProps.limits.minUniformBufferOffsetAlignment;
-    dev.timestampPeriod_  = devProps.limits.timestampPeriod;
-    dev.gpuName_          = devProps.deviceName;
+    dev.minUboAlignment_ = devProps.limits.minUniformBufferOffsetAlignment;
+    dev.timestampPeriod_ = devProps.limits.timestampPeriod;
+    dev.gpuName_ = devProps.deviceName;
 
     if (needRayTracingPipeline_) {
         dev.pfnTraceRays_ = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(
             vkGetDeviceProcAddr(dev.device_, "vkCmdTraceRaysKHR"));
     }
 
-    VkSampleCountFlags combined = devProps.limits.framebufferColorSampleCounts
-                                & devProps.limits.framebufferDepthSampleCounts;
-    for (VkSampleCountFlagBits bit : {
-             VK_SAMPLE_COUNT_64_BIT, VK_SAMPLE_COUNT_32_BIT,
-             VK_SAMPLE_COUNT_16_BIT, VK_SAMPLE_COUNT_8_BIT,
-             VK_SAMPLE_COUNT_4_BIT,  VK_SAMPLE_COUNT_2_BIT}) {
+    if (needMeshShaders_) {
+        dev.pfnDrawMeshTasks_ = reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(
+            vkGetDeviceProcAddr(dev.device_, "vkCmdDrawMeshTasksEXT"));
+    }
+
+    VkSampleCountFlags combined =
+        devProps.limits.framebufferColorSampleCounts & devProps.limits.framebufferDepthSampleCounts;
+    for (VkSampleCountFlagBits bit :
+         {VK_SAMPLE_COUNT_64_BIT, VK_SAMPLE_COUNT_32_BIT, VK_SAMPLE_COUNT_16_BIT,
+          VK_SAMPLE_COUNT_8_BIT, VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_2_BIT}) {
         if (combined & bit) {
             dev.maxMsaaSamples_ = bit;
             break;
@@ -731,7 +878,7 @@ Result<Device> DeviceBuilder::build() {
 
         if (needRayTracingPipeline_) {
             rtProps.pNext = &asProps;
-            props2.pNext  = &rtProps;
+            props2.pNext = &rtProps;
         } else {
             props2.pNext = &asProps;
         }
@@ -741,10 +888,10 @@ Result<Device> DeviceBuilder::build() {
         dev.rtScratchAlignment_ = asProps.minAccelerationStructureScratchOffsetAlignment;
 
         if (needRayTracingPipeline_) {
-            dev.rtHandleSize_      = rtProps.shaderGroupHandleSize;
-            dev.rtBaseAlignment_   = rtProps.shaderGroupBaseAlignment;
+            dev.rtHandleSize_ = rtProps.shaderGroupHandleSize;
+            dev.rtBaseAlignment_ = rtProps.shaderGroupBaseAlignment;
             dev.rtHandleAlignment_ = rtProps.shaderGroupHandleAlignment;
-            dev.rtMaxRecursion_    = rtProps.maxRayRecursionDepth;
+            dev.rtMaxRecursion_ = rtProps.maxRayRecursionDepth;
         }
     }
 

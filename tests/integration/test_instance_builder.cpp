@@ -17,10 +17,10 @@ int main() {
     // Build instance with window support + defaults
     {
         auto result = vksdl::InstanceBuilder{}
-            .appName("test_app")
-            .requireVulkan(1, 3)
-            .enableWindowSupport()
-            .build();
+                          .appName("test_app")
+                          .requireVulkan(1, 3)
+                          .enableWindowSupport()
+                          .build();
 
         assert(result.ok() && "build failed");
         auto instance = std::move(result.value());
@@ -38,10 +38,10 @@ int main() {
     // Headless instance (no window support)
     {
         auto result = vksdl::InstanceBuilder{}
-            .appName("test_headless")
-            .requireVulkan(1, 3)
-            .validation(vksdl::Validation::Off)
-            .build();
+                          .appName("test_headless")
+                          .requireVulkan(1, 3)
+                          .validation(vksdl::Validation::Off)
+                          .build();
 
         assert(result.ok());
         assert(result.value().vkInstance() != VK_NULL_HANDLE);
@@ -51,11 +51,11 @@ int main() {
     // Validation explicitly off
     {
         auto result = vksdl::InstanceBuilder{}
-            .appName("test_no_validation")
-            .requireVulkan(1, 3)
-            .validation(vksdl::Validation::Off)
-            .enableWindowSupport()
-            .build();
+                          .appName("test_no_validation")
+                          .requireVulkan(1, 3)
+                          .validation(vksdl::Validation::Off)
+                          .enableWindowSupport()
+                          .build();
 
         assert(result.ok());
         assert(!result.value().validationEnabled());
@@ -65,12 +65,12 @@ int main() {
     // Extra user extension
     {
         auto result = vksdl::InstanceBuilder{}
-            .appName("test_extra_ext")
-            .requireVulkan(1, 3)
-            .validation(vksdl::Validation::Off)
-            .addExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)
-            .enableWindowSupport()
-            .build();
+                          .appName("test_extra_ext")
+                          .requireVulkan(1, 3)
+                          .validation(vksdl::Validation::Off)
+                          .addExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)
+                          .enableWindowSupport()
+                          .build();
 
         assert(result.ok());
         std::printf("  instance with extra extension: ok\n");
@@ -79,11 +79,11 @@ int main() {
     // Bogus extension rejected with readable error
     {
         auto result = vksdl::InstanceBuilder{}
-            .appName("test_bad_ext")
-            .validation(vksdl::Validation::Off)
-            .addExtension("VK_KHR_does_not_exist")
-            .enableWindowSupport()
-            .build();
+                          .appName("test_bad_ext")
+                          .validation(vksdl::Validation::Off)
+                          .addExtension("VK_KHR_does_not_exist")
+                          .enableWindowSupport()
+                          .build();
 
         assert(!result.ok());
         auto msg = result.error().format();

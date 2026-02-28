@@ -1,5 +1,5 @@
-#include <vksdl/pipeline_cache.hpp>
 #include <vksdl/device.hpp>
+#include <vksdl/pipeline_cache.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -16,11 +16,9 @@ PipelineCache::~PipelineCache() {
     }
 }
 
-PipelineCache::PipelineCache(PipelineCache&& o) noexcept
-    : device_(o.device_)
-    , cache_(o.cache_) {
+PipelineCache::PipelineCache(PipelineCache&& o) noexcept : device_(o.device_), cache_(o.cache_) {
     o.device_ = VK_NULL_HANDLE;
-    o.cache_  = VK_NULL_HANDLE;
+    o.cache_ = VK_NULL_HANDLE;
 }
 
 PipelineCache& PipelineCache::operator=(PipelineCache&& o) noexcept {
@@ -28,10 +26,10 @@ PipelineCache& PipelineCache::operator=(PipelineCache&& o) noexcept {
         if (cache_ != VK_NULL_HANDLE) {
             vkDestroyPipelineCache(device_, cache_, nullptr);
         }
-        device_   = o.device_;
-        cache_    = o.cache_;
+        device_ = o.device_;
+        cache_ = o.cache_;
         o.device_ = VK_NULL_HANDLE;
-        o.cache_  = VK_NULL_HANDLE;
+        o.cache_ = VK_NULL_HANDLE;
     }
     return *this;
 }
@@ -53,8 +51,7 @@ Result<PipelineCache> PipelineCache::create(const Device& device) {
 }
 
 // Falls back to empty cache when the file is missing or incompatible with the current driver.
-Result<PipelineCache> PipelineCache::load(const Device& device,
-                                           const std::filesystem::path& path) {
+Result<PipelineCache> PipelineCache::load(const Device& device, const std::filesystem::path& path) {
     std::vector<std::uint8_t> blob;
 
     std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -63,17 +60,16 @@ Result<PipelineCache> PipelineCache::load(const Device& device,
         if (size > 0) {
             blob.resize(size);
             file.seekg(0);
-            file.read(reinterpret_cast<char*>(blob.data()),
-                      static_cast<std::streamsize>(size));
+            file.read(reinterpret_cast<char*>(blob.data()), static_cast<std::streamsize>(size));
         }
     }
     // If the file doesn't exist or is empty, we create an empty cache.
     // The driver validates the blob and ignores it if it's incompatible.
 
     VkPipelineCacheCreateInfo ci{};
-    ci.sType           = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+    ci.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
     ci.initialDataSize = blob.size();
-    ci.pInitialData    = blob.empty() ? nullptr : blob.data();
+    ci.pInitialData = blob.empty() ? nullptr : blob.data();
 
     PipelineCache pc;
     pc.device_ = device.vkDevice();
@@ -81,8 +77,7 @@ Result<PipelineCache> PipelineCache::load(const Device& device,
     VkResult vr = vkCreatePipelineCache(pc.device_, &ci, nullptr, &pc.cache_);
     if (vr != VK_SUCCESS) {
         return Error{"load pipeline cache", static_cast<std::int32_t>(vr),
-                     "vkCreatePipelineCache failed with cached data from: "
-                     + path.string()};
+                     "vkCreatePipelineCache failed with cached data from: " + path.string()};
     }
 
     return pc;
@@ -105,22 +100,41 @@ Result<void> PipelineCache::save(const std::filesystem::path& path) const {
 
     std::ofstream file(path, std::ios::binary | std::ios::trunc);
     if (!file.is_open()) {
-        return Error{"save pipeline cache", 0,
-                     "could not open file for writing: " + path.string()};
+        return Error{"save pipeline cache", 0, "could not open file for writing: " + path.string()};
     }
 
-    file.write(reinterpret_cast<const char*>(blob.data()),
-               static_cast<std::streamsize>(dataSize));
+    file.write(reinterpret_cast<const char*>(blob.data()), static_cast<std::streamsize>(dataSize));
     if (!file.good()) {
-        return Error{"save pipeline cache", 0,
-                     "write failed: " + path.string()};
+        return Error{"save pipeline cache", 0, "write failed: " + path.string()};
+    }
+
+    return {};
+}
+
+Result<void> PipelineCache::merge(const PipelineCache& src) {
+    return merge(src.vkPipelineCache());
+}
+
+Result<void> PipelineCache::merge(VkPipelineCache src) {
+    if (src == VK_NULL_HANDLE) {
+        return Error{"merge pipeline cache", 0, "source cache is null"};
+    }
+    if (src == cache_) {
+        return {};
+    }
+
+    VkResult vr = vkMergePipelineCaches(device_, cache_, 1, &src);
+    if (vr != VK_SUCCESS) {
+        return Error{"merge pipeline cache", static_cast<std::int32_t>(vr),
+                     "vkMergePipelineCaches failed"};
     }
 
     return {};
 }
 
 std::size_t PipelineCache::dataSize() const {
-    if (cache_ == VK_NULL_HANDLE) return 0;
+    if (cache_ == VK_NULL_HANDLE)
+        return 0;
 
     std::size_t size = 0;
     vkGetPipelineCacheData(device_, cache_, &size, nullptr);

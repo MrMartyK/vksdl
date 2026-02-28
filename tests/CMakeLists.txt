@@ -1,3 +1,67 @@
+# --- Fallback shader targets (when examples are not built) ---
+# Several integration tests depend on triangle_shaders / rt_triangle_shaders
+# defined in examples/. When VKSDL_BUILD_EXAMPLES=OFF we compile the same
+# shaders here so the test targets can still link.
+
+if(NOT TARGET triangle_shaders)
+    set(_TRI_SHADER_DIR ${CMAKE_SOURCE_DIR}/examples/triangle/shaders)
+    set(_TRI_SHADER_OUT ${CMAKE_BINARY_DIR}/examples/triangle/shaders)
+    file(MAKE_DIRECTORY ${_TRI_SHADER_OUT})
+
+    set(_TRI_SHADERS ${_TRI_SHADER_DIR}/triangle.vert ${_TRI_SHADER_DIR}/triangle.frag)
+    set(_TRI_SPV_FILES "")
+    foreach(SHADER ${_TRI_SHADERS})
+        get_filename_component(_NAME ${SHADER} NAME)
+        set(_SPV ${_TRI_SHADER_OUT}/${_NAME}.spv)
+        set(_VALIDATE_CMD "")
+        if(SPIRV_VAL)
+            set(_VALIDATE_CMD COMMAND ${SPIRV_VAL} ${_SPV})
+        endif()
+        add_custom_command(
+            OUTPUT ${_SPV}
+            COMMAND ${GLSLC} ${SHADER} -o ${_SPV}
+            ${_VALIDATE_CMD}
+            DEPENDS ${SHADER}
+            COMMENT "Compiling ${_NAME} -> ${_NAME}.spv (test fallback)"
+        )
+        list(APPEND _TRI_SPV_FILES ${_SPV})
+    endforeach()
+    add_custom_target(triangle_shaders ALL DEPENDS ${_TRI_SPV_FILES})
+endif()
+
+if(NOT TARGET rt_triangle_shaders)
+    set(_RT_SHADER_DIR ${CMAKE_SOURCE_DIR}/examples/rt_triangle/shaders)
+    set(_RT_SHADER_OUT ${CMAKE_BINARY_DIR}/examples/rt_triangle/shaders)
+    file(MAKE_DIRECTORY ${_RT_SHADER_OUT})
+
+    set(_RT_SHADERS
+        ${_RT_SHADER_DIR}/raygen.rgen
+        ${_RT_SHADER_DIR}/miss.rmiss
+        ${_RT_SHADER_DIR}/shadow_miss.rmiss
+        ${_RT_SHADER_DIR}/closesthit.rchit
+    )
+    set(_RT_SPV_FILES "")
+    foreach(SHADER ${_RT_SHADERS})
+        get_filename_component(_NAME ${SHADER} NAME)
+        set(_SPV ${_RT_SHADER_OUT}/${_NAME}.spv)
+        set(_VALIDATE_CMD "")
+        if(SPIRV_VAL)
+            set(_VALIDATE_CMD COMMAND ${SPIRV_VAL} ${_SPV})
+        endif()
+        add_custom_command(
+            OUTPUT ${_SPV}
+            COMMAND ${GLSLC} --target-env=vulkan1.3 ${SHADER} -o ${_SPV}
+            ${_VALIDATE_CMD}
+            DEPENDS ${SHADER}
+            COMMENT "Compiling ${_NAME} -> ${_NAME}.spv (test fallback)"
+        )
+        list(APPEND _RT_SPV_FILES ${_SPV})
+    endforeach()
+    add_custom_target(rt_triangle_shaders ALL DEPENDS ${_RT_SPV_FILES})
+endif()
+
+# --- Unit tests (CPU-only, no GPU required) ---
+
 add_executable(test_error unit/test_error.cpp)
 target_link_libraries(test_error PRIVATE vksdl)
 add_test(NAME test_error COMMAND test_error)
@@ -5,6 +69,10 @@ add_test(NAME test_error COMMAND test_error)
 add_executable(test_result unit/test_result.cpp)
 target_link_libraries(test_result PRIVATE vksdl)
 add_test(NAME test_result COMMAND test_result)
+
+add_executable(test_native_accessors unit/test_native_accessors.cpp)
+target_link_libraries(test_native_accessors PRIVATE vksdl)
+add_test(NAME test_native_accessors COMMAND test_native_accessors)
 
 add_executable(test_projection unit/test_projection.cpp)
 target_link_libraries(test_projection PRIVATE vksdl)
@@ -102,7 +170,22 @@ add_custom_command(
     DEPENDS ${COMP_SHADER_DIR}/noop.comp
     COMMENT "Compiling noop.comp -> noop.comp.spv"
 )
-add_custom_target(test_compute_shaders ALL DEPENDS ${COMP_SHADER_OUT}/noop.comp.spv)
+set(SPIRV_VALIDATE_REFLECT_TEST_CMD "")
+if(SPIRV_VAL)
+    set(SPIRV_VALIDATE_REFLECT_TEST_CMD COMMAND ${SPIRV_VAL} ${COMP_SHADER_OUT}/reflect_test.comp.spv)
+endif()
+add_custom_command(
+    OUTPUT ${COMP_SHADER_OUT}/reflect_test.comp.spv
+    COMMAND ${GLSLC} ${COMP_SHADER_DIR}/reflect_test.comp -o ${COMP_SHADER_OUT}/reflect_test.comp.spv
+    ${SPIRV_VALIDATE_REFLECT_TEST_CMD}
+    DEPENDS ${COMP_SHADER_DIR}/reflect_test.comp
+    COMMENT "Compiling reflect_test.comp -> reflect_test.comp.spv"
+)
+add_custom_target(test_compute_shaders ALL
+    DEPENDS
+        ${COMP_SHADER_OUT}/noop.comp.spv
+        ${COMP_SHADER_OUT}/reflect_test.comp.spv
+)
 add_dependencies(test_compute_pipeline test_compute_shaders)
 
 add_custom_command(TARGET test_compute_pipeline POST_BUILD
@@ -221,6 +304,12 @@ add_test(NAME test_unified_layouts COMMAND test_unified_layouts)
 add_executable(test_transfer_queue integration/test_transfer_queue.cpp)
 target_link_libraries(test_transfer_queue PRIVATE vksdl)
 add_test(NAME test_transfer_queue COMMAND test_transfer_queue)
+
+# --- Async compute test ---
+
+add_executable(test_async_compute integration/test_async_compute.cpp)
+target_link_libraries(test_async_compute PRIVATE vksdl)
+add_test(NAME test_async_compute COMMAND test_async_compute)
 
 # --- Descriptor allocator test ---
 
@@ -382,3 +471,102 @@ add_custom_command(TARGET test_pipeline_compiler POST_BUILD
         ${CMAKE_BINARY_DIR}/examples/triangle/shaders
         $<TARGET_FILE_DIR:test_pipeline_compiler>/shaders
 )
+
+# --- Indirect buffer test ---
+
+add_executable(test_indirect_buffer integration/test_indirect_buffer.cpp)
+target_link_libraries(test_indirect_buffer PRIVATE vksdl)
+add_test(NAME test_indirect_buffer COMMAND test_indirect_buffer)
+
+# --- Memory budget test ---
+
+add_executable(test_memory_budget integration/test_memory_budget.cpp)
+target_link_libraries(test_memory_budget PRIVATE vksdl)
+add_test(NAME test_memory_budget COMMAND test_memory_budget)
+
+# --- Memory priority test ---
+
+add_executable(test_memory_priority integration/test_memory_priority.cpp)
+target_link_libraries(test_memory_priority PRIVATE vksdl)
+add_test(NAME test_memory_priority COMMAND test_memory_priority)
+
+# --- Pipeline binary detection test ---
+
+add_executable(test_pipeline_binary integration/test_pipeline_binary.cpp)
+target_link_libraries(test_pipeline_binary PRIVATE vksdl)
+add_test(NAME test_pipeline_binary COMMAND test_pipeline_binary)
+
+# --- Queue ownership transfer barrier test ---
+
+add_executable(test_queue_ownership integration/test_queue_ownership.cpp)
+target_link_libraries(test_queue_ownership PRIVATE vksdl)
+add_test(NAME test_queue_ownership COMMAND test_queue_ownership)
+
+# --- Spec constants test (needs compute + triangle shaders) ---
+
+set(SPIRV_VALIDATE_SPEC_CONST_CMD "")
+if(SPIRV_VAL)
+    set(SPIRV_VALIDATE_SPEC_CONST_CMD COMMAND ${SPIRV_VAL} ${COMP_SHADER_OUT}/spec_const.comp.spv)
+endif()
+add_custom_command(
+    OUTPUT ${COMP_SHADER_OUT}/spec_const.comp.spv
+    COMMAND ${GLSLC} ${COMP_SHADER_DIR}/spec_const.comp -o ${COMP_SHADER_OUT}/spec_const.comp.spv
+    ${SPIRV_VALIDATE_SPEC_CONST_CMD}
+    DEPENDS ${COMP_SHADER_DIR}/spec_const.comp
+    COMMENT "Compiling spec_const.comp -> spec_const.comp.spv"
+)
+add_custom_target(test_spec_const_shaders ALL
+    DEPENDS ${COMP_SHADER_OUT}/spec_const.comp.spv
+)
+
+add_executable(test_spec_constants integration/test_spec_constants.cpp)
+target_link_libraries(test_spec_constants PRIVATE vksdl)
+add_test(NAME test_spec_constants COMMAND test_spec_constants)
+
+add_dependencies(test_spec_constants test_spec_const_shaders triangle_shaders)
+add_custom_command(TARGET test_spec_constants POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${COMP_SHADER_OUT}
+        $<TARGET_FILE_DIR:test_spec_constants>/shaders
+)
+add_custom_command(TARGET test_spec_constants POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_BINARY_DIR}/examples/triangle/shaders
+        $<TARGET_FILE_DIR:test_spec_constants>/shaders
+)
+
+# --- Mesh pipeline test ---
+
+add_executable(test_mesh_pipeline integration/test_mesh_pipeline.cpp)
+target_link_libraries(test_mesh_pipeline PRIVATE vksdl)
+add_test(NAME test_mesh_pipeline COMMAND test_mesh_pipeline)
+
+# --- Event test ---
+
+add_executable(test_event integration/test_event.cpp)
+target_link_libraries(test_event PRIVATE vksdl)
+add_test(NAME test_event COMMAND test_event)
+
+# --- Error recovery policy test ---
+
+add_executable(test_error_recovery integration/test_error_recovery.cpp)
+target_link_libraries(test_error_recovery PRIVATE vksdl)
+add_test(NAME test_error_recovery COMMAND test_error_recovery)
+
+# --- Command pool test ---
+
+add_executable(test_command_pool integration/test_command_pool.cpp)
+target_link_libraries(test_command_pool PRIVATE vksdl)
+add_test(NAME test_command_pool COMMAND test_command_pool)
+
+# --- Command pool factory test ---
+
+add_executable(test_command_pool_factory integration/test_command_pool_factory.cpp)
+target_link_libraries(test_command_pool_factory PRIVATE vksdl)
+add_test(NAME test_command_pool_factory COMMAND test_command_pool_factory)
+
+# --- Present timing detection test ---
+
+add_executable(test_present_timing integration/test_present_timing.cpp)
+target_link_libraries(test_present_timing PRIVATE vksdl)
+add_test(NAME test_present_timing COMMAND test_present_timing)

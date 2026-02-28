@@ -17,12 +17,12 @@ DescriptorSet::~DescriptorSet() {
 }
 
 DescriptorSet::DescriptorSet(DescriptorSet&& o) noexcept
-    : device_(o.device_), layout_(o.layout_), pool_(o.pool_),
-      set_(o.set_), bindings_(std::move(o.bindings_)) {
+    : device_(o.device_), layout_(o.layout_), pool_(o.pool_), set_(o.set_),
+      bindings_(std::move(o.bindings_)) {
     o.device_ = VK_NULL_HANDLE;
     o.layout_ = VK_NULL_HANDLE;
-    o.pool_   = VK_NULL_HANDLE;
-    o.set_    = VK_NULL_HANDLE;
+    o.pool_ = VK_NULL_HANDLE;
+    o.set_ = VK_NULL_HANDLE;
 }
 
 DescriptorSet& DescriptorSet::operator=(DescriptorSet&& o) noexcept {
@@ -33,21 +33,21 @@ DescriptorSet& DescriptorSet::operator=(DescriptorSet&& o) noexcept {
         if (layout_ != VK_NULL_HANDLE) {
             vkDestroyDescriptorSetLayout(device_, layout_, nullptr);
         }
-        device_   = o.device_;
-        layout_   = o.layout_;
-        pool_     = o.pool_;
-        set_      = o.set_;
+        device_ = o.device_;
+        layout_ = o.layout_;
+        pool_ = o.pool_;
+        set_ = o.set_;
         bindings_ = std::move(o.bindings_);
         o.device_ = VK_NULL_HANDLE;
         o.layout_ = VK_NULL_HANDLE;
-        o.pool_   = VK_NULL_HANDLE;
-        o.set_    = VK_NULL_HANDLE;
+        o.pool_ = VK_NULL_HANDLE;
+        o.set_ = VK_NULL_HANDLE;
     }
     return *this;
 }
 
-void DescriptorSet::updateBuffer(std::uint32_t binding, VkBuffer buffer,
-                                  VkDeviceSize size, VkDeviceSize offset) {
+void DescriptorSet::updateBuffer(std::uint32_t binding, VkBuffer buffer, VkDeviceSize size,
+                                 VkDeviceSize offset) {
     VkDescriptorType type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     for (const auto& b : bindings_) {
         if (b.binding == binding) {
@@ -59,40 +59,40 @@ void DescriptorSet::updateBuffer(std::uint32_t binding, VkBuffer buffer,
     VkDescriptorBufferInfo bufInfo{};
     bufInfo.buffer = buffer;
     bufInfo.offset = offset;
-    bufInfo.range  = size;
+    bufInfo.range = size;
 
     VkWriteDescriptorSet write{};
-    write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet          = set_;
-    write.dstBinding      = binding;
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = set_;
+    write.dstBinding = binding;
     write.descriptorCount = 1;
-    write.descriptorType  = type;
-    write.pBufferInfo     = &bufInfo;
+    write.descriptorType = type;
+    write.pBufferInfo = &bufInfo;
 
     vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
 }
 
-void DescriptorSet::updateAccelerationStructure(
-    std::uint32_t binding, VkAccelerationStructureKHR as) {
+void DescriptorSet::updateAccelerationStructure(std::uint32_t binding,
+                                                VkAccelerationStructureKHR as) {
 
     VkWriteDescriptorSetAccelerationStructureKHR asInfo{};
     asInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
     asInfo.accelerationStructureCount = 1;
-    asInfo.pAccelerationStructures    = &as;
+    asInfo.pAccelerationStructures = &as;
 
     VkWriteDescriptorSet write{};
-    write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.pNext           = &asInfo;
-    write.dstSet          = set_;
-    write.dstBinding      = binding;
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.pNext = &asInfo;
+    write.dstSet = set_;
+    write.dstBinding = binding;
     write.descriptorCount = 1;
-    write.descriptorType  = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
     vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
 }
 
-void DescriptorSet::updateImage(std::uint32_t binding, VkImageView view,
-                                 VkImageLayout layout, VkSampler sampler) {
+void DescriptorSet::updateImage(std::uint32_t binding, VkImageView view, VkImageLayout layout,
+                                VkSampler sampler) {
     VkDescriptorType type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     for (const auto& b : bindings_) {
         if (b.binding == binding) {
@@ -102,62 +102,62 @@ void DescriptorSet::updateImage(std::uint32_t binding, VkImageView view,
     }
 
     VkDescriptorImageInfo imgInfo{};
-    imgInfo.imageView   = view;
+    imgInfo.imageView = view;
     imgInfo.imageLayout = layout;
-    imgInfo.sampler     = sampler;
+    imgInfo.sampler = sampler;
 
     VkWriteDescriptorSet write{};
-    write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet          = set_;
-    write.dstBinding      = binding;
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = set_;
+    write.dstBinding = binding;
     write.descriptorCount = 1;
-    write.descriptorType  = type;
-    write.pImageInfo      = &imgInfo;
+    write.descriptorType = type;
+    write.pImageInfo = &imgInfo;
 
     vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
 }
 
-DescriptorSetBuilder::DescriptorSetBuilder(const Device& device)
-    : device_(device.vkDevice()) {}
+DescriptorSetBuilder::DescriptorSetBuilder(const Device& device) : device_(device.vkDevice()) {}
 
-DescriptorSetBuilder& DescriptorSetBuilder::addUniformBuffer(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorSetBuilder& DescriptorSetBuilder::addUniformBuffer(std::uint32_t binding,
+                                                             VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags);
 }
 
-DescriptorSetBuilder& DescriptorSetBuilder::addDynamicUniformBuffer(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorSetBuilder& DescriptorSetBuilder::addDynamicUniformBuffer(std::uint32_t binding,
+                                                                    VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, stageFlags);
 }
 
-DescriptorSetBuilder& DescriptorSetBuilder::addStorageBuffer(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorSetBuilder& DescriptorSetBuilder::addStorageBuffer(std::uint32_t binding,
+                                                             VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, stageFlags);
 }
 
-DescriptorSetBuilder& DescriptorSetBuilder::addStorageImage(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorSetBuilder& DescriptorSetBuilder::addStorageImage(std::uint32_t binding,
+                                                            VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, stageFlags);
 }
 
-DescriptorSetBuilder& DescriptorSetBuilder::addCombinedImageSampler(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorSetBuilder& DescriptorSetBuilder::addCombinedImageSampler(std::uint32_t binding,
+                                                                    VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags);
 }
 
-DescriptorSetBuilder& DescriptorSetBuilder::addAccelerationStructure(
-    std::uint32_t binding, VkShaderStageFlags stageFlags) {
+DescriptorSetBuilder&
+DescriptorSetBuilder::addAccelerationStructure(std::uint32_t binding,
+                                               VkShaderStageFlags stageFlags) {
     return addBinding(binding, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, stageFlags);
 }
 
-DescriptorSetBuilder& DescriptorSetBuilder::addBinding(
-    std::uint32_t binding, VkDescriptorType type,
-    VkShaderStageFlags stageFlags, std::uint32_t count) {
+DescriptorSetBuilder& DescriptorSetBuilder::addBinding(std::uint32_t binding, VkDescriptorType type,
+                                                       VkShaderStageFlags stageFlags,
+                                                       std::uint32_t count) {
     VkDescriptorSetLayoutBinding lb{};
-    lb.binding         = binding;
-    lb.descriptorType  = type;
+    lb.binding = binding;
+    lb.descriptorType = type;
     lb.descriptorCount = count;
-    lb.stageFlags      = stageFlags;
+    lb.stageFlags = stageFlags;
 
     entries_.push_back({lb, type});
     return *this;
@@ -179,9 +179,9 @@ Result<DescriptorSet> DescriptorSetBuilder::build() {
     }
 
     VkDescriptorSetLayoutCreateInfo dslCI{};
-    dslCI.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    dslCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     dslCI.bindingCount = static_cast<std::uint32_t>(layoutBindings.size());
-    dslCI.pBindings    = layoutBindings.data();
+    dslCI.pBindings = layoutBindings.data();
 
     VkResult vr = vkCreateDescriptorSetLayout(device_, &dslCI, nullptr, &ds.layout_);
     if (vr != VK_SUCCESS) {
@@ -201,16 +201,15 @@ Result<DescriptorSet> DescriptorSetBuilder::build() {
             }
         }
         if (!found) {
-            poolSizes.push_back({e.layoutBinding.descriptorType,
-                                 e.layoutBinding.descriptorCount});
+            poolSizes.push_back({e.layoutBinding.descriptorType, e.layoutBinding.descriptorCount});
         }
     }
 
     VkDescriptorPoolCreateInfo poolCI{};
-    poolCI.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolCI.maxSets       = 1;
+    poolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolCI.maxSets = 1;
     poolCI.poolSizeCount = static_cast<std::uint32_t>(poolSizes.size());
-    poolCI.pPoolSizes    = poolSizes.data();
+    poolCI.pPoolSizes = poolSizes.data();
 
     vr = vkCreateDescriptorPool(device_, &poolCI, nullptr, &ds.pool_);
     if (vr != VK_SUCCESS) {
@@ -221,10 +220,10 @@ Result<DescriptorSet> DescriptorSetBuilder::build() {
     }
 
     VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool     = ds.pool_;
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = ds.pool_;
     allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts        = &ds.layout_;
+    allocInfo.pSetLayouts = &ds.layout_;
 
     vr = vkAllocateDescriptorSets(device_, &allocInfo, &ds.set_);
     if (vr != VK_SUCCESS) {

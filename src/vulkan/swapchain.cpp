@@ -1,5 +1,5 @@
-#include <vksdl/swapchain.hpp>
 #include <vksdl/surface.hpp>
+#include <vksdl/swapchain.hpp>
 
 #include <algorithm>
 #include <cstdint>
@@ -17,16 +17,17 @@ Swapchain::~Swapchain() {
 }
 
 Swapchain::Swapchain(Swapchain&& o) noexcept
-    : device_(o.device_), gpu_(o.gpu_), surface_(o.surface_),
-      swapchain_(o.swapchain_), format_(o.format_),
-      colorSpace_(o.colorSpace_), extent_(o.extent_),
-      presentMode_(o.presentMode_),
-      imageCountRequested_(o.imageCountRequested_),
-      families_(o.families_),
-      images_(std::move(o.images_)), views_(std::move(o.views_)),
-      imageReadySems_(std::move(o.imageReadySems_)), semIndex_(o.semIndex_) {
+    : device_(o.device_), gpu_(o.gpu_), surface_(o.surface_), swapchain_(o.swapchain_),
+      format_(o.format_), colorSpace_(o.colorSpace_), extent_(o.extent_),
+      presentMode_(o.presentMode_), imageCountRequested_(o.imageCountRequested_),
+      families_(o.families_), images_(std::move(o.images_)), views_(std::move(o.views_)),
+      imageReadySems_(std::move(o.imageReadySems_)), semIndex_(o.semIndex_),
+      hasPresentTiming_(o.hasPresentTiming_), useGoogleDisplayTiming_(o.useGoogleDisplayTiming_),
+      pfnGetPastTiming_(o.pfnGetPastTiming_), presentCounter_(o.presentCounter_),
+      googlePresentId_(o.googlePresentId_) {
     o.swapchain_ = VK_NULL_HANDLE;
-    o.device_    = VK_NULL_HANDLE;
+    o.device_ = VK_NULL_HANDLE;
+    o.pfnGetPastTiming_ = nullptr;
 }
 
 Swapchain& Swapchain::operator=(Swapchain&& o) noexcept {
@@ -36,22 +37,28 @@ Swapchain& Swapchain::operator=(Swapchain&& o) noexcept {
         if (swapchain_ != VK_NULL_HANDLE) {
             vkDestroySwapchainKHR(device_, swapchain_, nullptr);
         }
-        device_    = o.device_;
-        gpu_       = o.gpu_;
-        surface_   = o.surface_;
+        device_ = o.device_;
+        gpu_ = o.gpu_;
+        surface_ = o.surface_;
         swapchain_ = o.swapchain_;
-        format_    = o.format_;
+        format_ = o.format_;
         colorSpace_ = o.colorSpace_;
-        extent_    = o.extent_;
+        extent_ = o.extent_;
         presentMode_ = o.presentMode_;
         imageCountRequested_ = o.imageCountRequested_;
-        families_  = o.families_;
-        images_    = std::move(o.images_);
-        views_     = std::move(o.views_);
+        families_ = o.families_;
+        images_ = std::move(o.images_);
+        views_ = std::move(o.views_);
         imageReadySems_ = std::move(o.imageReadySems_);
-        semIndex_  = o.semIndex_;
+        semIndex_ = o.semIndex_;
+        hasPresentTiming_ = o.hasPresentTiming_;
+        useGoogleDisplayTiming_ = o.useGoogleDisplayTiming_;
+        pfnGetPastTiming_ = o.pfnGetPastTiming_;
+        presentCounter_ = o.presentCounter_;
+        googlePresentId_ = o.googlePresentId_;
         o.swapchain_ = VK_NULL_HANDLE;
-        o.device_    = VK_NULL_HANDLE;
+        o.device_ = VK_NULL_HANDLE;
+        o.pfnGetPastTiming_ = nullptr;
     }
     return *this;
 }
@@ -69,27 +76,25 @@ Result<void> Swapchain::createViews() {
     views_.resize(images_.size());
     for (std::size_t i = 0; i < images_.size(); ++i) {
         VkImageViewCreateInfo ci{};
-        ci.sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        ci.image    = images_[i];
+        ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        ci.image = images_[i];
         ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        ci.format   = format_;
+        ci.format = format_;
         ci.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
         ci.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
         ci.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
         ci.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        ci.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-        ci.subresourceRange.baseMipLevel   = 0;
-        ci.subresourceRange.levelCount     = 1;
+        ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        ci.subresourceRange.baseMipLevel = 0;
+        ci.subresourceRange.levelCount = 1;
         ci.subresourceRange.baseArrayLayer = 0;
-        ci.subresourceRange.layerCount     = 1;
+        ci.subresourceRange.layerCount = 1;
 
         VkResult vr = vkCreateImageView(device_, &ci, nullptr, &views_[i]);
         if (vr != VK_SUCCESS) {
             destroyViews();
-            return Error{"create swapchain image view",
-                         static_cast<std::int32_t>(vr),
-                         "vkCreateImageView failed for swapchain image " +
-                         std::to_string(i)};
+            return Error{"create swapchain image view", static_cast<std::int32_t>(vr),
+                         "vkCreateImageView failed for swapchain image " + std::to_string(i)};
         }
     }
     return {};
@@ -115,8 +120,7 @@ Result<void> Swapchain::createSemaphores() {
         VkResult vr = vkCreateSemaphore(device_, &ci, nullptr, &imageReadySems_[i]);
         if (vr != VK_SUCCESS) {
             destroySemaphores();
-            return Error{"create swapchain semaphore",
-                         static_cast<std::int32_t>(vr),
+            return Error{"create swapchain semaphore", static_cast<std::int32_t>(vr),
                          "vkCreateSemaphore failed for image " + std::to_string(i)};
         }
     }
@@ -130,8 +134,8 @@ Result<SwapchainImage> Swapchain::nextImage() {
     semIndex_ = (semIndex_ + 1) % static_cast<std::uint32_t>(imageReadySems_.size());
 
     std::uint32_t index = 0;
-    VkResult vr = vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX,
-                                         sem, VK_NULL_HANDLE, &index);
+    VkResult vr =
+        vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, sem, VK_NULL_HANDLE, &index);
 
     if (vr == VK_ERROR_OUT_OF_DATE_KHR) {
         return Error{"acquire image", static_cast<std::int32_t>(vr),
@@ -145,33 +149,84 @@ Result<SwapchainImage> Swapchain::nextImage() {
     return SwapchainImage{index, images_[index], views_[index], sem};
 }
 
-VkResult Swapchain::present(VkQueue presentQueue,
-                            std::uint32_t imageIndex,
+VkResult Swapchain::present(VkQueue presentQueue, std::uint32_t imageIndex,
                             VkSemaphore renderFinished) {
+    ++presentCounter_;
+
     VkPresentInfoKHR pi{};
-    pi.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    pi.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     pi.waitSemaphoreCount = 1;
-    pi.pWaitSemaphores    = &renderFinished;
-    pi.swapchainCount     = 1;
-    pi.pSwapchains        = &swapchain_;
-    pi.pImageIndices      = &imageIndex;
+    pi.pWaitSemaphores = &renderFinished;
+    pi.swapchainCount = 1;
+    pi.pSwapchains = &swapchain_;
+    pi.pImageIndices = &imageIndex;
+
+    // Chain VkPresentTimesInfoGOOGLE when using VK_GOOGLE_display_timing so
+    // the driver can correlate presentId with the recorded timing data.
+    VkPresentTimeGOOGLE presentTime{};
+    VkPresentTimesInfoGOOGLE timesInfo{};
+    if (useGoogleDisplayTiming_) {
+        presentTime.presentID = ++googlePresentId_;
+        presentTime.desiredPresentTime = 0; // ASAP
+        timesInfo.sType = VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE;
+        timesInfo.pNext = nullptr;
+        timesInfo.swapchainCount = 1;
+        timesInfo.pTimes = &presentTime;
+        pi.pNext = &timesInfo;
+    }
 
     return vkQueuePresentKHR(presentQueue, &pi);
 }
 
+std::vector<PresentTiming> Swapchain::queryPastPresentTiming() const {
+    if (!hasPresentTiming_ || swapchain_ == VK_NULL_HANDLE) {
+        return {};
+    }
+
+    if (useGoogleDisplayTiming_ && pfnGetPastTiming_) {
+        std::uint32_t count = 0;
+        VkResult vr = pfnGetPastTiming_(device_, swapchain_, &count, nullptr);
+        if (vr != VK_SUCCESS || count == 0)
+            return {};
+
+        std::vector<VkPastPresentationTimingGOOGLE> raw(count);
+        vr = pfnGetPastTiming_(device_, swapchain_, &count, raw.data());
+        if (vr != VK_SUCCESS && vr != VK_INCOMPLETE)
+            return {};
+
+        std::vector<PresentTiming> result;
+        result.reserve(count);
+        for (std::uint32_t i = 0; i < count; ++i) {
+            PresentTiming pt;
+            pt.presentId = raw[i].presentID;
+            pt.desiredPresentTime = raw[i].desiredPresentTime;
+            pt.actualPresentTime = raw[i].actualPresentTime;
+            pt.earliestPresentTime = raw[i].earliestPresentTime;
+            pt.presentMargin = raw[i].presentMargin;
+            result.push_back(pt);
+        }
+        return result;
+    }
+
+    // VK_EXT_present_timing: function pointers not yet defined in SDK headers.
+    // Return empty until SDK support is available.
+    return {};
+}
+
 Result<void> Swapchain::recreate(Size newSize) {
+    if (newSize.width == 0 || newSize.height == 0) {
+        return {}; // minimized/no drawable area
+    }
+
     destroySemaphores();
     destroyViews();
 
     VkSurfaceCapabilitiesKHR caps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu_, surface_, &caps);
 
-    extent_.width  = std::clamp(newSize.width,
-                                caps.minImageExtent.width,
-                                caps.maxImageExtent.width);
-    extent_.height = std::clamp(newSize.height,
-                                caps.minImageExtent.height,
-                                caps.maxImageExtent.height);
+    extent_.width = std::clamp(newSize.width, caps.minImageExtent.width, caps.maxImageExtent.width);
+    extent_.height =
+        std::clamp(newSize.height, caps.minImageExtent.height, caps.maxImageExtent.height);
 
     if (extent_.width == 0 || extent_.height == 0) {
         return {}; // minimized, skip
@@ -180,28 +235,27 @@ Result<void> Swapchain::recreate(Size newSize) {
     VkSwapchainKHR oldSwapchain = swapchain_;
 
     VkSwapchainCreateInfoKHR ci{};
-    ci.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    ci.surface          = surface_;
-    ci.minImageCount    = imageCountRequested_;
-    ci.imageFormat      = format_;
-    ci.imageColorSpace  = colorSpace_;
-    ci.imageExtent      = extent_;
+    ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    ci.surface = surface_;
+    ci.minImageCount = imageCountRequested_;
+    ci.imageFormat = format_;
+    ci.imageColorSpace = colorSpace_;
+    ci.imageExtent = extent_;
     ci.imageArrayLayers = 1;
-    ci.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                        | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    ci.preTransform     = caps.currentTransform;
-    ci.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    ci.presentMode      = presentMode_;
-    ci.clipped          = VK_TRUE;
-    ci.oldSwapchain     = oldSwapchain;
+    ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    ci.preTransform = caps.currentTransform;
+    ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    ci.presentMode = presentMode_;
+    ci.clipped = VK_TRUE;
+    ci.oldSwapchain = oldSwapchain;
 
     std::uint32_t familyIndices[] = {families_.graphics, families_.present};
     if (families_.shared()) {
         ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     } else {
-        ci.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
+        ci.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         ci.queueFamilyIndexCount = 2;
-        ci.pQueueFamilyIndices   = familyIndices;
+        ci.pQueueFamilyIndices = familyIndices;
     }
 
     VkSwapchainKHR newSwapchain = VK_NULL_HANDLE;
@@ -225,7 +279,8 @@ Result<void> Swapchain::recreate(Size newSize) {
     vkGetSwapchainImagesKHR(device_, swapchain_, &count, images_.data());
 
     auto viewRes = createViews();
-    if (!viewRes.ok()) return viewRes.error();
+    if (!viewRes.ok())
+        return viewRes.error();
 
     return createSemaphores();
 }
@@ -236,14 +291,18 @@ Result<void> Swapchain::recreate(const Device& device, const Window& window) {
 }
 
 SwapchainBuilder::SwapchainBuilder(const Device& device, const Surface& surface)
-    : device_(device.vkDevice()),
-      gpu_(device.vkPhysicalDevice()),
-      surface_(surface.vkSurface()),
-      families_(device.queueFamilies()) {}
+    : device_(device.vkDevice()), gpu_(device.vkPhysicalDevice()), surface_(surface.vkSurface()),
+      families_(device.queueFamilies()), hasPresentTiming_(device.hasPresentTiming()),
+      // Prefer VK_EXT_present_timing (newer) -- fall back to GOOGLE when only that is available.
+      useGoogleTiming_(device.hasPresentTiming() && !device.hasExtPresentTiming()) {}
 
 SwapchainBuilder& SwapchainBuilder::size(Size windowPixelSize) {
     size_ = windowPixelSize;
     return *this;
+}
+
+SwapchainBuilder& SwapchainBuilder::forWindow(const Window& window) {
+    return size(window.pixelSize());
 }
 
 SwapchainBuilder& SwapchainBuilder::preferSrgb() {
@@ -340,12 +399,10 @@ Result<Swapchain> SwapchainBuilder::build() {
     if (caps.currentExtent.width != UINT32_MAX) {
         extent = caps.currentExtent;
     } else {
-        extent.width  = std::clamp(size_.width,
-                                   caps.minImageExtent.width,
-                                   caps.maxImageExtent.width);
-        extent.height = std::clamp(size_.height,
-                                   caps.minImageExtent.height,
-                                   caps.maxImageExtent.height);
+        extent.width =
+            std::clamp(size_.width, caps.minImageExtent.width, caps.maxImageExtent.width);
+        extent.height =
+            std::clamp(size_.height, caps.minImageExtent.height, caps.maxImageExtent.height);
     }
 
     std::uint32_t imgCount = imageCount_;
@@ -357,40 +414,45 @@ Result<Swapchain> SwapchainBuilder::build() {
     }
 
     VkSwapchainCreateInfoKHR ci{};
-    ci.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    ci.surface          = surface_;
-    ci.minImageCount    = imgCount;
-    ci.imageFormat      = chosen.format;
-    ci.imageColorSpace  = chosen.colorSpace;
-    ci.imageExtent      = extent;
+    ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    ci.surface = surface_;
+    ci.minImageCount = imgCount;
+    ci.imageFormat = chosen.format;
+    ci.imageColorSpace = chosen.colorSpace;
+    ci.imageExtent = extent;
     ci.imageArrayLayers = 1;
-    ci.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                        | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    ci.preTransform     = caps.currentTransform;
-    ci.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    ci.presentMode      = vkMode;
-    ci.clipped          = VK_TRUE;
-    ci.oldSwapchain     = VK_NULL_HANDLE;
+    ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    ci.preTransform = caps.currentTransform;
+    ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    ci.presentMode = vkMode;
+    ci.clipped = VK_TRUE;
+    ci.oldSwapchain = VK_NULL_HANDLE;
 
     std::uint32_t familyIndices[] = {families_.graphics, families_.present};
     if (families_.shared()) {
         ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     } else {
-        ci.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
+        ci.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         ci.queueFamilyIndexCount = 2;
-        ci.pQueueFamilyIndices   = familyIndices;
+        ci.pQueueFamilyIndices = familyIndices;
     }
 
     Swapchain sc;
-    sc.device_    = device_;
-    sc.gpu_       = gpu_;
-    sc.surface_   = surface_;
-    sc.format_    = chosen.format;
+    sc.device_ = device_;
+    sc.gpu_ = gpu_;
+    sc.surface_ = surface_;
+    sc.format_ = chosen.format;
     sc.colorSpace_ = chosen.colorSpace;
-    sc.extent_    = extent;
+    sc.extent_ = extent;
     sc.presentMode_ = vkMode;
     sc.imageCountRequested_ = imgCount;
-    sc.families_  = families_;
+    sc.families_ = families_;
+    sc.hasPresentTiming_ = hasPresentTiming_;
+    sc.useGoogleDisplayTiming_ = useGoogleTiming_;
+    if (useGoogleTiming_) {
+        sc.pfnGetPastTiming_ = reinterpret_cast<PFN_vkGetPastPresentationTimingGOOGLE>(
+            vkGetDeviceProcAddr(device_, "vkGetPastPresentationTimingGOOGLE"));
+    }
 
     VkResult vr = vkCreateSwapchainKHR(device_, &ci, nullptr, &sc.swapchain_);
     if (vr != VK_SUCCESS) {
@@ -404,10 +466,12 @@ Result<Swapchain> SwapchainBuilder::build() {
     vkGetSwapchainImagesKHR(device_, sc.swapchain_, &count, sc.images_.data());
 
     auto viewResult = sc.createViews();
-    if (!viewResult.ok()) return viewResult.error();
+    if (!viewResult.ok())
+        return viewResult.error();
 
     auto semResult = sc.createSemaphores();
-    if (!semResult.ok()) return semResult.error();
+    if (!semResult.ok())
+        return semResult.error();
 
     return sc;
 }

@@ -12,11 +12,11 @@
 namespace vksdl {
 
 class WindowImpl {
-public:
-    SDL_Window*        sdlWindow = nullptr;
-    SDL_WindowID       windowId  = 0;
-    bool               resized   = false;
-    std::queue<Event>  events;
+  public:
+    SDL_Window* sdlWindow = nullptr;
+    SDL_WindowID windowId = 0;
+    bool resized = false;
+    std::queue<Event> events;
 };
 
 } // namespace vksdl

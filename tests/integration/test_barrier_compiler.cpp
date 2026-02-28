@@ -13,13 +13,13 @@ int main() {
         state.currentLayout = VK_IMAGE_LAYOUT_GENERAL;
 
         appendImageBarrier(batch, ImageBarrierRequest{
-            .image  = VK_NULL_HANDLE,
-            .range  = {0, 1, 0, 1},
-            .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-            .src    = state,
-            .dst    = state,
-            .isRead = true,
-        });
+                                      .image = VK_NULL_HANDLE,
+                                      .range = {0, 1, 0, 1},
+                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .src = state,
+                                      .dst = state,
+                                      .isRead = true,
+                                  });
 
         assert(batch.empty());
         std::printf("  no-op barrier: ok\n");
@@ -33,18 +33,18 @@ int main() {
         // No write recorded (lastWriteAccess = NONE).
 
         ResourceState dst{};
-        dst.lastWriteStage      = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        dst.lastWriteStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         dst.readAccessSinceWrite = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
-        dst.currentLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        dst.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         appendImageBarrier(batch, ImageBarrierRequest{
-            .image  = VK_NULL_HANDLE,
-            .range  = {0, 1, 0, 1},
-            .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-            .src    = src,
-            .dst    = dst,
-            .isRead = true,
-        });
+                                      .image = VK_NULL_HANDLE,
+                                      .range = {0, 1, 0, 1},
+                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .src = src,
+                                      .dst = dst,
+                                      .isRead = true,
+                                  });
 
         assert(batch.empty());
         std::printf("  read-to-read no write: ok\n");
@@ -54,23 +54,23 @@ int main() {
     {
         BarrierBatch batch;
         ResourceState src{};
-        src.lastWriteStage  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        src.lastWriteStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
         src.lastWriteAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-        src.currentLayout   = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        src.currentLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         ResourceState dst{};
-        dst.lastWriteStage       = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        dst.lastWriteStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         dst.readAccessSinceWrite = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
-        dst.currentLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        dst.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         appendImageBarrier(batch, ImageBarrierRequest{
-            .image  = VK_NULL_HANDLE,
-            .range  = {0, 1, 0, 1},
-            .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-            .src    = src,
-            .dst    = dst,
-            .isRead = true,
-        });
+                                      .image = VK_NULL_HANDLE,
+                                      .range = {0, 1, 0, 1},
+                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .src = src,
+                                      .dst = dst,
+                                      .isRead = true,
+                                  });
 
         assert(batch.imageBarriers.size() == 1);
         auto& b = batch.imageBarriers[0];
@@ -87,23 +87,23 @@ int main() {
     {
         BarrierBatch batch;
         ResourceState src{};
-        src.lastWriteStage  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+        src.lastWriteStage = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
         src.lastWriteAccess = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
-        src.currentLayout   = VK_IMAGE_LAYOUT_GENERAL;
+        src.currentLayout = VK_IMAGE_LAYOUT_GENERAL;
 
         ResourceState dst{};
-        dst.lastWriteStage  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+        dst.lastWriteStage = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
         dst.lastWriteAccess = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
-        dst.currentLayout   = VK_IMAGE_LAYOUT_GENERAL;
+        dst.currentLayout = VK_IMAGE_LAYOUT_GENERAL;
 
         appendImageBarrier(batch, ImageBarrierRequest{
-            .image  = VK_NULL_HANDLE,
-            .range  = {0, 1, 0, 1},
-            .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-            .src    = src,
-            .dst    = dst,
-            .isRead = false,
-        });
+                                      .image = VK_NULL_HANDLE,
+                                      .range = {0, 1, 0, 1},
+                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .src = src,
+                                      .dst = dst,
+                                      .isRead = false,
+                                  });
 
         assert(batch.imageBarriers.size() == 1);
         auto& b = batch.imageBarriers[0];
@@ -121,18 +121,18 @@ int main() {
         src.currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         ResourceState dst{};
-        dst.lastWriteStage  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dst.lastWriteStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
         dst.lastWriteAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-        dst.currentLayout   = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        dst.currentLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         appendImageBarrier(batch, ImageBarrierRequest{
-            .image  = VK_NULL_HANDLE,
-            .range  = {0, 1, 0, 1},
-            .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-            .src    = src,
-            .dst    = dst,
-            .isRead = false,
-        });
+                                      .image = VK_NULL_HANDLE,
+                                      .range = {0, 1, 0, 1},
+                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .src = src,
+                                      .dst = dst,
+                                      .isRead = false,
+                                  });
 
         assert(batch.imageBarriers.size() == 1);
         auto& b = batch.imageBarriers[0];
@@ -147,21 +147,21 @@ int main() {
     {
         BarrierBatch batch;
         ResourceState src{};
-        src.lastWriteStage  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+        src.lastWriteStage = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
         src.lastWriteAccess = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
 
         ResourceState dst{};
-        dst.lastWriteStage       = VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT;
+        dst.lastWriteStage = VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT;
         dst.readAccessSinceWrite = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
 
         appendBufferBarrier(batch, BufferBarrierRequest{
-            .buffer = VK_NULL_HANDLE,
-            .offset = 0,
-            .size   = VK_WHOLE_SIZE,
-            .src    = src,
-            .dst    = dst,
-            .isRead = true,
-        });
+                                       .buffer = VK_NULL_HANDLE,
+                                       .offset = 0,
+                                       .size = VK_WHOLE_SIZE,
+                                       .src = src,
+                                       .dst = dst,
+                                       .isRead = true,
+                                   });
 
         assert(batch.bufferBarriers.size() == 1);
         auto& b = batch.bufferBarriers[0];
@@ -178,25 +178,31 @@ int main() {
 
         // Add two image barriers.
         ResourceState src{};
-        src.lastWriteStage  = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        src.lastWriteStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
         src.lastWriteAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-        src.currentLayout   = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        src.currentLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
         ResourceState dst{};
-        dst.lastWriteStage       = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        dst.lastWriteStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         dst.readAccessSinceWrite = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
-        dst.currentLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        dst.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         appendImageBarrier(batch, ImageBarrierRequest{
-            .image = VK_NULL_HANDLE, .range = {0, 1, 0, 1},
-            .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-            .src = src, .dst = dst, .isRead = true,
-        });
+                                      .image = VK_NULL_HANDLE,
+                                      .range = {0, 1, 0, 1},
+                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .src = src,
+                                      .dst = dst,
+                                      .isRead = true,
+                                  });
         appendImageBarrier(batch, ImageBarrierRequest{
-            .image = VK_NULL_HANDLE, .range = {0, 1, 0, 1},
-            .aspect = VK_IMAGE_ASPECT_DEPTH_BIT,
-            .src = src, .dst = dst, .isRead = true,
-        });
+                                      .image = VK_NULL_HANDLE,
+                                      .range = {0, 1, 0, 1},
+                                      .aspect = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                      .src = src,
+                                      .dst = dst,
+                                      .isRead = true,
+                                  });
 
         assert(batch.imageBarriers.size() == 2);
         assert(!batch.empty());
@@ -225,26 +231,26 @@ int main() {
 
         // State after write (pass A) and first reader barrier (pass B).
         ResourceState afterBBarrier{};
-        afterBBarrier.lastWriteStage      = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-        afterBBarrier.lastWriteAccess     = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        afterBBarrier.lastWriteStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        afterBBarrier.lastWriteAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
         afterBBarrier.readStagesSinceWrite = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
         afterBBarrier.readAccessSinceWrite = VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
-        afterBBarrier.currentLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        afterBBarrier.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         // Pass C wants to read in fragment shader.
         ResourceState dstC{};
-        dstC.lastWriteStage       = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        dstC.lastWriteStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         dstC.readAccessSinceWrite = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
-        dstC.currentLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        dstC.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         appendImageBarrier(batch, ImageBarrierRequest{
-            .image  = VK_NULL_HANDLE,
-            .range  = {0, 1, 0, 1},
-            .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-            .src    = afterBBarrier,
-            .dst    = dstC,
-            .isRead = true,
-        });
+                                      .image = VK_NULL_HANDLE,
+                                      .range = {0, 1, 0, 1},
+                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .src = afterBBarrier,
+                                      .dst = dstC,
+                                      .isRead = true,
+                                  });
 
         // A barrier MUST be emitted (execution dep from write stage).
         assert(batch.imageBarriers.size() == 1);
@@ -275,37 +281,37 @@ int main() {
     {
         BarrierBatch batch;
         ResourceState src{};
-        src.lastWriteStage        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-        src.lastWriteAccess       = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-        src.readStagesSinceWrite  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
-                                  | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-        src.readAccessSinceWrite  = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT
-                                  | VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
-        src.currentLayout         = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        src.lastWriteStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        src.lastWriteAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        src.readStagesSinceWrite =
+            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+        src.readAccessSinceWrite =
+            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT | VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
+        src.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         ResourceState dst{};
-        dst.lastWriteStage  = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        dst.lastWriteStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
         dst.lastWriteAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-        dst.currentLayout   = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        dst.currentLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
         appendImageBarrier(batch, ImageBarrierRequest{
-            .image  = VK_NULL_HANDLE,
-            .range  = {0, 1, 0, 1},
-            .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-            .src    = src,
-            .dst    = dst,
-            .isRead = false,
-        });
+                                      .image = VK_NULL_HANDLE,
+                                      .range = {0, 1, 0, 1},
+                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .src = src,
+                                      .dst = dst,
+                                      .isRead = false,
+                                  });
 
         assert(batch.imageBarriers.size() == 1);
         auto& b = batch.imageBarriers[0];
         // srcStage should include writer AND all readers.
-        assert(b.srcStageMask == (VK_PIPELINE_STAGE_2_TRANSFER_BIT
-            | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
-            | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT));
-        assert(b.srcAccessMask == (VK_ACCESS_2_TRANSFER_WRITE_BIT
-            | VK_ACCESS_2_SHADER_SAMPLED_READ_BIT
-            | VK_ACCESS_2_SHADER_STORAGE_READ_BIT));
+        assert(b.srcStageMask ==
+               (VK_PIPELINE_STAGE_2_TRANSFER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT));
+        assert(b.srcAccessMask ==
+               (VK_ACCESS_2_TRANSFER_WRITE_BIT | VK_ACCESS_2_SHADER_SAMPLED_READ_BIT |
+                VK_ACCESS_2_SHADER_STORAGE_READ_BIT));
         std::printf("  write-after-read: ok\n");
     }
 

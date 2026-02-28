@@ -1,8 +1,11 @@
 #include <vksdl/app.hpp>
 #include <vksdl/window.hpp>
 
+#include <SDL3/SDL.h>
+
 #include <cassert>
 #include <cstdio>
+#include <string>
 
 int main() {
     auto appResult = vksdl::App::create();
@@ -16,6 +19,15 @@ int main() {
 
     // SDL escape hatch should be valid
     assert(window.sdlWindow() != nullptr);
+
+    auto setTitle = window.setTitle("vksdl test updated title");
+    assert(setTitle.ok());
+    assert(std::string(SDL_GetWindowTitle(window.sdlWindow())) == "vksdl test updated title");
+
+    int esc = vksdl::scancodeFromKey(vksdl::Key::Escape);
+    assert(esc != 0);
+    assert(vksdl::keyFromScancode(esc) == vksdl::Key::Escape);
+    assert(vksdl::keyFromScancode(0x7fffffff) == vksdl::Key::Unknown);
 
     // Pixel size should match requested size
     auto size = window.pixelSize();

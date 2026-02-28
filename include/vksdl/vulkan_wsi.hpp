@@ -16,7 +16,6 @@ namespace vksdl::wsi {
 
 // Creates a VkSurfaceKHR for the given window via SDL_Vulkan_CreateSurface.
 // Caller gets RAII Surface from Surface::create() -- this is the raw helper.
-[[nodiscard]] Result<VkSurfaceKHR> createSurface(VkInstance instance,
-                                                  const Window& window);
+[[nodiscard]] Result<VkSurfaceKHR> createSurface(VkInstance instance, const Window& window);
 
 } // namespace vksdl::wsi

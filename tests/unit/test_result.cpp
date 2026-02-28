@@ -1,7 +1,12 @@
 #include <vksdl/result.hpp>
 
 #include <cassert>
+#ifndef VKSDL_ENABLE_EXCEPTIONS
+#define VKSDL_ENABLE_EXCEPTIONS 1
+#endif
+#if VKSDL_ENABLE_EXCEPTIONS
 #include <stdexcept>
+#endif
 #include <string>
 
 int main() {
@@ -32,12 +37,13 @@ int main() {
     // Returned from function
     {
         auto make = [](bool succeed) -> vksdl::Result<int> {
-            if (succeed) return 7;
+            if (succeed)
+                return 7;
             return vksdl::Error{"test op", 0, "nope"};
         };
 
         auto good = make(true);
-        auto bad  = make(false);
+        auto bad = make(false);
         assert(good.ok() && good.value() == 7);
         assert(!bad.ok() && bad.error().message == "nope");
     }
@@ -62,7 +68,8 @@ int main() {
     // Result<void> returned from function
     {
         auto attempt = [](bool succeed) -> vksdl::Result<void> {
-            if (succeed) return {};
+            if (succeed)
+                return {};
             return vksdl::Error{"op", 0, "nope"};
         };
 
@@ -77,11 +84,10 @@ int main() {
         assert(val == 99);
     }
 
-    // orThrow on error
+#if VKSDL_ENABLE_EXCEPTIONS
+    // orThrow on error (exceptions-enabled builds only).
     {
-        auto make = []() -> vksdl::Result<int> {
-            return vksdl::Error{"test", -1, "boom"};
-        };
+        auto make = []() -> vksdl::Result<int> { return vksdl::Error{"test", -1, "boom"}; };
         bool caught = false;
         try {
             make().orThrow();
@@ -93,6 +99,7 @@ int main() {
         }
         assert(caught);
     }
+#endif
 
     // orThrow on Result<void> success
     {
@@ -100,7 +107,8 @@ int main() {
         std::move(r).orThrow();
     }
 
-    // orThrow on Result<void> error
+#if VKSDL_ENABLE_EXCEPTIONS
+    // orThrow on Result<void> error (exceptions-enabled builds only).
     {
         vksdl::Result<void> r = vksdl::Error{"compile", -3, "failed"};
         bool caught = false;
@@ -113,6 +121,7 @@ int main() {
         }
         assert(caught);
     }
+#endif
 
     return 0;
 }
