@@ -9,12 +9,11 @@
 namespace vksdl {
 
 static constexpr float kPi = std::numbers::pi_v<float>;
-static constexpr float kPitchLimit = kPi * 0.49f;  // ~88.2 degrees
+static constexpr float kPitchLimit = kPi * 0.49f; // ~88.2 degrees
 
-OrbitCamera::OrbitCamera(float targetX, float targetY, float targetZ,
-                         float distance, float yaw, float pitch)
-    : tgt_{targetX, targetY, targetZ},
-      yaw_(yaw), pitch_(pitch), dist_(distance) {
+OrbitCamera::OrbitCamera(float targetX, float targetY, float targetZ, float distance, float yaw,
+                         float pitch)
+    : tgt_{targetX, targetY, targetZ}, yaw_(yaw), pitch_(pitch), dist_(distance) {
     dist_ = std::max(dist_, minDist_);
     recomputeBasis();
 }
@@ -66,7 +65,7 @@ void OrbitCamera::recomputeBasis() {
 bool OrbitCamera::update(float dt) {
     quit_ = false;
     bool moved = false;
-    (void)dt;  // orbit camera is purely input-driven, no velocity integration
+    (void) dt; // orbit camera is purely input-driven, no velocity integration
 
     // Always drain mouse deltas to prevent accumulation spikes.
     float mx = 0.0f;
@@ -80,7 +79,7 @@ bool OrbitCamera::update(float dt) {
     // LMB: orbit (yaw/pitch).
     if ((buttons & SDL_BUTTON_LMASK) != 0) {
         if (mx != 0.0f || my != 0.0f) {
-            yaw_   += mx * orbitSens_;
+            yaw_ += mx * orbitSens_;
             pitch_ -= my * orbitSens_;
             pitch_ = std::clamp(pitch_, -kPitchLimit, kPitchLimit);
             moved = true;
