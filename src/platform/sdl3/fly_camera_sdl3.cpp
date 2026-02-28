@@ -1,12 +1,13 @@
 #include <vksdl/fly_camera.hpp>
 
-#include <SDL3/SDL.h>
+#include <SDL3/SDL.h> // IWYU pragma: keep
 
 #include <cmath>
+#include <numbers>
 
 namespace vksdl {
 
-static constexpr float kPi = 3.14159265358979323846f;
+static constexpr float kPi = std::numbers::pi_v<float>;
 
 FlyCamera::FlyCamera(float x, float y, float z, float yaw, float pitch)
     : pos_{x, y, z}, yaw_(yaw), pitch_(pitch) {
@@ -14,8 +15,10 @@ FlyCamera::FlyCamera(float x, float y, float z, float yaw, float pitch)
 }
 
 void FlyCamera::recomputeBasis() {
-    float cy = std::cos(yaw_), sy = std::sin(yaw_);
-    float cp = std::cos(pitch_), sp = std::sin(pitch_);
+    float cy = std::cos(yaw_);
+    float sy = std::sin(yaw_);
+    float cp = std::cos(pitch_);
+    float sp = std::sin(pitch_);
 
     fwd_[0] = sy * cp;
     fwd_[1] = sp;
@@ -43,17 +46,20 @@ bool FlyCamera::update(float dt) {
     bool moved = false;
 
     // Mouse look (right mouse button held).
-    float mx = 0.0f, my = 0.0f;
+    float mx = 0.0f;
+    float my = 0.0f;
     Uint32 buttons = SDL_GetRelativeMouseState(&mx, &my);
-    if (buttons & SDL_BUTTON_RMASK) {
+    if ((buttons & SDL_BUTTON_RMASK) != 0) {
         if (mx != 0.0f || my != 0.0f) {
             yaw_ += mx * lookSens_;
             pitch_ -= my * lookSens_;
 
-            if (pitch_ > kPi * 0.49f)
+            if (pitch_ > kPi * 0.49f) {
                 pitch_ = kPi * 0.49f;
-            if (pitch_ < -kPi * 0.49f)
+            }
+            if (pitch_ < -kPi * 0.49f) {
                 pitch_ = -kPi * 0.49f;
+            }
 
             moved = true;
         }
@@ -69,13 +75,18 @@ bool FlyCamera::update(float dt) {
 
     // Flat forward/right (XZ plane, no pitch component).
     // forward = (sin(yaw), cos(yaw)), right = (cos(yaw), -sin(yaw))
-    float sy = std::sin(yaw_), cy = std::cos(yaw_);
+    float sy = std::sin(yaw_);
+    float cy = std::cos(yaw_);
     float flatFwdLen = std::sqrt(sy * sy + cy * cy);
     // cppcheck-suppress duplicateAssignExpression ; frx == ffz is correct (2D perpendicular)
-    float ffx = sy / flatFwdLen, ffz = cy / flatFwdLen;
-    float frx = cy / flatFwdLen, frz = -sy / flatFwdLen;
+    float ffx = sy / flatFwdLen;
+    float ffz = cy / flatFwdLen;
+    float frx = cy / flatFwdLen;
+    float frz = -sy / flatFwdLen;
 
-    float moveX = 0.0f, moveY = 0.0f, moveZ = 0.0f;
+    float moveX = 0.0f;
+    float moveY = 0.0f;
+    float moveZ = 0.0f;
     if (keys[SDL_SCANCODE_W]) {
         moveX += ffx;
         moveZ += ffz;

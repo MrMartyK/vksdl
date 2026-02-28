@@ -1,13 +1,14 @@
 #include <vksdl/orbit_camera.hpp>
 
-#include <SDL3/SDL.h>
+#include <SDL3/SDL.h> // IWYU pragma: keep
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 namespace vksdl {
 
-static constexpr float kPi = 3.14159265358979323846f;
+static constexpr float kPi = std::numbers::pi_v<float>;
 static constexpr float kPitchLimit = kPi * 0.49f;  // ~88.2 degrees
 
 OrbitCamera::OrbitCamera(float targetX, float targetY, float targetZ,
@@ -29,8 +30,10 @@ void OrbitCamera::setDistance(float d) {
 }
 
 void OrbitCamera::recomputeBasis() {
-    float cy = std::cos(yaw_),   sy = std::sin(yaw_);
-    float cp = std::cos(pitch_), sp = std::sin(pitch_);
+    float cy = std::cos(yaw_);
+    float sy = std::sin(yaw_);
+    float cp = std::cos(pitch_);
+    float sp = std::sin(pitch_);
 
     // Forward: from eye toward target (same formula as FlyCamera).
     fwd_[0] = sy * cp;
@@ -64,7 +67,8 @@ bool OrbitCamera::update(float dt) {
     (void)dt;  // orbit camera is purely input-driven, no velocity integration
 
     // Always drain mouse deltas to prevent accumulation spikes.
-    float mx = 0.0f, my = 0.0f;
+    float mx = 0.0f;
+    float my = 0.0f;
     Uint32 buttons = SDL_GetRelativeMouseState(&mx, &my);
 
     // Consume scroll delta accumulated via feedScrollDelta().
@@ -72,7 +76,7 @@ bool OrbitCamera::update(float dt) {
     pendingScroll_ = 0.0f;
 
     // LMB: orbit (yaw/pitch).
-    if (buttons & SDL_BUTTON_LMASK) {
+    if ((buttons & SDL_BUTTON_LMASK) != 0) {
         if (mx != 0.0f || my != 0.0f) {
             yaw_   += mx * orbitSens_;
             pitch_ -= my * orbitSens_;
@@ -82,7 +86,7 @@ bool OrbitCamera::update(float dt) {
     }
 
     // MMB or RMB: pan (translate target in camera right/up plane).
-    if (buttons & (SDL_BUTTON_MMASK | SDL_BUTTON_RMASK)) {
+    if ((buttons & (SDL_BUTTON_MMASK | SDL_BUTTON_RMASK)) != 0) {
         if (mx != 0.0f || my != 0.0f) {
             // World units per pixel at target depth.
             float spanY = 2.0f * dist_ * std::tan(fovY_ * 0.5f);

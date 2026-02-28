@@ -20,10 +20,10 @@ Checks: >
   modernize-use-nullptr,
   modernize-use-auto,
   misc-unused-*,
-  misc-include-cleaner,
   readability-*,
   -readability-identifier-length,
   -readability-magic-numbers,
+  -readability-uppercase-literal-suffix,
   readability-redundant-*,
   -readability-redundant-member-init
 

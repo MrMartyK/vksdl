@@ -31,9 +31,11 @@ Surface& Surface::operator=(Surface&& o) noexcept {
 }
 
 Result<Surface> Surface::create(const Instance& instance, const Window& window) {
-    auto vkInst = instance.vkInstance();
+    auto* vkInst = instance.vkInstance();
     auto result = wsi::createSurface(vkInst, window);
-    if (!result.ok()) return result.error();
+    if (!result.ok()) {
+        return result.error();
+    }
 
     Surface s;
     s.instance_ = vkInst;
